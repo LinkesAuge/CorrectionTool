@@ -1,0 +1,140 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# App Plan
+
+This contains the goal/purpose and implementation plan of our app which will be called "Chest Tracker Correction Tool".
+
+## Goal / Purpose
+This app is designed to read text input and correct these inputs based on a list provided as csv.
+We want to use this input data and correct any errors that the OCR app could have made like wrong characters, bad text encoding etc.
+
+## TXT INPUT
+Here is a typical example of a text file that needs to be read:
+"""
+Forgotten Chest
+From: Engelchen
+Source: Level 15 Crypt
+Rare Dragon Chest
+From: Engelchen
+Source: Level 15 rare Crypt
+Barbarian Chest
+From: Darkhammer
+Scarab Chest
+From: Engelchen
+Source: Level 15 epic Crypt
+White Wood Chest
+From: Sir Met
+Source: Level 25 epic Crypt
+Elegant Chest
+From: Moony
+Source: Level 25 Crypt
+Chest of the Cursed
+From: Sir Met
+Source: Level 25 epic Crypt
+Elegant Chest
+From: Moony
+Source: Level 25 Crypt
+Bone Chest
+From: Darkhammer
+Source: Level 10 Crypt
+Merchant's Chest
+From: nobe
+Source: Mercenary Exchange
+White Wood Chest
+From: nobe
+Source: Level 20 epic Crypt
+White Wood Chest
+From: GUARDIENofTHUNDER
+Source: Level 20 epic Crypt
+Cobra Chest
+From: Cordaginn
+Source: Level 25 Crypt
+Infernal Chest
+From: Cordaginn
+Source: Level 25 Crypt
+Orc Chest
+From: Tyroler Bua
+Source: Level 15 Crypt
+Cobra Chest
+From: Tyroler Bua
+Source: Level 15 Crypt
+Merchant's Chest
+From: Bruno
+Source: Mercenary Exchange
+"""
+
+## Context to the file above: 
+The files that users will give as text input come from a browser game called "Total Battle".
+In this game players collect "Chests" that have a chest type and a source. A ocr tool reads that information from the game and provides us with the text file above.
+
+## Data structure of the input
+The data of the file consists of three text lines for each "entry": 
+1. A Chest type - example: "Cobra Chest", "Elegant Chest", "Chest of the Cursed" etc.
+2. A player (usually prefid with "From:") - example: "nobe", "Sir Met", "Engelchen" etc.
+3. A Chest source - example: "Mercenary Exchange", "Level 20 epic Crypt", "Level 15 rare Crypt"
+
+Chest Type
+From: Player
+Source: Location
+
+## CORRECTION LIST
+We want to use a csv file as a template for corrections.
+
+Here an example:
+From;To
+КАС29;D4rkBlizZ4rD
+Маһоп12;D4rkBlizZ4rD
+АЙ;D4rkBlizZ4rD
+"Fenrir""s Chest";Fenrir's Chest
+"Hermes"" Store";Hermes' Store
+"VVarrior""s Chest";Warrior's Chest
+Clan vvealth;Clan wealth
+OsmanlıTorunu;OsmanliTorunu
+Epic Ancient sguad;Epic Ancient squad
+Snovvvveaver;Snowweaver
+Krümelmonster;Krümelmonster
+Krimelmonster;Krümelmonster
+GUARDIENOfTHUNDER;GUARDIENofTHUNDER
+Rare Chest of VVealth;Rare Chest of Wealth
+Epic Chest of Vvealth;Epic Chest of Wealth
+Sir Nightvvoolf;Sir Nightwoolf
+Hammerschlagi;Hammerschlag1
+Feldjager;Feldj䧥r
+Lord Öre;Lord Ore
+Jòrmungandr Shop;Jormungandr Shop
+Jòrmungandr's Chest;Jormungandr's Chest
+Aİf;D4rkBlizZ4rD
+
+
+This contains two columns: "From" and "To".
+The "From" column is the text string we want to change and the "To" column signifies what the text string should be changed to.
+We always want to make a full and exact text string replacement.
+
+## App Design:
+We want to create a GUI with PySide6.
+
+We want to have a main tab with two options:
+1. Load a text file as our "input" that needs to be corrected
+2. Load a csv file as "template" for our correction list.
+
+Then we want one more tab:
+1. "Corrector": This is the main part of our app and represents the actual correction tool. It present the loaded input in a table.
+
+To make finding "errors" easier we want to be able to filter the text input by unique entries.
+We also want to be able to group/filter everything by player, chest type or chest source.
+On top of that we want to be able to create lists for player names, chest types and chest source that can be used to "validate" the text inputs. The user should be able to create, edit, save, load (export) these lists.
+Then one of the most important functions is our "correction list" which should be used to make the changes based on it (ie change text strings based on the csv "from" columns to the csv "to" columns).
+Using the "correction list" should be an action via a button (think of a good name for it).
+But we also want to be able to select entries entries from the table and create new "correction list" entries as well as directly correct entries in the table field.
+The app should "remember" such corrections and ask us if the user wants to add it to the correction list.
+
+The user should then be able to save the text file (we need to preserve the original format/structure) with all applied corrections.
+
+
+
+
+
+
