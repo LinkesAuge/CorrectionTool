@@ -13,21 +13,21 @@ from src.ui.preview_panel import PreviewPanel
 from src.ui.settings_panel import SettingsPanel
 from src.ui.report_panel import ReportPanel
 from src.ui.table_model import ChestEntryTableModel, ChestEntryFilterProxyModel
-from src.ui.styles import get_stylesheet, ThemeColors
+from src.ui.styles import get_stylesheet, COLORS
 from src.ui.help_panel import HelpPanel
 
 __all__ = [
-    'MainWindow',
-    'NavigationPanel',
-    'FilePanel',
-    'CorrectorPanel',
-    'ValidationPanel',
-    'PreviewPanel',
-    'SettingsPanel',
-    'ReportPanel',
-    'ChestEntryTableModel',
-    'ChestEntryFilterProxyModel',
-    'get_stylesheet',
-    'ThemeColors',
-    'HelpPanel',
+    "MainWindow",
+    "NavigationPanel",
+    "FilePanel",
+    "CorrectorPanel",
+    "ValidationPanel",
+    "PreviewPanel",
+    "SettingsPanel",
+    "ReportPanel",
+    "ChestEntryTableModel",
+    "ChestEntryFilterProxyModel",
+    "get_stylesheet",
+    "COLORS",
+    "HelpPanel",
 ]

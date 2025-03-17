@@ -8,49 +8,250 @@ alwaysApply: false
 
 ## Current Status
 
-The application is now complete with all major features implemented:
-- Load text files with chest entries
-- Load CSV files with correction rules
-- Apply corrections based on rules
-- Display entries in a filterable table
-- Export corrected entries
-- Manage validation lists for chest types, player names, and sources
-- Preview corrected entries side by side with originals
-- Generate and export reports on entries, corrections, and validation
-- Provide comprehensive help documentation
-- Settings interface for customizing application behavior
+We are planning a major rework of the application to address issues with:
+- Inconsistent correction application
+- Redundant UI tabs and wasted space
+- Inefficient validation/correction management
+- Confusing workflow
+- Outdated visual design
+- Incomplete fuzzy matching implementation
 
-## Project Phases - All Complete ✓
+## Rework Implementation Plan
 
-### Phase 1: Basic Functionality ✓
+### Phase 1: Preliminary Cleanup
+- [x] Remove redundant tabs (simplify to single view)
+- [x] Remove Preview panel functionality
+- [x] Create stubs for new UI components:
+  - [x] `FileImportWidget` - Compact widget for file import in dashboard sidebar
+  - [x] `StatisticsWidget` - Shows statistics and status in sidebar
+  - [x] `ActionButtonGroup` - Group of action buttons in dashboard
+  - [x] `ValidationStatusIndicator` - Shows validation status and count
+  - [x] `EnhancedTableView` - Table with advanced features
+  - [x] `CorrectionManagerPanel` - Panel for managing correction rules
+  - [x] `ValidationRuleEditor` - Editor for validation rules
+  - [x] `ValidationListWidget` - Widget for managing validation lists
+  - [x] `Dashboard` - Main dashboard component
+- [x] Update `FileImportWidget` to auto-load correction lists by default
+- [x] Enhance `CorrectionManagerPanel` to include correction list selection and toggle options
+- [x] Ensure proper state sharing between components for correction lists
+- [x] Update all components to handle correction lists automatically similar to validation files
+- [x] Audit existing signal connections to identify conflicts
 
-- [x] Set up project structure
-- [x] Implement file loading (text and CSV)
-- [x] Create basic UI with tabs
-- [x] Implement entry parsing and display
-- [x] Apply basic corrections
+### Phase 2: Dashboard Redesign (COMPLETED)
+- [x] Restructure dashboard layout:
+  - [x] Create new `QSplitter` layout for dashboard
+  - [x] Compact left sidebar with import controls and statistics
+  - [x] Main area with enhanced table view
+  - [x] Update MainWindow to use new Dashboard class
+  - [x] Include default correction list loading in the `FileImportWidget`
+  - [x] Add correction list status indicator in the `FileImportWidget`
+  - [x] Include toggle for correction list application in the `ActionButtonGroup`
+- [x] Implement table improvements:
+  - [x] Color coding for validation errors
+  - [x] In-place editing of table cells
+  - [x] Context menu for quick corrections
+  - [x] Custom delegates for specialized cells
+  - [x] Cell navigation with keyboard shortcuts
+  - [x] Ensure `CorrectionStatusIndicator` shows the state of the correction list
+- [x] Fix correction application issues:
+  - [x] Ensure corrections are properly applied
+  - [x] Add logging of applied corrections
+  - [x] Handle edge cases and errors
 
-### Phase 2: Enhanced Features ✓
+### Phase 3: Correction Manager Implementation
+- [ ] Create new "Correction Manager" tab
+- [ ] Implement split layout:
+  - [ ] Left side (50%): Correction rules table
+  - [ ] Right side (50%): Validation lists sections
+- [ ] Correction rules section:
+  - [ ] Two-column table (From→To)
+  - [ ] Add, Edit, Delete buttons
+  - [ ] Import/Export functionality
+  - [ ] Search filter
+  - [ ] Dropdown selection for validation lists when editing
+  - [ ] Toggle for enabling/disabling individual correction rules
+  - [ ] Default loading of correction lists
+  - [ ] Global toggle for enabling/disabling all corrections
+- [ ] Validation lists sections:
+  - [ ] Create compact table views for all three lists
+  - [ ] Implement direct editing of entries
+  - [ ] Add import/export buttons for each list
+  - [ ] Create unified controls section at the bottom
 
-- [x] Implement filtering and sorting
-- [x] Add validation lists
-- [x] Support manual corrections
-- [x] Export corrected entries
-- [x] Implement preview mode
+### Phase 4: Fuzzy Matching Implementation
+- [x] Enhance ValidationList class:
+  - [x] Modify `is_valid()` method to support fuzzy matching based on settings
+  - [x] Add field to track matching method (exact, case-insensitive, fuzzy)
+  - [x] Add confidence score for fuzzy matches
+- [x] Connect validation strictness setting to ValidationList behavior:
+  - [x] Update settings panel to apply strictness to validation
+  - [x] Implement proper handling of "Relaxed (Fuzzy match)" mode
+- [x] Add fuzzy matching controls to UI:
+  - [x] Create fuzzy matching toggle in sidebar
+  - [x] Add threshold slider with visual feedback
+  - [x] Implement save/load of fuzzy settings in config
+- [x] Enhance validation view:
+  - [x] Show confidence scores for fuzzy matches
+  - [x] Use different highlight colors for exact vs. fuzzy matches
+  - [x] Add tooltips with match details
+- [x] Implement fuzzy correction suggestions:
+  - [x] Suggest corrections based on fuzzy matches
+  - [x] Allow one-click application of suggestions
+  - [x] Display confidence scores for suggestions
 
-### Phase 3: Advanced Features ✓
+### Phase 5: Drag-and-Drop Functionality
+- [ ] Implement drag-and-drop from validation lists to correction rules
+- [ ] Enable drag-and-drop between validation lists
+- [ ] Add visual cues for drag operations
+- [ ] Implement confirmation dialog for creating new entries
 
-- [x] Add reporting functionality
-- [x] Implement settings interface
-- [x] Add help system
-- [x] Enhance error handling
+### Phase 6: Filter Improvements
+- [ ] Create dropdown filters populated from validation lists
+- [ ] Implement multi-select filtering
+- [ ] Add search functionality to filters
+- [ ] Ensure filter state persists between app restarts
 
-### Phase 4: Testing and Refinement ✓
+### Phase 7: Visual Design Updates
+- [x] Define new color scheme with golden accents
+- [x] Create consistent button styling
+- [x] Redesign tables with modern aesthetics
+- [x] Implement proper spacing and alignment
+- [x] Reduce excessive black backgrounds
+- [x] Add subtle animations for state changes
+- [x] Create custom styled scrollbars
+- [x] Design improved icons for actions
+- [x] Implement vertical sidebar menu on the left
 
-- [x] Test all features
-- [x] Fix bugs and edge cases
-- [x] Optimize performance
-- [x] Improve user experience
+### Phase 8: State Management & Consistency
+- [ ] Refactor validation/correction workflow
+- [ ] Implement automatic validation on data load
+- [ ] Ensure consistent state sharing between components
+- [ ] Add clear user feedback for all operations
+- [ ] Implement proper error handling with user-friendly messages
+- [ ] Create consistent configuration saving/loading
+- [ ] Auto-save correction list state and preferences
+
+### Phase 9: Testing & Polishing
+- [ ] Test entire workflow with real data
+- [ ] Identify and fix edge cases
+- [ ] Optimize performance for large datasets
+- [ ] Add logging for troubleshooting
+- [ ] Final UI adjustments
+
+## Detailed Implementation Tasks
+
+### Preliminary Cleanup Tasks - Phase 1 (COMPLETED)
+1. [x] Update navigation panel to remove redundant tabs
+2. [x] Update main window to consolidate File Management and Corrections into Dashboard
+3. [x] Remove preview panel from corrector panel
+4. [x] Remove preview-related settings from settings panel
+5. [x] Update help documentation to remove preview-related topics
+6. [x] Create basic skeleton for the new Correction Manager tab
+7. [x] Update FileImportWidget to auto-load correction lists
+8. [x] Modify CorrectionManagerPanel to handle correction list selection and toggles
+
+### Dashboard Redesign Tasks - Phase 2 (COMPLETED)
+1. [x] Create new `QSplitter` layout in dashboard
+2. [x] Design basic `Dashboard` class structure
+3. [x] Update `MainWindow` to use new Dashboard class
+4. [x] Implement `FileImportWidget` functionality:
+   - [x] Add file format selection
+   - [x] Add file parsing capabilities
+   - [x] Implement error handling
+   - [x] Add visual feedback for loaded files
+5. [x] Implement `StatisticsWidget`:
+   - [x] Connect to dashboard data
+   - [x] Update counters in real-time
+   - [x] Add visual indicators for status
+6. [x] Implement `ActionButtonGroup`:
+   - [x] Create action handlers
+   - [x] Add keyboard shortcuts
+   - [x] Add tooltips and status messages
+7. [x] Implement `EnhancedTableView`:
+   - [x] Create `TableModel` for chest entries
+   - [x] Implement custom delegates for validation
+   - [x] Add in-place editing capabilities
+   - [x] Create context menu with actions
+   - [x] Add indicators for validation status
+8. [x] Update signal connections:
+   - [x] Audit existing signals for conflicts
+   - [x] Add audit method in MainWindow
+   - [x] Update MainWindow signals to use Dashboard
+   - [x] Connect dashboard to validation panel
+   - [x] Connect dashboard to reports panel
+   - [x] Connect components for correction list changes
+9. [x] Fix correction application issues:
+   - [x] Ensure corrections are properly applied
+   - [x] Add logging of applied corrections
+   - [x] Handle edge cases and errors
+10. [x] Test new UI:
+    - [x] Test loading entries
+    - [x] Test applying corrections
+    - [x] Test validation
+    - [x] Test exporting
+
+### Correction Manager Tasks
+1. [ ] Create `CorrectionManagerPanel` class
+2. [ ] Implement `CorrectionRulesTable` with the following:
+   - [ ] Two-column model with From/To fields
+   - [ ] Add/Edit/Delete functionality
+   - [ ] Import/Export buttons
+   - [ ] Search field
+   - [ ] Toggle for enabling/disabling individual rules
+   - [ ] Global toggle for all correction rules
+3. [ ] Create `ValidationListWidget` class for each list type:
+   - [ ] Compact table view
+   - [ ] Direct editing capability
+   - [ ] Import/Export functionality
+4. [ ] Design `ValidationListContainer` to hold all three lists
+5. [ ] Implement `ValidationControlsWidget` for bottom section
+6. [ ] Add automatic correction list loading mechanism
+7. [ ] Create persistent correction list settings
+
+### Fuzzy Matching Tasks
+1. [x] Refactor `FuzzyMatcher` class:
+   - [x] Improve performance for large validation lists
+   - [x] Add batch processing capabilities
+   - [x] Implement caching for repetitive operations
+2. [x] Modify `ValidationList` class:
+   - [x] Add `use_fuzzy_matching` property
+   - [x] Update `is_valid()` to use `FuzzyMatcher` when appropriate
+   - [x] Store match confidence scores
+3. [x] Create `FuzzyMatchControls` for the sidebar:
+   - [x] Enable/disable toggle
+   - [x] Threshold slider
+   - [x] Visual feedback for current settings
+4. [x] Implement `ValidationResultsWidget`:
+   - [x] Display match type (exact/fuzzy)
+   - [x] Show confidence scores
+   - [x] Provide correction suggestions
+5. [x] Add fuzzy match indicator to table cells
+
+### Drag-and-Drop Implementation
+1. [ ] Add drag capabilities to `ValidationListWidget`
+2. [ ] Implement drop handling in `CorrectionRulesTable`
+3. [ ] Create visual feedback for drag operations
+4. [ ] Implement confirmation dialog for new entries
+5. [ ] Add inter-list drag support
+
+### Style Implementation (COMPLETED)
+1. [x] Create new stylesheet in `styles.py`
+2. [x] Define custom QSS for all widgets
+3. [x] Design improved button styles
+4. [x] Create table styling for better visual hierarchy
+5. [x] Implement golden accents for important elements
+6. [x] Design custom scrollbars and selection highlighting
+7. [x] Implement vertical sidebar menu on the left
+
+### Logic Improvements
+1. [ ] Refactor `Corrector` class for more consistent behavior
+   - [ ] Add auto-loading of correction lists
+   - [ ] Implement correction list toggle mechanism
+2. [ ] Improve `ValidationManager` to provide field-specific validation
+3. [ ] Enhance error reporting with specific field information
+4. [ ] Update configuration system for new UI layout
+5. [ ] Implement proper state sharing between components
+6. [ ] Add correction list state persistence
 
 ## Possible Future Enhancements
 

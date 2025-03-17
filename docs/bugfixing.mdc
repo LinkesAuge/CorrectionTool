@@ -1,0 +1,50 @@
+# Bug Fixing Log
+
+## Signal Loop Prevention in Dashboard Class
+**Date Fixed**: [Current Date]
+
+### Issue Description
+The application was crashing after importing data without any user input or actions. This was caused by signal loops in the Dashboard class, where signals were being processed recursively without proper guards.
+
+### Root Cause
+When data was loaded, multiple signals were triggered in sequence (`entries_loaded`, `corrections_loaded`, `corrections_applied`). These signals could cause cascading effects where one signal handler would trigger another signal, creating infinite loops and eventually causing stack overflow or other crashes.
+
+### Solution
+Implemented a signal loop prevention mechanism in the Dashboard class:
+
+1. Added a `_processing_signal` flag to track when a signal is already being processed
+2. Modified the key signal handler methods to check this flag and prevent re-entrance:
+   - `_on_entries_loaded`
+   - `_on_corrections_loaded` 
+   - `_on_corrections_applied`
+3. Added comprehensive error handling with try/except/finally blocks to ensure the flag is always reset
+
+### Implementation Details
+The solution follows this pattern in all relevant methods:
+
+```python
+@Slot(list)
+def _on_some_signal(self, data):
+    # Prevent signal loops
+    if self._processing_signal:
+        return
+        
+    try:
+        self._processing_signal = True
+        # Process the signal...
+        # ...
+    except Exception as e:
+        self._logger.error(f"Error in _on_some_signal: {str(e)}")
+        import traceback
+        self._logger.error(traceback.format_exc())
+    finally:
+        self._processing_signal = False
+```
+
+### Lessons Learned
+1. Always use guard flags for signal handlers that might trigger other signals
+2. Ensure flags are reset in a `finally` block to prevent locks
+3. Be cautious with auto-applying corrections or other actions that might trigger signal cascades
+4. Add proper error handling to capture and log any exceptions in signal handlers
+
+This pattern should be applied to any future signal handlers that might cause recursive signal processing. 

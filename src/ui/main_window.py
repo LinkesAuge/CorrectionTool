@@ -4,283 +4,524 @@ main_window.py
 Description: Main application window
 Usage:
     from src.ui.main_window import MainWindow
-    window = MainWindow()
-    window.show()
+    main_window = MainWindow()
+    main_window.show()
 """
 
-import sys
-from typing import Dict, Optional
+import logging
+from pathlib import Path
+from typing import Dict, List, Optional, Set, Tuple
 
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import QSize, Qt, Signal, Slot
+from PySide6.QtGui import QAction, QCloseEvent, QIcon, QKeySequence
 from PySide6.QtWidgets import (
-    QApplication, QHBoxLayout, QMainWindow, QSplitter, QStackedWidget, QVBoxLayout, QWidget, QMessageBox
+    QApplication,
+    QMainWindow,
+    QMenu,
+    QMenuBar,
+    QMessageBox,
+    QPushButton,
+    QStatusBar,
+    QTabWidget,
+    QToolBar,
+    QVBoxLayout,
+    QHBoxLayout,
+    QWidget,
+    QSplitter,
+    QFrame,
+    QLabel,
+    QStackedWidget,
 )
 
+from src.models.chest_entry import ChestEntry
+from src.models.correction_rule import CorrectionRule
+from src.models.validation_list import ValidationList
 from src.services.config_manager import ConfigManager
-from src.ui.navigation_panel import NavigationPanel
-from src.ui.file_panel import FilePanel
-from src.ui.corrector_panel import CorrectorPanel
+from src.ui.dashboard import Dashboard
+from src.ui.correction_manager_panel import CorrectionManagerPanel
+from src.ui.reports_panel import ReportPanel
+from src.ui.settings_dialog import SettingsDialog
 from src.ui.validation_panel import ValidationPanel
-from src.ui.settings_panel import SettingsPanel
-from src.ui.report_panel import ReportPanel
-from src.ui.styles import get_stylesheet
-from src.ui.help_panel import HelpPanel
+from src.ui.styles import COLORS, SIDEBAR_STYLE
 
 
 class MainWindow(QMainWindow):
     """
     Main application window.
-    
-    Provides the main UI framework for the application.
-    
-    Attributes:
-        _config (ConfigManager): Application configuration
-        _navigation_panel (NavigationPanel): Left navigation panel
-        _content_stack (QStackedWidget): Stacked widget for content pages
-        _content_widgets (Dict[str, QWidget]): Dictionary of content widgets
-        
+
+    This is the main window of the application, containing a sidebar menu,
+    content area, and status bar.
+
     Implementation Notes:
-        - Uses a horizontal layout with navigation panel on the left
-        - Content area is split horizontally (filter panel + data panel)
-        - Pages are managed with a stacked widget
+        - Uses sidebar navigation instead of menu bar
+        - Uses tabbed content area for different views
+        - Stores application state in ConfigManager
+        - Provides access to application-wide data
     """
-    
-    def __init__(self) -> None:
+
+    def __init__(self):
         """Initialize the main window."""
         super().__init__()
-        
-        # Initialize configuration
+
+        # Initialize properties
         self._config = ConfigManager()
-        
-        # Setup window properties
+        self._dashboard = None
+        self._validation_panel = None
+        self._report_panel = None
+        self._validation_lists = {}
+        self._correction_rules = []
+        self._connected_signals = set()  # Track connected signals
+
+        # Set window properties
         self.setWindowTitle("Chest Tracker Correction Tool")
-        self._window_width = self._config.get_int("UI", "window_width", fallback=1280)
-        self._window_height = self._config.get_int("UI", "window_height", fallback=800)
-        self.resize(self._window_width, self._window_height)
-        
-        # Apply the stylesheet
-        self.setStyleSheet(get_stylesheet())
-        
-        # Initialize UI
-        self._setup_ui()
-        
+        self.resize(1280, 800)
+
+        # Setup UI
+        self._setup_actions()
+        self._setup_sidebar()
+        self._setup_status_bar()
+        self._setup_content()
+
         # Connect signals
         self._connect_signals()
-        
-        # Apply settings
-        self._apply_settings()
-    
-    def _setup_ui(self) -> None:
-        """Set up the user interface."""
-        # Create main widget and layout
+
+        # Restore state
+        self._restore_state()
+
+    def _setup_actions(self):
+        """Set up the actions."""
+        # File actions
+        self._new_action = QAction("New", self)
+        self._new_action.setShortcut(QKeySequence.New)
+        self._new_action.setStatusTip("Create a new file")
+        self._new_action.triggered.connect(self._on_new)
+
+        self._open_action = QAction("Open", self)
+        self._open_action.setShortcut(QKeySequence.Open)
+        self._open_action.setStatusTip("Open a file")
+        self._open_action.triggered.connect(self._on_open)
+
+        self._save_action = QAction("Save", self)
+        self._save_action.setShortcut(QKeySequence.Save)
+        self._save_action.setStatusTip("Save the current file")
+        self._save_action.triggered.connect(self._on_save)
+
+        self._exit_action = QAction("Exit", self)
+        self._exit_action.setShortcut(QKeySequence.Quit)
+        self._exit_action.setStatusTip("Exit the application")
+        self._exit_action.triggered.connect(self.close)
+
+        # Edit actions
+        self._settings_action = QAction("Settings", self)
+        self._settings_action.setStatusTip("Edit application settings")
+        self._settings_action.triggered.connect(self._on_settings)
+
+    def _setup_sidebar(self):
+        """Set up the sidebar."""
+        # Create central widget with horizontal splitter
         central_widget = QWidget()
         main_layout = QHBoxLayout(central_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        
-        # Create navigation panel
-        self._navigation_panel = NavigationPanel()
-        self._navigation_panel.navigation_changed.connect(self._on_navigation_changed)
-        
-        # Create content stack
-        self._content_stack = QStackedWidget()
-        self._content_widgets = {}
-        
-        # Add initial pages
-        self._setup_dashboard_page()
-        self._setup_file_management_page()
-        self._setup_corrections_page()
-        self._setup_validation_page()
-        self._setup_reports_page()
-        self._setup_settings_page()
-        self._setup_help_page()
-        
-        # Add widgets to layouts
-        main_layout.addWidget(self._navigation_panel)
-        main_layout.addWidget(self._content_stack)
-        
-        # Set main layout
-        self.setCentralWidget(central_widget)
-    
-    def _setup_dashboard_page(self) -> None:
-        """Set up the dashboard page."""
-        # Create dashboard page
-        dashboard_widget = QWidget()
-        dashboard_layout = QVBoxLayout(dashboard_widget)
-        dashboard_layout.setContentsMargins(20, 20, 20, 20)
-        
-        # Split dashboard layout
+
+        # Create sidebar
+        self._sidebar = QWidget()
+        self._sidebar.setObjectName("sidebar")
+        self._sidebar.setStyleSheet(SIDEBAR_STYLE)
+        sidebar_layout = QVBoxLayout(self._sidebar)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
+
+        # Add app title to sidebar
+        sidebar_header = QLabel("Chest Tracker")
+        sidebar_header.setObjectName("sidebarHeader")
+        sidebar_layout.addWidget(sidebar_header)
+
+        # Create navigation buttons
+        self._dashboard_btn = self._create_sidebar_button("Dashboard", 0)
+        self._validation_btn = self._create_sidebar_button("Correction Manager", 1)
+        self._reports_btn = self._create_sidebar_button("Reports", 2)
+
+        # Add navigation buttons to sidebar
+        sidebar_layout.addWidget(self._dashboard_btn)
+        sidebar_layout.addWidget(self._validation_btn)
+        sidebar_layout.addWidget(self._reports_btn)
+
+        # Add spacer
+        sidebar_layout.addStretch()
+
+        # Add settings button to sidebar
+        settings_btn = QPushButton("Settings")
+        settings_btn.clicked.connect(self._on_settings)
+        sidebar_layout.addWidget(settings_btn)
+
+        # Add sidebar and content to main layout
+        self._content_widget = QStackedWidget()
+
+        # Create splitter
         splitter = QSplitter(Qt.Horizontal)
-        
-        # Left panel - File Panel
-        self._file_panel = FilePanel()
-        
-        # Right panel - Corrector Panel
-        self._corrector_panel = CorrectorPanel()
-        
-        # Add panels to splitter
-        splitter.addWidget(self._file_panel)
-        splitter.addWidget(self._corrector_panel)
-        
-        # Set initial splitter sizes
-        left_panel_ratio = self._config.get_float("UI", "left_panel_ratio", fallback=0.33)
-        splitter.setSizes([
-            int(self._window_width * left_panel_ratio),
-            int(self._window_width * (1 - left_panel_ratio))
-        ])
-        
-        # Add splitter to layout
-        dashboard_layout.addWidget(splitter)
-        
-        # Add page to content stack
-        self._add_content_page("Dashboard", dashboard_widget)
-    
-    def _setup_file_management_page(self) -> None:
-        """Set up the file management page."""
-        # Create file management page
-        file_widget = QWidget()
-        file_layout = QVBoxLayout(file_widget)
-        file_layout.setContentsMargins(20, 20, 20, 20)
-        
-        # For now, reuse the file panel
-        file_panel = FilePanel()
-        file_layout.addWidget(file_panel)
-        
-        # Add page to content stack
-        self._add_content_page("File Management", file_widget)
-    
-    def _setup_corrections_page(self) -> None:
-        """Set up the corrections page."""
-        # Create corrections page
-        corrections_widget = QWidget()
-        corrections_layout = QVBoxLayout(corrections_widget)
-        corrections_layout.setContentsMargins(20, 20, 20, 20)
-        
-        # For now, reuse the corrector panel
-        corrector_panel = CorrectorPanel()
-        corrections_layout.addWidget(corrector_panel)
-        
-        # Add page to content stack
-        self._add_content_page("Corrections", corrections_widget)
-    
-    def _setup_validation_page(self) -> None:
-        """Set up the validation page."""
-        # Create validation page
-        validation_widget = QWidget()
-        validation_layout = QVBoxLayout(validation_widget)
-        validation_layout.setContentsMargins(20, 20, 20, 20)
-        
-        # Add validation panel
-        self._validation_panel = ValidationPanel()
-        validation_layout.addWidget(self._validation_panel)
-        
-        # Add page to content stack
-        self._add_content_page("Validation", validation_widget)
-    
-    def _setup_reports_page(self) -> None:
+        splitter.addWidget(self._sidebar)
+        splitter.addWidget(self._content_widget)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([200, 1080])  # Set initial sizes
+
+        main_layout.addWidget(splitter)
+
+        self.setCentralWidget(central_widget)
+
+    def _create_sidebar_button(self, text, page_index):
+        """
+        Create a sidebar button for navigation.
+
+        Args:
+            text: Button text
+            page_index: Index of the page to switch to
+
+        Returns:
+            The created button
+        """
+        button = QPushButton(text)
+        button.setCheckable(True)
+
+        # Set button properties
+        button.clicked.connect(lambda: self._on_sidebar_button_clicked(page_index))
+
+        return button
+
+    def _on_sidebar_button_clicked(self, page_index):
+        """
+        Handle sidebar button click.
+
+        Args:
+            page_index: Index of the page to switch to
+        """
+        # Update button states
+        self._dashboard_btn.setChecked(page_index == 0)
+        self._validation_btn.setChecked(page_index == 1)
+        self._reports_btn.setChecked(page_index == 2)
+
+        # Switch content page
+        self._content_widget.setCurrentIndex(page_index)
+
+        # Save active tab
+        self._config.set("window", "active_tab", page_index)
+
+    def _setup_status_bar(self):
+        """Set up the status bar."""
+        self._status_bar = QStatusBar()
+        self.setStatusBar(self._status_bar)
+        self._status_bar.showMessage("Ready")
+
+    def _setup_content(self):
+        """Set up the content area."""
+        # Create content pages
+        self._setup_dashboard_page()
+        self._setup_correction_manager_page()
+        self._setup_reports_page()
+
+        # Set initial page
+        active_tab = self._config.get_int("window", "active_tab", fallback=0)
+        self._content_widget.setCurrentIndex(active_tab)
+
+        # Update button states
+        self._dashboard_btn.setChecked(active_tab == 0)
+        self._validation_btn.setChecked(active_tab == 1)
+        self._reports_btn.setChecked(active_tab == 2)
+
+    def _setup_dashboard_page(self):
+        """Set up the dashboard page."""
+        # Create dashboard
+        self._dashboard = Dashboard(self)
+
+        # Add to content stack
+        self._content_widget.addWidget(self._dashboard)
+
+    def _setup_correction_manager_page(self):
+        """Set up the correction manager page."""
+        # Create correction manager panel
+        self._correction_manager = CorrectionManagerPanel(self)
+
+        # Add to content stack
+        self._content_widget.addWidget(self._correction_manager)
+
+    def _setup_validation_page(self):
+        """Set up the validation panel."""
+        # Create validation panel
+        self._validation_panel = ValidationPanel(self)
+
+        # Add to content stack
+        self._content_widget.addWidget(self._validation_panel)
+
+    def _setup_reports_page(self):
         """Set up the reports page."""
         # Create reports panel
-        reports_panel = ReportPanel()
-        
-        # Connect signals
-        self._file_panel.entries_loaded.connect(reports_panel.set_entries)
-        self._validation_panel.validation_lists_updated.connect(reports_panel.set_validation_lists)
-        
-        # Add page to content stack
-        self._add_content_page("Reports", reports_panel)
-        
-        # Store reference to reports panel
-        self._reports_panel = reports_panel
-    
-    def _setup_settings_page(self) -> None:
-        """Set up the settings page."""
-        # Create settings panel
-        settings_panel = SettingsPanel()
-        settings_panel.settings_changed.connect(self._on_settings_changed)
-        
-        # Add page to content stack
-        self._add_content_page("Settings", settings_panel)
-        
-        # Store reference to settings panel
-        self._settings_panel = settings_panel
-    
-    def _setup_help_page(self) -> None:
-        """Set up the help page."""
-        self._help_panel = HelpPanel()
-        self._content_stack.addWidget(self._help_panel)
-        self._navigation_panel.add_item("Help", "help_icon", "Access application help and documentation")
-    
-    def _add_content_page(self, name: str, widget: QWidget) -> None:
+        self._report_panel = ReportPanel(self)
+
+        # Add to content stack
+        self._content_widget.addWidget(self._report_panel)
+
+    def _connect_signals(self):
+        """Connect signals to slots."""
+        try:
+            # Dashboard signals
+            self._dashboard.entries_loaded.connect(self._correction_manager.set_entries)
+            self._dashboard.entries_loaded.connect(self._report_panel.set_entries)
+            self._dashboard.entries_loaded.connect(self._on_entries_loaded)
+
+            self._dashboard.entries_updated.connect(self._correction_manager.set_correction_rules)
+            self._dashboard.entries_updated.connect(self._report_panel.set_entries)
+            self._dashboard.entries_updated.connect(self._on_entries_updated)
+
+            self._dashboard.corrections_loaded.connect(
+                self._correction_manager.set_correction_rules
+            )
+            self._dashboard.corrections_loaded.connect(self._report_panel.set_correction_rules)
+            self._dashboard.corrections_loaded.connect(self._on_corrections_loaded)
+
+            self._dashboard.corrections_applied.connect(self._on_corrections_applied)
+
+            # Correction manager signals
+            self._correction_manager.correction_rules_updated.connect(
+                self._dashboard.set_correction_rules
+            )
+            self._correction_manager.validation_lists_updated.connect(
+                self._dashboard.set_validation_lists
+            )
+            self._correction_manager.validation_lists_updated.connect(
+                self._report_panel.set_validation_lists
+            )
+
+            # Audit signals to prevent multiple connections
+            self._audit_signal_connections()
+
+        except Exception as e:
+            logging.error(f"Error connecting signals: {str(e)}")
+            import traceback
+
+            logging.error(traceback.format_exc())
+
+    def _audit_signal_connections(self):
         """
-        Add a content page.
-        
-        Args:
-            name (str): Page name
-            widget (QWidget): Page widget
+        Audit signal connections to prevent multiple connections.
+
+        This checks for conflicts in signal connections and logs warnings.
         """
-        self._content_stack.addWidget(widget)
-        self._content_widgets[name] = widget
-    
-    def _connect_signals(self) -> None:
-        """Connect signals between components."""
-        # Connect file panel signals to corrector panel
-        self._file_panel.entries_loaded.connect(self._corrector_panel.set_entries)
-        self._file_panel.corrections_applied.connect(self._corrector_panel.on_corrections_applied)
-        
-        # Connect validation panel signals to corrector panel
-        self._validation_panel.validation_lists_updated.connect(self._corrector_panel.set_validation_lists)
-    
-    def _on_navigation_changed(self, page_name: str) -> None:
+        # Dashboard signals to audit
+        dashboard_signals = {
+            self._dashboard.entries_loaded: [
+                self._correction_manager.set_entries,
+                self._report_panel.set_entries,
+                self._on_entries_loaded,
+            ],
+            self._dashboard.entries_updated: [
+                self._correction_manager.set_correction_rules,
+                self._report_panel.set_entries,
+                self._on_entries_updated,
+            ],
+            self._dashboard.corrections_loaded: [
+                self._correction_manager.set_correction_rules,
+                self._report_panel.set_correction_rules,
+                self._on_corrections_loaded,
+            ],
+            self._dashboard.corrections_applied: [
+                self._on_corrections_applied,
+            ],
+        }
+
+        # Correction manager signals to audit
+        correction_manager_signals = {
+            self._correction_manager.correction_rules_updated: [
+                self._dashboard.set_correction_rules,
+            ],
+            self._correction_manager.validation_lists_updated: [
+                self._dashboard.set_validation_lists,
+                self._report_panel.set_validation_lists,
+            ],
+        }
+
+        # Check for any conflicts in Dashboard signals
+        for signal, slots in dashboard_signals.items():
+            for slot in slots:
+                connection = (signal, slot)
+                if connection in self._connected_signals:
+                    logging.warning(f"Signal {signal} already connected to slot {slot}")
+                else:
+                    self._connected_signals.add(connection)
+
+        # Check for any conflicts in Correction manager signals
+        for signal, slots in correction_manager_signals.items():
+            for slot in slots:
+                connection = (signal, slot)
+                if connection in self._connected_signals:
+                    logging.warning(f"Signal {signal} already connected to slot {slot}")
+                else:
+                    self._connected_signals.add(connection)
+
+    def _restore_state(self):
+        """Restore window state from configuration."""
+        # Restore window geometry
+        geometry = self._config.get("window", "geometry", fallback=None)
+        if geometry:
+            self.restoreGeometry(geometry)
+
+        # Restore window state
+        state = self._config.get("window", "state", fallback=None)
+        if state:
+            self.restoreState(state)
+
+        # Restore active tab
+        active_tab = self._config.get_int("window", "active_tab", fallback=0)
+        self._content_widget.setCurrentIndex(active_tab)
+
+        # Update sidebar button states
+        self._dashboard_btn.setChecked(active_tab == 0)
+        self._validation_btn.setChecked(active_tab == 1)
+        self._reports_btn.setChecked(active_tab == 2)
+
+    def closeEvent(self, event: QCloseEvent):
         """
-        Handle navigation changes.
-        
-        Args:
-            page_name (str): Name of the selected page
-        """
-        if page_name in self._content_widgets:
-            index = self._content_stack.indexOf(self._content_widgets[page_name])
-            if index >= 0:
-                self._content_stack.setCurrentIndex(index)
-    
-    def _on_settings_changed(self) -> None:
-        """Handle settings changes."""
-        # Update window size setting if needed
-        if self._config.get_bool("UI", "remember_window_size", fallback=True):
-            self._config.set("UI", "window_width", self.width())
-            self._config.set("UI", "window_height", self.height())
-            self._config.save()
-    
-    def closeEvent(self, event) -> None:
-        """
-        Handle window close event.
-        
-        Save configuration before closing.
-        
+        Handle close event.
+
         Args:
             event: Close event
         """
-        # Save window size
-        self._config.set("UI", "window_width", self.width())
-        self._config.set("UI", "window_height", self.height())
-        self._config.save()
-        
+        # Save window state
+        self._config.set("window", "geometry", self.saveGeometry())
+        self._config.set("window", "state", self.saveState())
+        self._config.set("window", "active_tab", self._content_widget.currentIndex())
+
         # Accept the event
         event.accept()
 
-    def _apply_settings(self) -> None:
-        """Apply saved settings to the window."""
-        # Restore window size
-        if self._config.get_bool("UI", "remember_window_size", fallback=True):
-            self.resize(self._config.get_int("UI", "window_width", fallback=1280),
-                       self._config.get_int("UI", "window_height", fallback=800))
-        
-        # Restore window position
-        if self._config.get_bool("UI", "remember_window_position", fallback=True):
-            self.move(self._config.get_int("UI", "window_x", fallback=0),
-                     self._config.get_int("UI", "window_y", fallback=0))
+    @Slot()
+    def _on_new(self):
+        """Handle New action."""
+        # Display the status message
+        self._status_bar.showMessage("New file action triggered", 2000)
 
-        # Restore maximized state
-        if self._config.get_bool("UI", "remember_maximized_state", fallback=True):
-            self.showMaximized()
+    @Slot()
+    def _on_open(self):
+        """Handle Open action."""
+        # Display the status message
+        self._status_bar.showMessage("Open file action triggered", 2000)
+
+    @Slot()
+    def _on_save(self):
+        """Handle Save action."""
+        # Display the status message
+        self._status_bar.showMessage("Save file action triggered", 2000)
+
+    @Slot()
+    def _on_save_as(self):
+        """Handle Save As action."""
+        # Display the status message
+        self._status_bar.showMessage("Save as action triggered", 2000)
+
+    @Slot()
+    def _on_settings(self):
+        """Handle Settings action."""
+        # Create and show settings dialog
+        settings_dialog = SettingsDialog(self)
+        if settings_dialog.exec():
+            # Settings were saved, update UI if needed
+            self._status_bar.showMessage("Settings saved", 2000)
+
+    @Slot()
+    def _on_about(self):
+        """Handle About action."""
+        # Show about dialog
+        QMessageBox.about(
+            self,
+            "About Chest Tracker Correction Tool",
+            "Chest Tracker Correction Tool v1.0\n\n"
+            "A tool for correcting OCR-extracted chest data from Total Battle.",
+        )
+
+    @Slot(list)
+    def _on_entries_loaded(self, entries: List[ChestEntry]):
+        """
+        Handle entries loaded.
+
+        Args:
+            entries: List of loaded entries
+        """
+        # Update status bar
+        self._status_bar.showMessage(f"Loaded {len(entries)} entries", 2000)
+
+    @Slot(list)
+    def _on_entries_updated(self, entries: List[ChestEntry]):
+        """
+        Handle entries updated.
+
+        Args:
+            entries: List of updated entries
+        """
+        # Update status bar
+        self._status_bar.showMessage(f"Updated {len(entries)} entries", 2000)
+
+    @Slot(list)
+    def _on_corrections_loaded(self, rules: List[CorrectionRule]):
+        """
+        Handle corrections loaded.
+
+        Args:
+            rules: List of loaded correction rules
+        """
+        # Update status bar
+        self._status_bar.showMessage(f"Loaded {len(rules)} correction rules", 2000)
+
+    @Slot(list)
+    def _on_corrections_applied(self, entries: List[ChestEntry]):
+        """
+        Handle corrections applied.
+
+        Args:
+            entries: List of entries with corrections applied
+        """
+        # Count how many entries were actually corrected
+        corrected_count = sum(1 for entry in entries if entry.has_corrections())
+
+        # Update status bar
+        if corrected_count > 0:
+            self._status_bar.showMessage(f"Applied corrections to {corrected_count} entries", 2000)
         else:
-            self.showNormal() 
+            self._status_bar.showMessage("No corrections were needed", 2000)
+
+    def get_entries(self) -> List[ChestEntry]:
+        """
+        Get the current entries.
+
+        Returns:
+            List of chest entries
+        """
+        if self._dashboard:
+            return self._dashboard.get_entries()
+        return []
+
+    def get_correction_rules(self) -> List[CorrectionRule]:
+        """
+        Get the current correction rules.
+
+        Returns:
+            List of correction rules
+        """
+        return self._correction_rules
+
+    def get_validation_lists(self) -> Dict[str, ValidationList]:
+        """
+        Get the current validation lists.
+
+        Returns:
+            Dictionary of validation lists
+        """
+        if self._validation_panel:
+            return self._validation_panel.get_validation_lists()
+        return {}
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
