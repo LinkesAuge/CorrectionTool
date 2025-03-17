@@ -76,6 +76,14 @@ class CorrectionManagerPanel(QWidget):
         self._validation_lists: Dict[str, ValidationList] = {}
         self._entries: List[ChestEntry] = []
 
+        # Get configuration manager
+        from src.services.config_manager import ConfigManager
+
+        self._config = ConfigManager()
+
+        # Track the current file path
+        self._current_file_path = None
+
         # Set up UI
         self._setup_ui()
 
@@ -102,13 +110,25 @@ class CorrectionManagerPanel(QWidget):
         # Setup right panel (entries table)
         self._setup_entries_panel()
 
-        # Set splitter sizes (1/3 left, 2/3 right)
-        self._splitter.setSizes([int(self.width() * 0.33), int(self.width() * 0.67)])
-
         # Add splitter to main layout
         main_layout.addWidget(
             self._splitter, 1
         )  # Give stretch factor to make it take up available space
+
+    def showEvent(self, event):
+        """
+        Handle the show event.
+
+        This ensures the splitter is properly sized after the widget is shown.
+
+        Args:
+            event: Show event
+        """
+        super().showEvent(event)
+
+        # Set splitter sizes to give 1/3 to left panel and 2/3 to right panel
+        total_width = self.width()
+        self._splitter.setSizes([total_width // 3, (total_width * 2) // 3])
 
     def _setup_entries_panel(self):
         """Set up the entries panel with the table of loaded entries."""
@@ -168,81 +188,57 @@ class CorrectionManagerPanel(QWidget):
 
     def _setup_correction_rules_tab(self):
         """Set up the correction rules tab."""
-        # Create layout for correction rules tab
-        layout = QVBoxLayout(self._correction_rules_tab)
+        # Create tab content
+        rules_tab = QWidget()
+        rules_layout = QVBoxLayout(rules_tab)
+        rules_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Add search field
+        # Add header with tools
+        tools_layout = QHBoxLayout()
+        tools_layout.setContentsMargins(5, 5, 5, 5)
+
+        # Search field
         search_layout = QHBoxLayout()
-        search_label = QLabel("Search:")
-        self._rules_search_field = QLineEdit()
-        self._rules_search_field.setPlaceholderText("Search correction rules...")
-        self._rules_search_field.textChanged.connect(self._on_search_rules)
+        search_layout.setSpacing(5)
+        search_layout.addWidget(QLabel("Search:"))
 
-        search_layout.addWidget(search_label)
-        search_layout.addWidget(self._rules_search_field)
-        layout.addLayout(search_layout)
+        self._search_field = QLineEdit()
+        self._search_field.setPlaceholderText("Filter rules...")
+        self._search_field.setMaximumWidth(200)
+        search_layout.addWidget(self._search_field)
 
-        # Add toggle for enabling/disabling all rules
-        toggle_layout = QHBoxLayout()
-        self._enable_all_checkbox = QCheckBox("Enable All Rules")
-        self._enable_all_checkbox.setChecked(True)
-        self._enable_all_checkbox.stateChanged.connect(self._on_toggle_all_rules)
+        tools_layout.addLayout(search_layout)
+        tools_layout.addStretch()
 
-        toggle_layout.addWidget(self._enable_all_checkbox)
-        toggle_layout.addStretch()
-        layout.addLayout(toggle_layout)
+        # Import/export buttons
+        import_button = QPushButton("Import")
+        import_button.setToolTip("Import correction rules from a file")
+        import_button.clicked.connect(self._on_import_rules)
+        tools_layout.addWidget(import_button)
 
-        # Add create rule from selection button
-        create_rule_layout = QHBoxLayout()
-        self._create_rule_button = QPushButton("Create Rule from Selection")
-        self._create_rule_button.setEnabled(False)
-        self._create_rule_button.clicked.connect(self._on_create_rule_from_selection)
+        export_button = QPushButton("Export")
+        export_button.setToolTip("Export correction rules to a file")
+        export_button.clicked.connect(self._on_export_rules)
+        tools_layout.addWidget(export_button)
 
-        create_rule_layout.addWidget(self._create_rule_button)
-        create_rule_layout.addStretch()
-        layout.addLayout(create_rule_layout)
+        # Add button
+        add_button = QPushButton("Add Rule")
+        add_button.setToolTip("Add a new correction rule")
+        add_button.clicked.connect(self._on_add_rule)
+        tools_layout.addWidget(add_button)
 
-        # Create correction rules table
+        rules_layout.addLayout(tools_layout)
+
+        # Add correction rules table
         self._correction_rules_table = CorrectionRulesTable()
-        self._correction_rules_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self._correction_rules_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        rules_layout.addWidget(self._correction_rules_table)
 
-        # Add the table to the layout
-        layout.addWidget(self._correction_rules_table)
+        # Connect signals
+        self._search_field.textChanged.connect(self._on_search_text_changed)
+        self._correction_rules_table.file_path_changed.connect(self._on_file_path_changed)
 
-        # Add buttons for managing correction rules
-        button_layout = QHBoxLayout()
-
-        self._add_rule_button = QPushButton("Add Rule")
-        self._add_rule_button.clicked.connect(self._on_add_rule)
-
-        self._edit_rule_button = QPushButton("Edit Rule")
-        self._edit_rule_button.clicked.connect(self._on_edit_rule)
-        self._edit_rule_button.setEnabled(False)
-
-        self._delete_rule_button = QPushButton("Delete Rule")
-        self._delete_rule_button.clicked.connect(self._on_delete_rule)
-        self._delete_rule_button.setEnabled(False)
-
-        self._import_rules_button = QPushButton("Import")
-        self._import_rules_button.clicked.connect(self._on_import_rules)
-
-        self._export_rules_button = QPushButton("Export")
-        self._export_rules_button.clicked.connect(self._on_export_rules)
-
-        button_layout.addWidget(self._add_rule_button)
-        button_layout.addWidget(self._edit_rule_button)
-        button_layout.addWidget(self._delete_rule_button)
-        button_layout.addStretch()
-        button_layout.addWidget(self._import_rules_button)
-        button_layout.addWidget(self._export_rules_button)
-
-        layout.addLayout(button_layout)
-
-        # Connect selection signals
-        self._correction_rules_table.selectionModel().selectionChanged.connect(
-            self._on_rule_selection_changed
-        )
+        # Store the tab widget for later reference
+        self._correction_rules_tab = rules_tab
 
     def _setup_validation_lists_tab(self):
         """Set up the validation lists tab."""
@@ -292,7 +288,40 @@ class CorrectionManagerPanel(QWidget):
     @Slot()
     def _on_import_rules(self):
         """Handle import rules button click."""
-        self._correction_rules_table.import_rules()
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info("Importing correction rules")
+
+        # Delegate to the correction rules table
+        imported_rules = self._correction_rules_table.import_rules()
+
+        # If import was cancelled or failed, do nothing
+        if imported_rules is None:
+            logger.info("Import cancelled or failed")
+            return
+
+        # Update our local copy
+        self._correction_rules = imported_rules
+        logger.info(f"Successfully imported {len(imported_rules)} rules")
+
+        # Store current file path if it exists in the table
+        if (
+            hasattr(self._correction_rules_table, "_current_file_path")
+            and self._correction_rules_table._current_file_path
+        ):
+            self._current_file_path = self._correction_rules_table._current_file_path
+
+            # Save to config if available
+            if hasattr(self, "_config") and self._config:
+                self._config.set("General", "last_correction_file", str(self._current_file_path))
+
+        # Ensure the correction rules tab is visible
+        self._tools_tabs.setCurrentIndex(0)
+
+        # Notify Dashboard
+        logger.info(f"Emitting correction_rules_updated signal with {len(imported_rules)} rules")
+        self.correction_rules_updated.emit(imported_rules)
 
     @Slot()
     def _on_export_rules(self):
@@ -468,7 +497,6 @@ class CorrectionManagerPanel(QWidget):
                 # Switch to the correction rules tab
                 self._tools_tabs.setCurrentIndex(0)
 
-    @Slot(list)
     def set_correction_rules(self, rules: List[CorrectionRule]):
         """
         Set the correction rules.
@@ -476,9 +504,82 @@ class CorrectionManagerPanel(QWidget):
         Args:
             rules: List of correction rules
         """
+        import logging
+        from pathlib import Path
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"CorrectionManagerPanel.set_correction_rules called with {len(rules)} rules")
+
+        if not rules:
+            logger.warning("Empty rules list passed to set_correction_rules")
+            return
+
+        # Check if rules are already set and unchanged
+        if self._correction_rules == rules:
+            logger.info("Rules are unchanged, no need to update")
+            # Still make sure the tab is visible
+            if self._tools_tabs.currentIndex() != 0:
+                self._tools_tabs.setCurrentIndex(0)
+            return
+
+        # Log some rules for debugging
+        for i, rule in enumerate(rules[:5]):  # Log first 5 rules for debugging
+            logger.info(
+                f"Panel Rule {i}: {rule.from_text} -> {rule.to_text} (category: {rule.category})"
+            )
+
+        # Store the rules locally
         self._correction_rules = rules
+
+        # Set rules in the table - this will update the display
         self._correction_rules_table.set_rules(rules)
-        self.correction_rules_updated.emit(rules)
+
+        # Make sure table is visible and the rules tab is active
+        if self._tools_tabs.currentIndex() != 0:  # If not on correction rules tab
+            logger.info("Switching to correction rules tab")
+            self._tools_tabs.setCurrentIndex(0)
+
+        # Update the count in the tab text
+        self._tools_tabs.setTabText(0, f"Correction Rules ({len(rules)})")
+
+        # Check if we have a current file path and update config
+        if hasattr(self, "_current_file_path") and self._current_file_path:
+            file_path = str(self._current_file_path)
+            folder_path = str(Path(file_path).parent)
+
+            # Update all config settings to ensure consistency
+            self._config.set("General", "last_correction_file", file_path)
+            self._config.set("General", "last_folder", folder_path)
+            self._config.set("Files", "last_correction_directory", folder_path)
+            self._config.set("Paths", "default_correction_rules", file_path)
+
+            # Save changes to disk
+            self._config.save()
+            logger.info(f"Saved config with correction file: {file_path}")
+
+        # Apply table update and make sure it's visually updated
+        self._correction_rules_table.reset()
+        self._correction_rules_table.resizeColumnsToContents()
+        self._correction_rules_table.resizeRowsToContents()
+
+        # Make sure the table has the right size
+        self._correction_rules_table.setMinimumHeight(400)
+
+        # Update status message if parent has status bar
+        if self.parent() and hasattr(self.parent(), "statusBar"):
+            self.parent().statusBar().showMessage(f"Loaded {len(rules)} correction rules", 3000)
+
+        # Emit signal - but only emit if we weren't called from the Dashboard
+        # to avoid signal loops
+        parent_is_setting_rules = False
+        try:
+            parent_is_setting_rules = getattr(self.parent(), "_processing_signal", False)
+        except (AttributeError, Exception):
+            pass
+
+        if not parent_is_setting_rules:
+            logger.info(f"Emitting correction_rules_updated signal with {len(rules)} rules")
+            self.correction_rules_updated.emit(rules)
 
     @Slot(dict)
     def set_validation_lists(self, lists: Dict[str, ValidationList]):
@@ -520,10 +621,9 @@ class CorrectionManagerPanel(QWidget):
         """
         return self._validation_lists
 
-    @Slot(list)
-    def set_entries(self, entries: List[ChestEntry]):
+    def set_entries(self, entries):
         """
-        Set the entries.
+        Set the entries to be displayed in the table.
 
         Args:
             entries: List of entries
@@ -531,8 +631,41 @@ class CorrectionManagerPanel(QWidget):
         self._entries = entries
         self._entries_table.set_entries(entries)
 
-        # Update the create rule button
-        self._create_rule_button.setEnabled(False)
+        # No need to update a button that doesn't exist
+        # self._create_rule_button.setEnabled(False)
+
+    @Slot(str)
+    def _on_file_path_changed(self, file_path):
+        """
+        Handle file path changed signal.
+
+        Args:
+            file_path: The new file path
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"CorrectionManagerPanel received file_path_changed: {file_path}")
+
+        # Store the path
+        self._current_file_path = file_path
+
+    @Slot(str)
+    def _on_search_text_changed(self, text):
+        """
+        Handle search text changed.
+
+        Args:
+            text: The search text
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Search text changed: {text}")
+
+        # Apply filter to the rules table
+        if hasattr(self, "_correction_rules_table"):
+            self._correction_rules_table.filter_rules(text)
 
 
 class CreateRuleDialog(QDialog):

@@ -40,7 +40,7 @@ from src.services.config_manager import ConfigManager
 from src.ui.dashboard import Dashboard
 from src.ui.correction_manager_panel import CorrectionManagerPanel
 from src.ui.reports_panel import ReportPanel
-from src.ui.settings_dialog import SettingsDialog
+from src.ui.settings_panel import SettingsPanel
 from src.ui.validation_panel import ValidationPanel
 from src.ui.styles import COLORS, SIDEBAR_STYLE
 
@@ -114,7 +114,7 @@ class MainWindow(QMainWindow):
         # Edit actions
         self._settings_action = QAction("Settings", self)
         self._settings_action.setStatusTip("Edit application settings")
-        self._settings_action.triggered.connect(self._on_settings)
+        self._settings_action.triggered.connect(lambda: self._on_sidebar_button_clicked(3))
 
     def _setup_sidebar(self):
         """Set up the sidebar."""
@@ -141,19 +141,16 @@ class MainWindow(QMainWindow):
         self._dashboard_btn = self._create_sidebar_button("Dashboard", 0)
         self._validation_btn = self._create_sidebar_button("Correction Manager", 1)
         self._reports_btn = self._create_sidebar_button("Reports", 2)
+        self._settings_btn = self._create_sidebar_button("Settings", 3)
 
         # Add navigation buttons to sidebar
         sidebar_layout.addWidget(self._dashboard_btn)
         sidebar_layout.addWidget(self._validation_btn)
         sidebar_layout.addWidget(self._reports_btn)
+        sidebar_layout.addWidget(self._settings_btn)
 
         # Add spacer
         sidebar_layout.addStretch()
-
-        # Add settings button to sidebar
-        settings_btn = QPushButton("Settings")
-        settings_btn.clicked.connect(self._on_settings)
-        sidebar_layout.addWidget(settings_btn)
 
         # Add sidebar and content to main layout
         self._content_widget = QStackedWidget()
@@ -200,12 +197,13 @@ class MainWindow(QMainWindow):
         self._dashboard_btn.setChecked(page_index == 0)
         self._validation_btn.setChecked(page_index == 1)
         self._reports_btn.setChecked(page_index == 2)
+        self._settings_btn.setChecked(page_index == 3)
 
         # Switch content page
         self._content_widget.setCurrentIndex(page_index)
 
         # Save active tab
-        self._config.set("window", "active_tab", page_index)
+        self._config.set("Window", "active_tab", page_index)
 
     def _setup_status_bar(self):
         """Set up the status bar."""
@@ -219,15 +217,17 @@ class MainWindow(QMainWindow):
         self._setup_dashboard_page()
         self._setup_correction_manager_page()
         self._setup_reports_page()
+        self._setup_settings_page()
 
         # Set initial page
-        active_tab = self._config.get_int("window", "active_tab", fallback=0)
+        active_tab = self._config.get_int("Window", "active_tab", fallback=0)
         self._content_widget.setCurrentIndex(active_tab)
 
         # Update button states
         self._dashboard_btn.setChecked(active_tab == 0)
         self._validation_btn.setChecked(active_tab == 1)
         self._reports_btn.setChecked(active_tab == 2)
+        self._settings_btn.setChecked(active_tab == 3)
 
     def _setup_dashboard_page(self):
         """Set up the dashboard page."""
@@ -261,6 +261,17 @@ class MainWindow(QMainWindow):
         # Add to content stack
         self._content_widget.addWidget(self._report_panel)
 
+    def _setup_settings_page(self):
+        """Set up the settings page."""
+        # Create settings panel
+        self._settings_panel = SettingsPanel(self)
+
+        # Connect signals
+        self._settings_panel.settings_changed.connect(self._on_settings_changed)
+
+        # Add to content stack
+        self._content_widget.addWidget(self._settings_panel)
+
     def _connect_signals(self):
         """Connect signals to slots."""
         try:
@@ -269,7 +280,7 @@ class MainWindow(QMainWindow):
             self._dashboard.entries_loaded.connect(self._report_panel.set_entries)
             self._dashboard.entries_loaded.connect(self._on_entries_loaded)
 
-            self._dashboard.entries_updated.connect(self._correction_manager.set_correction_rules)
+            self._dashboard.entries_updated.connect(self._correction_manager.set_entries)
             self._dashboard.entries_updated.connect(self._report_panel.set_entries)
             self._dashboard.entries_updated.connect(self._on_entries_updated)
 
@@ -315,7 +326,7 @@ class MainWindow(QMainWindow):
                 self._on_entries_loaded,
             ],
             self._dashboard.entries_updated: [
-                self._correction_manager.set_correction_rules,
+                self._correction_manager.set_entries,
                 self._report_panel.set_entries,
                 self._on_entries_updated,
             ],
@@ -361,23 +372,30 @@ class MainWindow(QMainWindow):
     def _restore_state(self):
         """Restore window state from configuration."""
         # Restore window geometry
-        geometry = self._config.get("window", "geometry", fallback=None)
+        geometry = self._config.get("Window", "geometry", fallback=None)
         if geometry:
             self.restoreGeometry(geometry)
 
         # Restore window state
-        state = self._config.get("window", "state", fallback=None)
+        state = self._config.get("Window", "state", fallback=None)
         if state:
             self.restoreState(state)
 
         # Restore active tab
-        active_tab = self._config.get_int("window", "active_tab", fallback=0)
+        active_tab = self._config.get_int("Window", "active_tab", fallback=0)
         self._content_widget.setCurrentIndex(active_tab)
 
         # Update sidebar button states
         self._dashboard_btn.setChecked(active_tab == 0)
         self._validation_btn.setChecked(active_tab == 1)
         self._reports_btn.setChecked(active_tab == 2)
+        self._settings_btn.setChecked(active_tab == 3)
+
+    def _save_state(self):
+        """Save window state to configuration."""
+        self._config.set("Window", "geometry", self.saveGeometry())
+        self._config.set("Window", "state", self.saveState())
+        self._config.set("Window", "active_tab", self._content_widget.currentIndex())
 
     def closeEvent(self, event: QCloseEvent):
         """
@@ -387,9 +405,7 @@ class MainWindow(QMainWindow):
             event: Close event
         """
         # Save window state
-        self._config.set("window", "geometry", self.saveGeometry())
-        self._config.set("window", "state", self.saveState())
-        self._config.set("window", "active_tab", self._content_widget.currentIndex())
+        self._save_state()
 
         # Accept the event
         event.accept()
@@ -417,15 +433,6 @@ class MainWindow(QMainWindow):
         """Handle Save As action."""
         # Display the status message
         self._status_bar.showMessage("Save as action triggered", 2000)
-
-    @Slot()
-    def _on_settings(self):
-        """Handle Settings action."""
-        # Create and show settings dialog
-        settings_dialog = SettingsDialog(self)
-        if settings_dialog.exec():
-            # Settings were saved, update UI if needed
-            self._status_bar.showMessage("Settings saved", 2000)
 
     @Slot()
     def _on_about(self):
@@ -487,6 +494,17 @@ class MainWindow(QMainWindow):
             self._status_bar.showMessage(f"Applied corrections to {corrected_count} entries", 2000)
         else:
             self._status_bar.showMessage("No corrections were needed", 2000)
+
+    @Slot(str)
+    def _on_settings_changed(self, category: str):
+        """
+        Handle settings changed.
+
+        Args:
+            category: Category of settings that changed
+        """
+        # Update status bar
+        self._status_bar.showMessage(f"Settings updated: {category}", 2000)
 
     def get_entries(self) -> List[ChestEntry]:
         """

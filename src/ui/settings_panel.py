@@ -445,7 +445,7 @@ class SettingsPanel(QWidget):
         self._left_panel_slider.valueChanged.connect(
             lambda: self._mark_setting_changed("Layout", "left_panel_ratio")
         )
-        self._left_panel_label = QLabel("30%")
+        self._left_panel_label = QLabel("50%")
         self._left_panel_slider.valueChanged.connect(
             lambda value: self._left_panel_label.setText(f"{value}%")
         )
@@ -603,7 +603,7 @@ class SettingsPanel(QWidget):
         self._row_height_label.setText(f"{row_height}px")
 
         # Load layout settings
-        left_panel_ratio = self._config.get_int("Layout", "left_panel_ratio", fallback=30)
+        left_panel_ratio = self._config.get_int("Layout", "left_panel_ratio", fallback=50)
         self._left_panel_slider.setValue(left_panel_ratio)
         self._left_panel_label.setText(f"{left_panel_ratio}%")
 

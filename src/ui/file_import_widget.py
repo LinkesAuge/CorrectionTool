@@ -75,16 +75,16 @@ class FileImportWidget(QWidget):
         self._entries: List[ChestEntry] = []
         self._correction_rules: List[CorrectionRule] = []
         self._corrections_enabled = self._config.get_bool(
-            "corrections", "auto_apply", fallback=True
+            "Corrections", "auto_apply", fallback=True
         )
         self._default_correction_path = self._config.get(
-            "paths", "default_correction_rules", fallback=str(Path.cwd() / "corrections.csv")
+            "Paths", "default_correction_rules", fallback=str(Path.cwd() / "corrections.csv")
         )
         self._last_entry_directory = self._config.get(
-            "files", "last_entry_directory", fallback=str(Path.home())
+            "Files", "last_entry_directory", fallback=str(Path.home())
         )
         self._last_correction_directory = self._config.get(
-            "files", "last_correction_directory", fallback=str(Path.home())
+            "Files", "last_correction_directory", fallback=str(Path.home())
         )
 
         # Set up UI
@@ -277,7 +277,7 @@ class FileImportWidget(QWidget):
             self._corrections_status_label.setText("No corrections loaded")
             self._corrections_status_label.setStyleSheet("")
 
-        # Emit signal
+        # Emit signal with the updated rules
         self.corrections_loaded.emit(rules)
 
         # Auto-apply corrections if enabled
@@ -377,7 +377,7 @@ class FileImportWidget(QWidget):
 
                 # Save the directory for next time
                 self._last_entry_directory = str(Path(file_path).parent)
-                self._config.set("files", "last_entry_directory", self._last_entry_directory)
+                self._config.set("Files", "last_entry_directory", self._last_entry_directory)
 
                 # Parse the file
                 entries = self._file_parser.parse_entry_file(file_path)
@@ -422,12 +422,18 @@ class FileImportWidget(QWidget):
                 # Save the directory for next time
                 self._last_correction_directory = str(Path(file_path).parent)
                 self._config.set(
-                    "files", "last_correction_directory", self._last_correction_directory
+                    "Files", "last_correction_directory", self._last_correction_directory
                 )
+
+                # Also update the General last_folder to ensure consistency with Dashboard
+                self._config.set("General", "last_folder", self._last_correction_directory)
 
                 # Save the path as the default for future auto-loading
                 self._default_correction_path = file_path
-                self._config.set("paths", "default_correction_rules", self._default_correction_path)
+                self._config.set("Paths", "default_correction_rules", self._default_correction_path)
+
+                # Save the configuration to disk
+                self._config.save()
 
                 # Parse the file
                 correction_rules = self._file_parser.parse_correction_file(file_path)
@@ -464,7 +470,7 @@ class FileImportWidget(QWidget):
             enabled: Whether corrections are enabled
         """
         self._corrections_enabled = enabled
-        self._config.set("corrections", "auto_apply", enabled)
+        self._config.set("Corrections", "auto_apply", enabled)
 
         # Apply corrections if enabled and we have entries and rules
         if enabled and self._entries and self._correction_rules:

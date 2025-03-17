@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from PySide6.QtCore import Qt, Signal, Slot, QSortFilterProxyModel, QModelIndex
-from PySide6.QtGui import QIntValidator
+from PySide6.QtGui import QIntValidator, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -64,10 +64,19 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         Args:
             parent: Parent widget
         """
+        import logging
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing CorrectionRulesModel")
+
         super().__init__(parent)
         self._rules: List[CorrectionRule] = []
         self._enabled_rules: Set[Tuple[str, str]] = set()
         self._filter_text = ""
+
+        # Create a dummy source model (required for QSortFilterProxyModel)
+        self._source_model = QStandardItemModel(self)
+        self.setSourceModel(self._source_model)
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         """
@@ -96,7 +105,15 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         Returns:
             Number of rows
         """
-        return len(self._rules)
+        count = len(self._rules)
+        self.logger.debug(f"rowCount called, returning {count}")
+
+        # Important: this is needed for QSortFilterProxyModel
+        # We must override the source model's rowCount
+        if parent.isValid():
+            return 0
+
+        return count
 
     def columnCount(self, parent=QModelIndex()):
         """
@@ -108,7 +125,7 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         Returns:
             Number of columns
         """
-        return len(self._COLUMNS) - 1  # Exclude Actions column which is handled separately
+        return len(self._COLUMNS)  # Include all columns, including Actions
 
     def data(self, index, role=Qt.DisplayRole):
         """
@@ -121,22 +138,33 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         Returns:
             Data for the role
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
         if not index.isValid():
             return None
 
+        if index.row() >= len(self._rules):
+            logger.warning(f"Invalid row index: {index.row()}, max: {len(self._rules) - 1}")
+            return None
+
+        # Get the rule at this index
         rule = self._rules[index.row()]
 
         if role == Qt.DisplayRole:
             if index.column() == self.COLUMN_FROM:
                 return rule.from_text
-            if index.column() == self.COLUMN_TO:
+            elif index.column() == self.COLUMN_TO:
                 return rule.to_text
-            if index.column() == self.COLUMN_CATEGORY:
+            elif index.column() == self.COLUMN_CATEGORY:
                 return rule.category
-            if index.column() == self.COLUMN_TYPE:
+            elif index.column() == self.COLUMN_TYPE:
                 return rule.rule_type
-            if index.column() == self.COLUMN_PRIORITY:
-                return rule.priority
+            elif index.column() == self.COLUMN_PRIORITY:
+                return str(rule.priority)  # Convert to string for display
+            elif index.column() == self.COLUMN_ACTIONS:
+                return "Edit/Delete"  # Placeholder for actions
 
         elif role == Qt.CheckStateRole:
             if index.column() == self.COLUMN_ENABLED:
@@ -145,6 +173,30 @@ class CorrectionRulesModel(QSortFilterProxyModel):
                     if (rule.from_text, rule.to_text) in self._enabled_rules
                     else Qt.Unchecked
                 )
+
+        # Add support for text alignment
+        elif role == Qt.TextAlignmentRole:
+            if index.column() in [self.COLUMN_PRIORITY]:
+                # Center numeric values
+                return Qt.AlignCenter
+            else:
+                # Left align text
+                return Qt.AlignLeft | Qt.AlignVCenter
+
+        # Add support for tooltips
+        elif role == Qt.ToolTipRole:
+            if index.column() == self.COLUMN_FROM:
+                return f"Original text: {rule.from_text}"
+            elif index.column() == self.COLUMN_TO:
+                return f"Corrected text: {rule.to_text}"
+            elif index.column() == self.COLUMN_CATEGORY:
+                return f"Category: {rule.category}"
+            elif index.column() == self.COLUMN_TYPE:
+                return f"Rule type: {rule.rule_type}"
+            elif index.column() == self.COLUMN_PRIORITY:
+                return f"Priority: {rule.priority}"
+            elif index.column() == self.COLUMN_ACTIONS:
+                return "Click to edit or delete this rule"
 
         return None
 
@@ -161,6 +213,9 @@ class CorrectionRulesModel(QSortFilterProxyModel):
             True if successful, False otherwise
         """
         if not index.isValid():
+            return False
+
+        if index.row() >= len(self._rules):
             return False
 
         if role == Qt.CheckStateRole and index.column() == self.COLUMN_ENABLED:
@@ -200,6 +255,20 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         Args:
             rules: List of correction rules
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"CorrectionRulesModel.set_rules called with {len(rules)} rules")
+
+        # Check for empty from_text or to_text
+        invalid_rules = [
+            i for i, r in enumerate(rules) if not r.from_text.strip() or not r.to_text.strip()
+        ]
+        if invalid_rules:
+            logger.warning(
+                f"Found {len(invalid_rules)} rules with empty from_text or to_text at indices: {invalid_rules}"
+            )
+
         self.beginResetModel()
         self._rules = rules
 
@@ -207,7 +276,33 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         # Create a unique identifier based on from_text and to_text since CorrectionRule doesn't have an id
         self._enabled_rules = set((rule.from_text, rule.to_text) for rule in rules)
 
+        # Clear and reset the source model
+        self._source_model.clear()
+        self._source_model.setColumnCount(len(self._COLUMNS))
+        self._source_model.setRowCount(len(rules))
+
+        # Set column headers in source model
+        for col, header in enumerate(self._COLUMNS):
+            self._source_model.setHeaderData(col, Qt.Horizontal, header, Qt.DisplayRole)
+
+        # Populate source model with data for better proxy integration
+        from PySide6.QtGui import QStandardItem
+
+        for row, rule in enumerate(rules):
+            # Just need to create empty items to ensure proper row handling
+            for col in range(len(self._COLUMNS)):
+                self._source_model.setItem(row, col, QStandardItem())
+
         self.endResetModel()
+
+        # Log some rules for debugging
+        for i, rule in enumerate(rules[:5]):
+            logger.info(
+                f"Rule {i} after set: {rule.from_text} -> {rule.to_text} (category: {rule.category})"
+            )
+
+        # Notify view that data has changed
+        self.layoutChanged.emit()
 
     def get_rules(self) -> List[CorrectionRule]:
         """
@@ -309,6 +404,10 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         if not self._filter_text:
             return True
 
+        # Make sure we don't go out of bounds
+        if source_row >= len(self._rules):
+            return False
+
         rule = self._rules[source_row]
 
         # Check if filter matches any field
@@ -381,6 +480,55 @@ class CorrectionRulesModel(QSortFilterProxyModel):
             self.index(len(self._rules) - 1, self.COLUMN_ENABLED),
         )
 
+    def mapToSource(self, proxyIndex):
+        """
+        Map a proxy index to a source index.
+
+        Args:
+            proxyIndex: Index in the proxy model
+
+        Returns:
+            Corresponding index in the source model
+        """
+        if not proxyIndex.isValid():
+            return QModelIndex()
+
+        # Create source index with same row/column
+        return self.sourceModel().index(proxyIndex.row(), proxyIndex.column())
+
+    def mapFromSource(self, sourceIndex):
+        """
+        Map a source index to a proxy index.
+
+        Args:
+            sourceIndex: Index in the source model
+
+        Returns:
+            Corresponding index in the proxy model
+        """
+        if not sourceIndex.isValid():
+            return QModelIndex()
+
+        # Create proxy index with same row/column
+        return self.createIndex(sourceIndex.row(), sourceIndex.column())
+
+    def index(self, row, column, parent=QModelIndex()):
+        """
+        Create a model index for the given row and column.
+
+        Args:
+            row: Row index
+            column: Column index
+            parent: Parent index
+
+        Returns:
+            Model index
+        """
+        if not self.hasIndex(row, column, parent):
+            return QModelIndex()
+
+        return self.createIndex(row, column, None)
+
 
 class RuleEditDialog(QDialog):
     """
@@ -395,9 +543,14 @@ class RuleEditDialog(QDialog):
             rule: Rule to edit, or None for a new rule
             parent: Parent widget
         """
+        import logging
+
+        self.logger = logging.getLogger(__name__)
+
         super().__init__(parent)
 
         self.rule = rule or CorrectionRule(from_text="", to_text="")
+        self.logger.info(f"Editing rule: {self.rule.from_text} -> {self.rule.to_text}")
 
         self.setWindowTitle("Edit Correction Rule" if rule else "New Correction Rule")
         self.setMinimumWidth(400)
@@ -476,6 +629,10 @@ class RuleEditDialog(QDialog):
         self.rule.rule_type = rule_type  # type: ignore
         self.rule.priority = priority
 
+        self.logger.info(
+            f"Rule accepted: {self.rule.from_text} -> {self.rule.to_text} (category: {self.rule.category})"
+        )
+
         super().accept()
 
 
@@ -495,12 +652,20 @@ class CorrectionRulesTable(QTableView):
         Args:
             parent: Parent widget
         """
+        import logging
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing CorrectionRulesTable")
+
         super().__init__(parent)
 
         self._model = CorrectionRulesModel()
         self.setModel(self._model)
 
         self._config = ConfigManager()
+
+        # Track the current file path
+        self._current_file_path = None
 
         self._setup_ui()
 
@@ -510,19 +675,48 @@ class CorrectionRulesTable(QTableView):
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(True)
+        self.setShowGrid(True)
+        self.setWordWrap(True)
+
+        # Make table cells more readable
+        self.verticalHeader().setDefaultSectionSize(30)  # Height of rows
 
         # Configure header
         header = self.horizontalHeader()
         header.setStretchLastSection(True)
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Stretch)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
+
+        # Set column widths
+        self.setColumnWidth(0, 50)  # Enabled (checkbox)
+        self.setColumnWidth(1, 150)  # From text
+        self.setColumnWidth(2, 150)  # To text
+        self.setColumnWidth(3, 80)  # Category
+        self.setColumnWidth(4, 80)  # Rule type
+        self.setColumnWidth(5, 50)  # Priority
 
         # Enable editing enabled column
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+        # Connect model signals to refresh view
+        self._model.dataChanged.connect(self._on_data_changed)
+        self._model.modelReset.connect(self._on_model_reset)
+        self._model.layoutChanged.connect(self._on_layout_changed)
+
+    def _on_data_changed(self, topLeft, bottomRight, roles=None):
+        """Handle model data changed."""
+        self.logger.debug(
+            f"Data changed from {topLeft.row()},{topLeft.column()} to {bottomRight.row()},{bottomRight.column()}"
+        )
+        self.viewport().update()
+
+    def _on_model_reset(self):
+        """Handle model reset."""
+        self.logger.debug("Model reset")
+        self.viewport().update()
+
+    def _on_layout_changed(self):
+        """Handle model layout changed."""
+        self.logger.debug("Layout changed")
+        self.viewport().update()
 
     def set_rules(self, rules: List[CorrectionRule]):
         """
@@ -531,7 +725,33 @@ class CorrectionRulesTable(QTableView):
         Args:
             rules: List of correction rules
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"CorrectionRulesTable.set_rules called with {len(rules)} rules")
+
+        # Log a few rules for debugging
+        for i, rule in enumerate(rules[:5]):
+            logger.info(
+                f"Table Rule {i}: {rule.from_text} -> {rule.to_text} (category: {rule.category})"
+            )
+
+        # Apply the rules to the model
         self._model.set_rules(rules)
+
+        # Force update the view
+        self.reset()
+        # Use viewport update instead of self.update()
+        self.viewport().update()
+
+        # Update column widths and appearance
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+        # Log current model state
+        logger.info(
+            f"Model now has {self._model.rowCount()} rows and {self._model.columnCount()} columns"
+        )
 
     def get_rules(self) -> List[CorrectionRule]:
         """
@@ -545,18 +765,13 @@ class CorrectionRulesTable(QTableView):
     @Slot()
     def add_rule(self):
         """Add a new rule to the table."""
-        dialog = RuleEditDialog(self)
+        dialog = RuleEditDialog(parent=self)
         if dialog.exec():
-            category, from_text, to_text, use_regex, priority = dialog.get_values()
-            new_rule = CorrectionRule(
-                from_text=from_text,
-                to_text=to_text,
-                enabled=True,
-                rule_type="regex" if use_regex else "simple",
-                priority=priority,
-                category=category,
-            )
-            self._model.add_rule(new_rule)
+            rule = dialog.rule
+            self.logger.info(f"Adding new rule: {rule.from_text} -> {rule.to_text}")
+            self._model.add_rule(rule)
+            # Update the display
+            self.viewport().update()
 
     def edit_rule(self, row: int):
         """
@@ -571,7 +786,10 @@ class CorrectionRulesTable(QTableView):
         rule = self._model.get_rules()[row]
         dialog = RuleEditDialog(rule, parent=self)
         if dialog.exec():
+            self.logger.info(f"Edited rule: {rule.from_text} -> {rule.to_text}")
             self._model.update_rule(rule)
+            # Update the display
+            self.viewport().update()
 
     def delete_rule(self, row: int):
         """
@@ -593,77 +811,170 @@ class CorrectionRulesTable(QTableView):
         )
 
         if response == QMessageBox.Yes:
+            self.logger.info(f"Deleting rule at row {row}")
             self._model.delete_rule(row)
+            # Update the display
+            self.viewport().update()
 
-    def import_rules(self):
-        """Import rules from a file."""
-        # Open file dialog
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Import Correction Rules",
-            str(Path.home()),
-            "CSV Files (*.csv);;TSV Files (*.tsv);;Text Files (*.txt);;All Files (*.*)",
-        )
+    def import_rules(self, file_path=None, skip_confirmation=False):
+        """
+        Import rules from a file.
 
-        if not file_path:
-            return
+        Args:
+            file_path: Optional path to the file to import. If None, a file dialog will be shown.
+            skip_confirmation: If True, skip the confirmation dialog and import directly.
 
-        # Load rules from file
-        from src.services.file_parser import FileParser
+        Returns:
+            List of imported rules, or None if import was cancelled or failed.
+        """
         import logging
 
-        parser = FileParser()
+        logger = logging.getLogger(__name__)
+        logger.info("Starting import_rules process")
+
+        # If no file path provided, show file dialog
+        if file_path is None:
+            from PySide6.QtWidgets import QFileDialog
+            from pathlib import Path
+            from src.services.config_manager import ConfigManager
+
+            config = ConfigManager()
+            last_dir = config.get("General", "last_folder", str(Path.home()))
+
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Import Correction Rules",
+                last_dir,
+                "Correction Files (*.csv *.tsv *.txt);;All Files (*.*)",
+            )
+
+            if not file_path:
+                logger.info("No file selected for import")
+                return None
 
         try:
-            rules = parser.parse_correction_rules(file_path)
-            if rules:
-                # Confirm import
+            # Parse the file
+            from src.services.file_parser import FileParser
+
+            parser = FileParser()
+            imported_rules = parser.parse_correction_file(file_path)
+
+            if not imported_rules:
+                from PySide6.QtWidgets import QMessageBox
+
+                QMessageBox.warning(
+                    self, "Import Error", "No valid correction rules found in the file."
+                )
+                logger.warning(f"No valid rules found in {file_path}")
+                return None
+
+            # Save the file path configuration
+            from src.services.config_manager import ConfigManager
+            from pathlib import Path
+
+            config = ConfigManager()
+            folder_path = str(Path(file_path).parent)
+            config.set("General", "last_folder", folder_path)
+            config.set("Files", "last_correction_directory", folder_path)
+            config.set("General", "last_correction_file", file_path)
+            config.set("Paths", "default_correction_rules", file_path)
+            config.save()
+
+            # Emit the signal with the file path
+            self.file_path_changed.emit(file_path)
+
+            # If skip_confirmation is True, skip confirmation and replace all rules
+            if skip_confirmation:
+                logger.info(f"Replacing all rules with {len(imported_rules)} imported rules")
+
+                # Replace existing rules
+                self._model.set_rules(imported_rules)
+
+                # Show success message
+                from PySide6.QtWidgets import QMessageBox
+
+                QMessageBox.information(
+                    self,
+                    "Import Successful",
+                    f"Successfully imported {len(imported_rules)} rules.",
+                )
+
+                logger.info(f"Successfully imported {len(imported_rules)} rules")
+                return imported_rules
+
+            # Skip confirmation if false, ask user what to do
+            from PySide6.QtWidgets import QMessageBox
+
+            # Get existing rules
+            current_rules = self._model.get_rules()
+
+            if current_rules:
+                # Ask user if they want to replace or append
                 response = QMessageBox.question(
                     self,
-                    "Confirm Import",
-                    f"Import {len(rules)} rules from {Path(file_path).name}?",
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.Yes,
+                    "Import Rules",
+                    f"Found {len(imported_rules)} rules in the file. Do you want to replace existing rules or append?",
+                    QMessageBox.StandardButton.Yes
+                    | QMessageBox.StandardButton.No
+                    | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Yes,
                 )
 
-                if response == QMessageBox.Yes:
-                    # Add to existing rules
-                    current_rules = self._model.get_rules()
-                    all_rules = current_rules + rules
-                    self._model.set_rules(all_rules)
+                if response == QMessageBox.StandardButton.Cancel:
+                    logger.info("Import cancelled by user")
+                    return None
 
-                    # Show success message
-                    QMessageBox.information(
-                        self,
-                        "Import Successful",
-                        f"Imported {len(rules)} rules from {Path(file_path).name}.",
+                if response == QMessageBox.StandardButton.Yes:
+                    # Replace existing rules
+                    logger.info(
+                        f"Replacing {len(current_rules)} rules with {len(imported_rules)} imported rules"
                     )
+                    all_rules = imported_rules
+                else:
+                    # Append to existing rules
+                    logger.info(
+                        f"Appending {len(imported_rules)} rules to {len(current_rules)} existing rules"
+                    )
+                    all_rules = current_rules + imported_rules
             else:
-                QMessageBox.warning(
-                    self,
-                    "Import Failed",
-                    f"No valid rules found in {Path(file_path).name}. "
-                    f"Ensure the file has 'From' and 'To' columns with proper values.",
-                )
+                # No existing rules, just set the imported rules
+                logger.info(f"Setting {len(imported_rules)} imported rules (no existing rules)")
+                all_rules = imported_rules
+
+            # Set the rules in the model
+            self._model.set_rules(all_rules)
+
+            # Force update display
+            logger.info("Forcing view update")
+            self.reset()
+            self.viewport().update()
+            self.resizeColumnsToContents()
+            self.resizeRowsToContents()
+
+            # Show success message
+            QMessageBox.information(
+                self,
+                "Import Successful",
+                f"Successfully imported {len(imported_rules)} rules.",
+            )
+
+            logger.info(f"Successfully imported {len(imported_rules)} rules")
+            return all_rules
+
         except FileNotFoundError:
-            QMessageBox.critical(
-                self, "File Not Found", f"The file '{Path(file_path).name}' could not be found."
-            )
-        except ValueError as e:
-            QMessageBox.critical(
-                self,
-                "Import Error",
-                f"Error importing rules: {str(e)}\n\n"
-                f"Ensure the file has 'From' and 'To' columns and is properly formatted.",
-            )
+            from PySide6.QtWidgets import QMessageBox
+
+            logger.error(f"File not found: {file_path}")
+            QMessageBox.critical(self, "Import Error", f"File not found: {file_path}")
+            return None
         except Exception as e:
-            logging.exception("Error importing correction rules")
+            from PySide6.QtWidgets import QMessageBox
+
+            logger.error(f"Error importing rules: {str(e)}")
             QMessageBox.critical(
-                self,
-                "Import Error",
-                f"Unexpected error importing rules: {str(e)}\n\n"
-                f"The file might be corrupted or in an unsupported format.",
+                self, "Import Error", f"An error occurred while importing rules:\n\n{str(e)}"
             )
+            return None
 
     def export_rules(self):
         """Export rules to a file."""
@@ -766,3 +1077,27 @@ class CorrectionRulesTable(QTableView):
 
         # Emit the rules updated signal
         self.rules_updated.emit(self._model.get_rules())
+
+    def update(self):
+        """Override update to ensure viewport is updated properly."""
+        self.viewport().update()
+        # Don't call QTableView.update(self) as it requires arguments
+
+    def reset(self):
+        """Override reset to ensure the table is properly reset."""
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug("Resetting table view")
+        super().reset()
+
+        # Force a data refresh
+        self.model().layoutChanged.emit()
+
+        self.viewport().update()
+        # Make sure headers are visible
+        self.horizontalHeader().setVisible(True)
+        self.verticalHeader().setVisible(True)
+
+    # Add this signal definition to the class (under the existing signals at around line 648)
+    file_path_changed = Signal(str)  # Signal to notify when a file path has been loaded/imported

@@ -263,27 +263,45 @@ class ChestEntryTableModel(QAbstractTableModel):
         return flags
 
     def set_entries(self, entries):
-        """Set the entries for this model.
+        """
+        Set the entries to display.
 
         Args:
-            entries (list): List of ChestEntry objects
+            entries: List of ChestEntry objects
         """
+        # Log the operation for debugging
         logger = logging.getLogger(__name__)
-        try:
-            logger.debug(f"Setting {len(entries)} entries in table model")
-            self.beginResetModel()
-            try:
-                self._entries = entries
-            except Exception as e:
-                logger.error(f"Error setting entries: {str(e)}")
-                import traceback
+        logger.debug(f"Setting {len(entries)} entries in table view")
 
-                logger.error(traceback.format_exc())
-                self._entries = []
-            self.endResetModel()
-            logger.debug("Successfully set entries in table model")
+        try:
+            # Make a defensive copy of entries to prevent modification of original
+            self._entries = list(entries)
+
+            # Create model for the entries
+            model = ChestEntryTableModel(self._entries)
+
+            # Update or create proxy model
+            if self._proxy_model is None:
+                self._proxy_model = QSortFilterProxyModel()
+                self._proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
+                self._proxy_model.setFilterKeyColumn(-1)  # Filter on all columns
+                self.setModel(self._proxy_model)
+
+            # Update the source model
+            self._proxy_model.setSourceModel(model)
+
+            # Ensure selection signals are connected
+            if self.selectionModel():
+                self.selectionModel().selectionChanged.connect(self._on_selection_changed)
+
+            # Refresh the view
+            self._refresh_view()
+
+            # Log success
+            logger.debug(f"Successfully set {len(entries)} entries in table view")
+
         except Exception as e:
-            logger.error(f"Unexpected error in set_entries: {str(e)}")
+            logger.error(f"Error setting entries in table view: {e}")
             import traceback
 
             logger.error(traceback.format_exc())
@@ -505,8 +523,26 @@ class EnhancedTableView(QTableView):
             self.setSortingEnabled(True)
             self.setContextMenuPolicy(Qt.CustomContextMenu)
 
+            # Initialize with empty model
+            model = ChestEntryTableModel([])
+            self._proxy_model = QSortFilterProxyModel()
+            self._proxy_model.setSourceModel(model)
+            self._proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
+            self._proxy_model.setFilterKeyColumn(-1)  # Filter on all columns
+            self.setModel(self._proxy_model)
+
+            # Configure headers
+            self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            self.setColumnWidth(0, 50)  # ID column
+
+            # Set up delegate
+            self.setItemDelegate(ValidationErrorDelegate(self))
+
             # Connect context menu signal
             self.customContextMenuRequested.connect(self._show_context_menu)
+
+            # Sort by ID initially
+            self.sortByColumn(0, Qt.AscendingOrder)
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Error in _setup_view: {e}")
@@ -529,88 +565,34 @@ class EnhancedTableView(QTableView):
             # Make a defensive copy of entries to prevent modification of original
             self._entries = list(entries)
 
-            # Create model for the entries - use a try/except to handle model creation
-            try:
-                model = ChestEntryTableModel(self._entries)
-            except Exception as model_error:
-                logger.error(f"Error creating table model: {model_error}")
-                import traceback
+            # Create model for the entries
+            model = ChestEntryTableModel(self._entries)
 
-                logger.error(traceback.format_exc())
-                # Create a model with empty entries as fallback
-                model = ChestEntryTableModel([])
-
-            # Create proxy model for sorting and filtering
-            try:
+            # Update or create proxy model
+            if self._proxy_model is None:
                 self._proxy_model = QSortFilterProxyModel()
-                self._proxy_model.setSourceModel(model)
                 self._proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
                 self._proxy_model.setFilterKeyColumn(-1)  # Filter on all columns
-            except Exception as proxy_error:
-                logger.error(f"Error creating proxy model: {proxy_error}")
-                import traceback
-
-                logger.error(traceback.format_exc())
-                # Try to recover by using direct model
-                self._proxy_model = None
-                self.setModel(model)
-                return
-
-            # Set the model on the view
-            try:
                 self.setModel(self._proxy_model)
-            except Exception as set_model_error:
-                logger.error(f"Error setting model: {set_model_error}")
-                import traceback
 
-                logger.error(traceback.format_exc())
-                return
+            # Update the source model
+            self._proxy_model.setSourceModel(model)
 
-            # Connect selection signals (must be done after setting model)
-            try:
+            # Ensure selection signals are connected
+            if self.selectionModel():
                 self.selectionModel().selectionChanged.connect(self._on_selection_changed)
-            except Exception as selection_error:
-                logger.error(f"Error connecting selection changed signal: {selection_error}")
-                import traceback
 
-                logger.error(traceback.format_exc())
+            # Refresh the view
+            self._refresh_view()
 
-            # Configure the view
-            try:
-                self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-                self.setColumnWidth(0, 50)  # ID column
-            except Exception as header_error:
-                logger.error(f"Error configuring headers: {header_error}")
-                import traceback
+            # Log success
+            logger.debug(f"Successfully set {len(entries)} entries in table view")
 
-                logger.error(traceback.format_exc())
-
-            # Create delegates for validation errors and corrections
-            try:
-                self.setItemDelegate(ValidationErrorDelegate(self))
-            except Exception as delegate_error:
-                logger.error(f"Error setting delegate: {delegate_error}")
-                import traceback
-
-                logger.error(traceback.format_exc())
-
-            # Sort by ID
-            try:
-                self.sortByColumn(0, Qt.AscendingOrder)
-            except Exception as sort_error:
-                logger.error(f"Error setting initial sort: {sort_error}")
-                import traceback
-
-                logger.error(traceback.format_exc())
-
-            logger.debug("Successfully set up table view with entries")
         except Exception as e:
-            logger.error(f"Error in set_entries: {e}")
+            logger.error(f"Error setting entries in table view: {e}")
             import traceback
 
-            logger.error(f"Stack trace: {traceback.format_exc()}")
-            # Still set the entries to avoid completely breaking functionality
-            self._entries = entries
+            logger.error(traceback.format_exc())
 
     def _on_selection_changed(self, selected, deselected):
         """
@@ -948,8 +930,17 @@ class EnhancedTableView(QTableView):
             return None
 
     def _refresh_view(self):
-        """Refresh the view to reflect changes in the model."""
-        # This is a simple way to refresh the view - a more sophisticated
-        # approach would be to emit dataChanged signals from the model
-        if self._proxy_model and self._proxy_model.sourceModel():
-            self._proxy_model.sourceModel().layoutChanged.emit()
+        """Refresh the table view to reflect model changes."""
+        # Configure headers
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.setColumnWidth(0, 50)  # ID column
+
+        # Reset sorting
+        self.sortByColumn(0, Qt.AscendingOrder)
+
+        # Resize columns and rows to content
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+        # Force a visual update
+        self.viewport().update()

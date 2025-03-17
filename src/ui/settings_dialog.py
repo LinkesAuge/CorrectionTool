@@ -137,14 +137,14 @@ class SettingsDialog(QDialog):
         """Load settings from the config manager."""
         # Load correction rules path
         correction_rules_path = self._config.get(
-            "paths", "default_correction_rules", fallback=str(Path.cwd() / "corrections.csv")
+            "Paths", "default_correction_rules", fallback=str(Path.cwd() / "corrections.csv")
         )
         self._correction_rules_path.setText(correction_rules_path)
 
     def _save_settings(self):
         """Save settings to the config manager and accept the dialog."""
         # Save correction rules path
-        self._config.set("paths", "default_correction_rules", self._correction_rules_path.text())
+        self._config.set("Paths", "default_correction_rules", self._correction_rules_path.text())
 
         # Save the config
         self._config.save()

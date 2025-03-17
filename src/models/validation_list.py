@@ -10,6 +10,7 @@ Usage:
 import csv
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Set, Tuple
+import logging
 
 from src.services.config_manager import ConfigManager
 from src.services.fuzzy_matcher import FuzzyMatcher
@@ -237,6 +238,9 @@ class ValidationList:
         Raises:
             ValueError: If the file format is invalid
         """
+        logger = logging.getLogger(__name__)
+        logger.info(f"Loading validation list from {file_path}")
+
         with open(file_path, "r", newline="", encoding="utf-8") as csvfile:
             reader = csv.reader(csvfile)
 
@@ -246,6 +250,7 @@ class ValidationList:
                 if len(type_row) != 2 or type_row[0] != "Type":
                     raise ValueError("Invalid validation list file format: missing Type row")
                 list_type = type_row[1]
+                logger.info(f"Validation list type: {list_type}")
 
                 # Validate list type
                 if list_type not in ("player", "chest_type", "source"):
@@ -256,6 +261,7 @@ class ValidationList:
                 if len(name_row) != 2 or name_row[0] != "Name":
                     raise ValueError("Invalid validation list file format: missing Name row")
                 name = name_row[1]
+                logger.info(f"Validation list name: {name}")
 
                 # Read header
                 header_row = next(reader)
@@ -268,8 +274,13 @@ class ValidationList:
                     if row and len(row) > 0:
                         entries.append(row[0])
 
+                logger.info(f"Loaded {len(entries)} entries from validation list file")
+                if entries:
+                    logger.info(f"First few entries: {entries[:5]}")
+
                 return cls(list_type=list_type, entries=entries, name=name)  # type: ignore
             except StopIteration:
                 raise ValueError("Invalid validation list file format: file is too short")
             except Exception as e:
+                logger.error(f"Error loading validation list: {str(e)}")
                 raise ValueError(f"Error loading validation list: {str(e)}")
