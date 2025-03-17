@@ -46,3 +46,9 @@ Source: Level 15 Crypt
 Merchant's Chest
 From: Bruno
 Source: Mercenary Exchange
+Orc Chest
+From: OsmanliTorunu
+Source: Jormungandr Shop
+Clan vvealth
+From: Krümelmonster
+Source: Level 25 Crypt

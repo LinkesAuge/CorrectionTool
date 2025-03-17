@@ -11,9 +11,9 @@ Usage:
 import sys
 from typing import Dict, Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import (
-    QApplication, QHBoxLayout, QMainWindow, QSplitter, QStackedWidget, QVBoxLayout, QWidget
+    QApplication, QHBoxLayout, QMainWindow, QSplitter, QStackedWidget, QVBoxLayout, QWidget, QMessageBox
 )
 
 from src.services.config_manager import ConfigManager
@@ -21,7 +21,10 @@ from src.ui.navigation_panel import NavigationPanel
 from src.ui.file_panel import FilePanel
 from src.ui.corrector_panel import CorrectorPanel
 from src.ui.validation_panel import ValidationPanel
+from src.ui.settings_panel import SettingsPanel
+from src.ui.report_panel import ReportPanel
 from src.ui.styles import get_stylesheet
+from src.ui.help_panel import HelpPanel
 
 
 class MainWindow(QMainWindow):
@@ -63,6 +66,9 @@ class MainWindow(QMainWindow):
         
         # Connect signals
         self._connect_signals()
+        
+        # Apply settings
+        self._apply_settings()
     
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -87,6 +93,7 @@ class MainWindow(QMainWindow):
         self._setup_validation_page()
         self._setup_reports_page()
         self._setup_settings_page()
+        self._setup_help_page()
         
         # Add widgets to layouts
         main_layout.addWidget(self._navigation_panel)
@@ -172,23 +179,36 @@ class MainWindow(QMainWindow):
     
     def _setup_reports_page(self) -> None:
         """Set up the reports page."""
-        # Placeholder for reports page
-        reports_widget = QWidget()
-        reports_layout = QVBoxLayout(reports_widget)
-        reports_layout.setContentsMargins(20, 20, 20, 20)
+        # Create reports panel
+        reports_panel = ReportPanel()
+        
+        # Connect signals
+        self._file_panel.entries_loaded.connect(reports_panel.set_entries)
+        self._validation_panel.validation_lists_updated.connect(reports_panel.set_validation_lists)
         
         # Add page to content stack
-        self._add_content_page("Reports", reports_widget)
+        self._add_content_page("Reports", reports_panel)
+        
+        # Store reference to reports panel
+        self._reports_panel = reports_panel
     
     def _setup_settings_page(self) -> None:
         """Set up the settings page."""
-        # Placeholder for settings page
-        settings_widget = QWidget()
-        settings_layout = QVBoxLayout(settings_widget)
-        settings_layout.setContentsMargins(20, 20, 20, 20)
+        # Create settings panel
+        settings_panel = SettingsPanel()
+        settings_panel.settings_changed.connect(self._on_settings_changed)
         
         # Add page to content stack
-        self._add_content_page("Settings", settings_widget)
+        self._add_content_page("Settings", settings_panel)
+        
+        # Store reference to settings panel
+        self._settings_panel = settings_panel
+    
+    def _setup_help_page(self) -> None:
+        """Set up the help page."""
+        self._help_panel = HelpPanel()
+        self._content_stack.addWidget(self._help_panel)
+        self._navigation_panel.add_item("Help", "help_icon", "Access application help and documentation")
     
     def _add_content_page(self, name: str, widget: QWidget) -> None:
         """
@@ -222,6 +242,14 @@ class MainWindow(QMainWindow):
             if index >= 0:
                 self._content_stack.setCurrentIndex(index)
     
+    def _on_settings_changed(self) -> None:
+        """Handle settings changes."""
+        # Update window size setting if needed
+        if self._config.get_bool("UI", "remember_window_size", fallback=True):
+            self._config.set("UI", "window_width", self.width())
+            self._config.set("UI", "window_height", self.height())
+            self._config.save()
+    
     def closeEvent(self, event) -> None:
         """
         Handle window close event.
@@ -237,4 +265,22 @@ class MainWindow(QMainWindow):
         self._config.save()
         
         # Accept the event
-        event.accept() 
+        event.accept()
+
+    def _apply_settings(self) -> None:
+        """Apply saved settings to the window."""
+        # Restore window size
+        if self._config.get_bool("UI", "remember_window_size", fallback=True):
+            self.resize(self._config.get_int("UI", "window_width", fallback=1280),
+                       self._config.get_int("UI", "window_height", fallback=800))
+        
+        # Restore window position
+        if self._config.get_bool("UI", "remember_window_position", fallback=True):
+            self.move(self._config.get_int("UI", "window_x", fallback=0),
+                     self._config.get_int("UI", "window_y", fallback=0))
+
+        # Restore maximized state
+        if self._config.get_bool("UI", "remember_maximized_state", fallback=True):
+            self.showMaximized()
+        else:
+            self.showNormal() 

@@ -8,6 +8,7 @@ Usage:
 """
 
 import sys
+import traceback
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 
@@ -53,7 +54,12 @@ def main():
     main_window.show()
     
     # Start event loop
-    sys.exit(app.exec())
+    try:
+        sys.exit(app.exec())
+    except Exception as e:
+        print(f"Exception occurred: {e}")
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

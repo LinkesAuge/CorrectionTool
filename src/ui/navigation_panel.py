@@ -145,4 +145,28 @@ class NavigationPanel(QWidget):
                 button.setChecked(True)
                 self.navigation_changed.emit(item_name)
                 return True
-        return False 
+        return False
+        
+    def add_item(self, text: str, icon_name: str, tooltip: str = "") -> None:
+        """
+        Add a new navigation item.
+        
+        Args:
+            text (str): Button text
+            icon_name (str): Icon name
+            tooltip (str, optional): Tooltip text
+        """
+        # Get the next available ID
+        next_id = len(self.button_group.buttons())
+        
+        # Create button
+        button = self._create_nav_button(text, icon_name)
+        if tooltip:
+            button.setToolTip(tooltip)
+            
+        # Add to layout
+        layout = self.layout()
+        layout.insertWidget(layout.count() - 1, button)  # Insert before spacer
+        
+        # Add to button group
+        self.button_group.addButton(button, next_id) 

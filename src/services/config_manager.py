@@ -209,16 +209,27 @@ class ConfigManager:
         with open(self._config_file, "w") as f:
             self._config.write(f)
     
+    def reset_to_defaults(self) -> None:
+        """Reset the configuration to default values."""
+        # Create a new config parser
+        self._config = configparser.ConfigParser()
+        
+        # Create default configuration
+        self._create_default_config()
+        
+        # Save the default configuration
+        self.save()
+    
     def get_all(self) -> Dict[str, Dict[str, str]]:
         """
         Get all configuration values.
         
         Returns:
-            Dict[str, Dict[str, str]]: The full configuration
+            Dict[str, Dict[str, str]]: Dictionary of all configuration values
         """
         result = {}
         for section in self._config.sections():
             result[section] = {}
-            for key, value in self._config.items(section):
+            for key, value in self._config[section].items():
                 result[section][key] = value
         return result 

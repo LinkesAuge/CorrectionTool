@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Set, Tuple, Any
 from PySide6.QtCore import Qt, QSortFilterProxyModel, Slot
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QHeaderView,
-    QLabel, QLineEdit, QMessageBox, QPushButton, QTableView, QVBoxLayout, QWidget
+    QLabel, QLineEdit, QMessageBox, QPushButton, QTableView, QVBoxLayout, QWidget, QSplitter
 )
 
 from src.models.chest_entry import ChestEntry
@@ -22,6 +22,7 @@ from src.models.validation_list import ValidationList
 from src.services.config_manager import ConfigManager
 from src.services.file_parser import TextParser
 from src.ui.table_model import ChestEntryTableModel, ChestEntryFilterProxyModel
+from src.ui.preview_panel import PreviewPanel
 
 
 class CorrectorPanel(QWidget):
@@ -61,9 +62,9 @@ class CorrectorPanel(QWidget):
     def _setup_ui(self) -> None:
         """Set up the user interface."""
         # Main layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
+        self._main_layout = QVBoxLayout(self)
+        self._main_layout.setContentsMargins(10, 10, 10, 10)
+        self._main_layout.setSpacing(10)
         
         # Filter group
         filter_group = QGroupBox("Filters")
@@ -96,7 +97,15 @@ class CorrectorPanel(QWidget):
         filter_layout.addRow("Status:", self._status_filter)
         
         # Add to main layout
-        main_layout.addWidget(filter_group)
+        self._main_layout.addWidget(filter_group)
+        
+        # Create content splitter (table vs preview)
+        self._content_splitter = QSplitter(Qt.Vertical)
+        
+        # Table view container
+        table_container = QWidget()
+        table_layout = QVBoxLayout(table_container)
+        table_layout.setContentsMargins(0, 0, 0, 0)
         
         # Table view
         self._table_view = QTableView()
@@ -114,8 +123,25 @@ class CorrectorPanel(QWidget):
         # Set model
         self._table_view.setModel(self._proxy_model)
         
-        # Add to main layout
-        main_layout.addWidget(self._table_view)
+        # Connect selection changed signal
+        self._table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+        
+        # Add table to layout
+        table_layout.addWidget(self._table_view)
+        
+        # Preview panel
+        self._preview_panel = PreviewPanel()
+        self._preview_panel.setVisible(False)  # Hidden by default
+        
+        # Add widgets to content splitter
+        self._content_splitter.addWidget(table_container)
+        self._content_splitter.addWidget(self._preview_panel)
+        
+        # Set initial splitter sizes for just table view
+        self._content_splitter.setSizes([1, 0])
+        
+        # Add content splitter to main layout
+        self._main_layout.addWidget(self._content_splitter)
         
         # Actions group
         actions_group = QGroupBox("Actions")
@@ -137,7 +163,8 @@ class CorrectorPanel(QWidget):
         
         # Preview toggle
         self._preview_checkbox = QCheckBox("Show Preview")
-        self._preview_checkbox.setChecked(True)
+        self._preview_checkbox.setChecked(False)
+        self._preview_checkbox.stateChanged.connect(self._toggle_preview)
         
         # Add to actions layout
         actions_layout.addWidget(self._validate_button)
@@ -147,7 +174,7 @@ class CorrectorPanel(QWidget):
         actions_layout.addWidget(self._preview_checkbox)
         
         # Add to main layout
-        main_layout.addWidget(actions_group)
+        self._main_layout.addWidget(actions_group)
         
         # Stats group
         stats_group = QGroupBox("Statistics")
@@ -168,7 +195,7 @@ class CorrectorPanel(QWidget):
         stats_layout.addRow("Entries with errors:", self._error_entries_label)
         
         # Add to main layout
-        main_layout.addWidget(stats_group)
+        self._main_layout.addWidget(stats_group)
     
     @Slot(list)
     def set_entries(self, entries: List[ChestEntry]) -> None:
@@ -187,6 +214,9 @@ class CorrectorPanel(QWidget):
         self._export_button.setEnabled(True)
         self._validate_button.setEnabled(True)
         self._clear_validation_button.setEnabled(True)
+        
+        # Update preview panel
+        self._preview_panel.set_entries(self._entries)
         
         # Update stats
         self._update_stats()
@@ -370,4 +400,57 @@ class CorrectorPanel(QWidget):
             self,
             "Validation Cleared",
             "Validation errors have been cleared."
-        ) 
+        )
+    
+    @Slot()
+    def _toggle_preview(self, state: int) -> None:
+        """
+        Toggle the preview panel visibility.
+        
+        Args:
+            state (int): Checkbox state
+        """
+        show_preview = state == Qt.Checked
+        
+        # Update preview panel visibility
+        self._preview_panel.setVisible(show_preview)
+        
+        # Update splitter sizes
+        if show_preview:
+            # Show both table and preview
+            self._content_splitter.setSizes([self.height() // 2, self.height() // 2])
+        else:
+            # Show only table
+            self._content_splitter.setSizes([1, 0])
+        
+        # Save preference to config
+        self._config.set("UI", "show_preview", show_preview)
+        self._config.save()
+    
+    @Slot()
+    def _on_selection_changed(self) -> None:
+        """Handle selection changes in the table view."""
+        # Get selected indices
+        selected_rows = self._table_view.selectionModel().selectedRows()
+        
+        if not selected_rows:
+            return
+        
+        # Get the entry from the first selected row
+        proxy_index = selected_rows[0]
+        source_index = self._proxy_model.mapToSource(proxy_index)
+        row = source_index.row()
+        
+        if 0 <= row < len(self._entries):
+            # Get the selected entry
+            entry = self._entries[row]
+            
+            # If preview is visible and the entry has corrections, update preview
+            if self._preview_checkbox.isChecked() and entry.has_corrections():
+                self._preview_panel.set_entries(self._entries)
+                # Manually set to the selected entry by finding its index
+                for i, e in enumerate(self._entries):
+                    if e == entry:
+                        self._preview_panel._current_index = i
+                        self._preview_panel._show_current_entry()
+                        break 
