@@ -362,11 +362,108 @@ class DataManager(QObject):
                 if "source" in lists:
                     break
 
+            # If we don't have all lists, try to load default lists
+            if len(lists) < 3:
+                self._logger.info("Some validation lists not found, trying to load default lists")
+                default_lists = self.load_default_validation_lists()
+
+                # Merge default lists with loaded lists
+                for list_type, validation_list in default_lists.items():
+                    if list_type not in lists:  # Only add if not already loaded
+                        lists[list_type] = validation_list
+                        self._logger.info(
+                            f"Added default {list_type} list with {len(validation_list.items)} items"
+                        )
+
             # Store the lists (but don't emit signal yet)
             self._validation_lists = lists
             return lists
 
         except Exception as e:
             self._logger.error(f"Error loading validation lists: {str(e)}")
+            self._logger.error(traceback.format_exc())
+
+            # If there was an error, try to load default lists as a fallback
+            self._logger.info("Trying to load default validation lists as fallback")
+            fallback_lists = self.load_default_validation_lists()
+            if fallback_lists:
+                self._validation_lists = fallback_lists
+                return fallback_lists
+
+            return {}
+
+    def load_default_validation_lists(self) -> Dict[str, ValidationList]:
+        """
+        Load default validation lists from the sample data location.
+
+        Returns:
+            Dictionary of loaded validation lists, or empty dict if loading failed
+        """
+        import traceback
+
+        self._logger.info("Loading default validation lists from sample data")
+
+        lists = {}
+        default_dir = Path("tests/sample_data/validation_samples")
+
+        try:
+            # Try to load player list
+            player_path = default_dir / "player_list.csv"
+            if player_path.exists():
+                try:
+                    player_list = ValidationList.load_from_file(player_path)
+                    if player_list is not None:
+                        lists["player"] = player_list
+                        self._logger.info(
+                            f"Loaded default player list with {len(player_list.items)} items"
+                        )
+
+                        # Save the path to config for future use
+                        self._config.set("Validation", "player_list", str(player_path))
+                        self._config.set("General", "player_list_path", str(player_path))
+                except Exception as e:
+                    self._logger.warning(f"Error loading default player list: {str(e)}")
+
+            # Try to load chest type list
+            chest_path = default_dir / "chest_type_list.csv"
+            if chest_path.exists():
+                try:
+                    chest_list = ValidationList.load_from_file(chest_path)
+                    if chest_list is not None:
+                        lists["chest_type"] = chest_list
+                        self._logger.info(
+                            f"Loaded default chest type list with {len(chest_list.items)} items"
+                        )
+
+                        # Save the path to config for future use
+                        self._config.set("Validation", "chest_type_list", str(chest_path))
+                        self._config.set("General", "chest_type_list_path", str(chest_path))
+                except Exception as e:
+                    self._logger.warning(f"Error loading default chest type list: {str(e)}")
+
+            # Try to load source list
+            source_path = default_dir / "source_list.csv"
+            if source_path.exists():
+                try:
+                    source_list = ValidationList.load_from_file(source_path)
+                    if source_list is not None:
+                        lists["source"] = source_list
+                        self._logger.info(
+                            f"Loaded default source list with {len(source_list.items)} items"
+                        )
+
+                        # Save the path to config for future use
+                        self._config.set("Validation", "source_list", str(source_path))
+                        self._config.set("General", "source_list_path", str(source_path))
+                except Exception as e:
+                    self._logger.warning(f"Error loading default source list: {str(e)}")
+
+            # Save config changes
+            self._config.save()
+
+            return lists
+
+        except Exception as e:
+            self._logger.error(f"Error loading default validation lists: {str(e)}")
             self._logger.error(traceback.format_exc())
             return {}

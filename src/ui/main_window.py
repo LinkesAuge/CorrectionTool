@@ -425,10 +425,25 @@ class MainWindow(QMainWindow):
 
             # Load validation lists
             lists = self._data_manager.load_saved_validation_lists()
-            if lists:
+            if not lists or len(lists) < 3:
+                logger.info("Not all validation lists were loaded from saved configuration")
+                # Try to load default lists as a backup
+                logger.info("Loading default validation lists")
+                default_lists = self._data_manager.load_default_validation_lists()
+
+                # Merge default lists with existing lists
+                for list_type in ["player", "chest_type", "source"]:
+                    if list_type not in lists and list_type in default_lists:
+                        lists[list_type] = default_lists[list_type]
+                        logger.info(f"Added default {list_type} list")
+
+            # Make sure we have all three types of lists
+            if lists and len(lists) > 0:
                 logger.info(f"Loaded {len(lists)} validation lists")
                 # Emit the signal to notify all components
                 self._data_manager.validation_lists_changed.emit(lists)
+            else:
+                logger.warning("No validation lists could be loaded")
 
             logger.info("Application state restored successfully")
 

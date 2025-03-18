@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+When running, creating or updating tests for the app always make sure to use the /tests folder in the root directory for anything for this purpose.

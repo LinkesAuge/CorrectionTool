@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.models.validation_list import ValidationList
+from src.services.config_manager import ConfigManager
 
 
 class ValidationListItemModel(QStandardItemModel):
@@ -318,11 +319,6 @@ class ValidationListWidget(QWidget):
 
             # Save to configuration
             if file_path:
-                from src.services.config_manager import ConfigManager
-                from pathlib import Path
-
-                config = ConfigManager()
-
                 # Ensure file_path is a string
                 file_path_str = str(file_path)
                 logger.info(f"Saving file path to config: {file_path_str}")
@@ -337,6 +333,7 @@ class ValidationListWidget(QWidget):
                 list_type = list_type_map.get(self._list_name, self._list_name.lower())
 
                 # Save in both config locations for redundancy
+                config = ConfigManager()
                 config.set("General", f"{list_type}_list_path", file_path_str)
                 config.set("Validation", f"{list_type}_list", file_path_str)
                 config.save()
@@ -457,12 +454,23 @@ class ValidationListWidget(QWidget):
     @Slot()
     def _on_import(self):
         """Handle import button click."""
+        # Determine list type from widget name
+        list_type = "player"  # Default
+        if "chest" in self._list_name.lower():
+            list_type = "chest_type"
+        elif "source" in self._list_name.lower():
+            list_type = "source"
+
+        file_filter = "Text Files (*.txt);;CSV Files (*.csv);;All Files (*.*)"
+        if list_type != "player":
+            file_filter = "CSV Files (*.csv);;Text Files (*.txt);;All Files (*.*)"
+
         # Open file dialog
-        file_path, _ = QFileDialog.getOpenFileName(
+        file_path, selected_filter = QFileDialog.getOpenFileName(
             self,
             f"Import {self._list_name} List",
             str(Path.home()),
-            "Text Files (*.txt);;CSV Files (*.csv);;All Files (*.*)",
+            file_filter,
         )
 
         if not file_path:
@@ -470,23 +478,44 @@ class ValidationListWidget(QWidget):
 
         # Load items from file
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                items = [line.strip() for line in f if line.strip()]
+            # Use ValidationList.load_from_file for consistent import behavior
+            from src.models.validation_list import ValidationList
 
-            if items:
+            logger = logging.getLogger(__name__)
+            logger.info(f"Importing {list_type} list from {file_path}")
+
+            # Load validation list
+            imported_list = ValidationList.load_from_file(file_path, list_type=list_type)
+
+            if imported_list.entries:
                 # Confirm import
                 response = QMessageBox.question(
                     self,
                     "Confirm Import",
-                    f"Import {len(items)} items from {Path(file_path).name}?",
+                    f"Import {len(imported_list.entries)} items from {Path(file_path).name}?",
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.Yes,
                 )
 
                 if response == QMessageBox.Yes:
                     # Add to validation list
-                    for item in items:
+                    for item in imported_list.entries:
                         self._model.add_item(item)
+
+                    # Update validation list with file path for future reference
+                    validation_list = self._model.get_validation_list()
+                    validation_list.file_path = file_path
+
+                    # Save file path to config
+                    config = ConfigManager.get_instance()
+                    config.set("Files", "default_dir", str(Path(file_path).parent))
+                    config.set("Files", f"default_{list_type}_list", file_path)
+                    config.save()
+
+                    logger.info(f"Saving file path to config: {file_path}")
+                    logger.info(
+                        f"Saved paths in config - General: {config.get('Files', 'default_dir')}, Validation: {config.get('Files', f'default_{list_type}_list')}"
+                    )
 
                     # Emit signal
                     self._emit_list_updated()
@@ -495,13 +524,15 @@ class ValidationListWidget(QWidget):
                     QMessageBox.information(
                         self,
                         "Import Successful",
-                        f"Imported {len(items)} items from {Path(file_path).name}.",
+                        f"Imported {len(imported_list.entries)} items from {Path(file_path).name}.",
                     )
             else:
                 QMessageBox.warning(
                     self, "Import Failed", f"No valid items found in {Path(file_path).name}."
                 )
         except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error importing items: {str(e)}", exc_info=True)
             QMessageBox.critical(self, "Import Error", f"Error importing items: {str(e)}")
 
     @Slot()

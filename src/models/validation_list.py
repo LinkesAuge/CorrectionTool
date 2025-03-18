@@ -9,8 +9,9 @@ Usage:
 
 import csv
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Set, Tuple
+from typing import Dict, List, Literal, Optional, Set, Tuple, Union
 import logging
+import os
 
 from src.services.config_manager import ConfigManager
 from src.services.fuzzy_matcher import FuzzyMatcher
@@ -29,6 +30,7 @@ class ValidationList:
         name (str): Name of the validation list
         use_fuzzy_matching (bool): Whether to use fuzzy matching for validation
         fuzzy_matcher (FuzzyMatcher): Fuzzy matching service
+        file_path (str): Path to the file containing the validation list
 
     Implementation Notes:
         - Uses set for O(1) lookup time
@@ -38,28 +40,41 @@ class ValidationList:
 
     def __init__(
         self,
-        list_type: Literal["player", "chest_type", "source"] = "player",
+        list_type: str = "player",
         entries: Optional[List[str]] = None,
-        name: str = "default",
-    ) -> None:
+        name: str = "Default",
+        use_fuzzy_matching: bool = False,
+        file_path: Optional[str] = None,
+    ):
         """
-        Initialize a ValidationList.
+        Initialize a validation list.
 
         Args:
-            list_type (Literal["player", "chest_type", "source"]): Type of list
-            entries (Optional[List[str]]): Initial entries
-            name (str): Name of the validation list
+            list_type (str): The type of validation list (e.g., "player", "chest_type")
+            entries (Optional[List[str]], optional): List of entries. Defaults to None.
+            name (str, optional): Name of the list. Defaults to "Default".
+            use_fuzzy_matching (bool, optional): Whether to use fuzzy matching. Defaults to False.
+            file_path (Optional[str], optional): Path to the file containing the list. Defaults to None.
         """
+        # Validate list type
+        if list_type not in ("player", "chest_type", "source") and list_type:
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Non-standard list type: {list_type}")
+
         self.list_type = list_type
         self.entries: Set[str] = set()
         self.name = name
-        self._use_fuzzy_matching = False
+        self.file_path = file_path
 
-        # Initialize fuzzy matcher with default threshold
+        # Initialize private attributes for property accessors
+        self._use_fuzzy_matching = use_fuzzy_matching
+
+        # Initialize fuzzy matcher with default threshold from config
         config = ConfigManager()
         threshold = config.get_float("Validation", "fuzzy_threshold", fallback=75) / 100.0
         self._fuzzy_matcher = FuzzyMatcher(threshold=threshold)
 
+        # Add entries if provided
         if entries:
             for entry in entries:
                 self.add_entry(entry)
@@ -90,7 +105,7 @@ class ValidationList:
         Get whether fuzzy matching is enabled.
 
         Returns:
-            bool: True if fuzzy matching is enabled, False otherwise
+            bool: Whether fuzzy matching is enabled
         """
         return self._use_fuzzy_matching
 
@@ -103,6 +118,26 @@ class ValidationList:
             value (bool): Whether to enable fuzzy matching
         """
         self._use_fuzzy_matching = value
+
+    @property
+    def fuzzy_matcher(self) -> FuzzyMatcher:
+        """
+        Get the fuzzy matcher.
+
+        Returns:
+            FuzzyMatcher: The fuzzy matcher
+        """
+        return self._fuzzy_matcher
+
+    @fuzzy_matcher.setter
+    def fuzzy_matcher(self, value: FuzzyMatcher) -> None:
+        """
+        Set the fuzzy matcher.
+
+        Args:
+            value (FuzzyMatcher): The fuzzy matcher
+        """
+        self._fuzzy_matcher = value
 
     def update_fuzzy_threshold(self, threshold: float) -> None:
         """
@@ -209,78 +244,194 @@ class ValidationList:
         """
         return len(self.entries)
 
-    def save_to_file(self, file_path: Path) -> None:
+    def save_to_file(self, file_path: Union[str, Path]) -> None:
         """
         Save the validation list to a CSV file.
 
         Args:
-            file_path (Path): Path to save to
+            file_path (Union[str, Path]): Path to save to
         """
-        with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(["Type", self.list_type])
-            writer.writerow(["Name", self.name])
-            writer.writerow(["Entry"])
-            for entry in sorted(self.entries):
-                writer.writerow([entry])
+        # Convert Path to string if needed
+        if isinstance(file_path, Path):
+            file_path = str(file_path)
+
+        try:
+            with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(["Type", self.list_type])
+                writer.writerow(["Name", self.name])
+                writer.writerow(["Entry"])
+                for entry in sorted(self.entries):
+                    writer.writerow([entry])
+
+            # Update the file_path attribute
+            self.file_path = file_path
+            logger = logging.getLogger(__name__)
+            logger.info(f"Saved validation list to {file_path} with {len(self.entries)} entries")
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error saving validation list to {file_path}: {str(e)}")
+            raise ValueError(f"Failed to save validation list: {str(e)}")
 
     @classmethod
-    def load_from_file(cls, file_path: Path) -> "ValidationList":
+    def load_from_file(
+        cls, file_path: Union[str, Path], list_type: Optional[str] = None
+    ) -> "ValidationList":
         """
-        Load a validation list from a CSV file.
+        Load a validation list from a file.
 
         Args:
-            file_path (Path): Path to load from
+            file_path (Union[str, Path]): Path to the file containing the validation list.
+            list_type (Optional[str]): Override the list type (useful for text files).
 
         Returns:
-            ValidationList: The loaded validation list
+            ValidationList: The loaded validation list.
 
         Raises:
-            ValueError: If the file format is invalid
+            ValueError: If the file format is invalid.
         """
         logger = logging.getLogger(__name__)
-        logger.info(f"Loading validation list from {file_path}")
 
-        with open(file_path, "r", newline="", encoding="utf-8") as csvfile:
-            reader = csv.reader(csvfile)
+        # Convert Path to string if needed
+        if isinstance(file_path, Path):
+            file_path = str(file_path)
 
-            # Read type
-            try:
-                type_row = next(reader)
-                if len(type_row) != 2 or type_row[0] != "Type":
-                    raise ValueError("Invalid validation list file format: missing Type row")
-                list_type = type_row[1]
-                logger.info(f"Validation list type: {list_type}")
+        logger.info(f"Loading validation list from: {file_path}")
 
-                # Validate list type
-                if list_type not in ("player", "chest_type", "source"):
-                    raise ValueError(f"Invalid list type: {list_type}")
+        try:
+            # Get file extension
+            _, ext = os.path.splitext(file_path)
 
-                # Read name
-                name_row = next(reader)
-                if len(name_row) != 2 or name_row[0] != "Name":
-                    raise ValueError("Invalid validation list file format: missing Name row")
-                name = name_row[1]
-                logger.info(f"Validation list name: {name}")
+            # If it's a CSV file, try to parse with the expected format (with headers)
+            if ext.lower() == ".csv":
+                with open(file_path, "r", newline="", encoding="utf-8") as f:
+                    # Try to detect the CSV format
+                    sample = f.read(1024)
+                    f.seek(0)  # Reset file position
 
-                # Read header
-                header_row = next(reader)
-                if len(header_row) != 1 or header_row[0] != "Entry":
-                    raise ValueError("Invalid validation list file format: missing Entry header")
+                    # Check if this is a comma-separated file
+                    if "," in sample:
+                        reader = csv.reader(f)
+                        try:
+                            # Read the first row which should contain "Type"
+                            type_row = next(reader)
+                            if len(type_row) < 1:
+                                raise ValueError("Invalid file format: Empty row")
 
-                # Read entries
-                entries = []
-                for row in reader:
-                    if row and len(row) > 0:
-                        entries.append(row[0])
+                            # Special handling for 'Type,player' format
+                            if type_row[0] == "Type":
+                                detected_list_type = type_row[1] if len(type_row) > 1 else "player"
+                            else:
+                                detected_list_type = "player"  # Default
 
-                logger.info(f"Loaded {len(entries)} entries from validation list file")
-                if entries:
-                    logger.info(f"First few entries: {entries[:5]}")
+                            # Use provided list_type if available
+                            final_list_type = list_type or detected_list_type
 
-                return cls(list_type=list_type, entries=entries, name=name)  # type: ignore
-            except StopIteration:
-                raise ValueError("Invalid validation list file format: file is too short")
-            except Exception as e:
-                logger.error(f"Error loading validation list: {str(e)}")
-                raise ValueError(f"Error loading validation list: {str(e)}")
+                            # Read the second row which should contain "Name"
+                            name_row = next(reader)
+                            if len(name_row) < 1:
+                                raise ValueError("Invalid file format: Empty row")
+
+                            # Special handling for 'Name,Default Player List' format
+                            if name_row[0] == "Name":
+                                name = name_row[1] if len(name_row) > 1 else "Default"
+                            else:
+                                name = "Default"  # Default name
+
+                                # If we didn't find a Name row, this might be an entry, so reset position
+                                f.seek(0)
+                                next(reader)  # Skip the Type row
+
+                            # Try to read the header row (might be just "Entry" without a comma)
+                            header_row = next(reader)
+                            if len(header_row) == 0:
+                                raise ValueError("Invalid file format: Missing 'Entry' header")
+
+                            # If the header isn't "Entry", this might already be an entry
+                            if header_row[0] != "Entry" and "Entry" not in header_row:
+                                # This is probably an entry already
+                                entries = [header_row[0]] if header_row[0].strip() else []
+                            else:
+                                entries = []
+
+                            # Read the entries
+                            for row in reader:
+                                if row and len(row) > 0 and row[0].strip():
+                                    entries.append(row[0].strip())
+
+                            logger.info(
+                                f"Loaded {len(entries)} entries from CSV file. First few entries: {entries[:5] if entries else 'None'}"
+                            )
+
+                            # Create and return the validation list
+                            validation_list = cls(list_type=final_list_type, name=name)
+                            for entry in entries:
+                                validation_list.add_entry(entry)
+                            validation_list.file_path = file_path
+                            return validation_list
+
+                        except StopIteration:
+                            raise ValueError("File is too short or not formatted correctly")
+                    else:
+                        # If no commas found, treat as simple text file
+                        f.seek(0)  # Reset to beginning
+                        entries = [line.strip() for line in f if line.strip()]
+
+            # If it's not a CSV with proper formatting, try simple text format (one entry per line)
+            with open(file_path, "r", encoding="utf-8") as f:
+                # For simple text files, each line is an entry
+                entries = [line.strip() for line in f if line.strip()]
+
+                # Skip header lines if present
+                if entries and (entries[0] == "Type,player" or entries[0].startswith("Type,")):
+                    entries = entries[3:] if len(entries) > 3 else []
+                elif entries and (entries[0].startswith("Type") or entries[0] == "Type"):
+                    entries = entries[3:] if len(entries) > 3 else []
+
+                # Use the filename without extension as the list name
+                name = os.path.basename(file_path)
+                name = os.path.splitext(name)[0]
+
+                # Make the name more user-friendly
+                if name.lower() == "player_list" or name.lower() == "players":
+                    name = "Players"
+                elif name.lower() == "chest_type_list" or name.lower() == "chest_types":
+                    name = "Chest Types"
+                elif name.lower() == "source_list" or name.lower() == "sources":
+                    name = "Sources"
+
+                # Determine list type based on provided parameter, file content, or name
+                if list_type:
+                    final_list_type = list_type
+                elif "player" in file_path.lower():
+                    final_list_type = "player"
+                elif "chest" in file_path.lower() or "type" in file_path.lower():
+                    final_list_type = "chest_type"
+                elif "source" in file_path.lower():
+                    final_list_type = "source"
+                else:
+                    # Default to player list
+                    final_list_type = "player"
+
+                # Set the display name based on the list type
+                if final_list_type == "player":
+                    name = "Players"
+                elif final_list_type == "chest_type":
+                    name = "Chest Types"
+                elif final_list_type == "source":
+                    name = "Sources"
+
+                logger.info(
+                    f"Loaded {len(entries)} entries from text file. First few entries: {entries[:5] if entries else 'None'}"
+                )
+
+                # Create and return the validation list
+                validation_list = cls(list_type=final_list_type, name=name)
+                for entry in entries:
+                    validation_list.add_entry(entry)
+                validation_list.file_path = file_path
+                return validation_list
+
+        except Exception as e:
+            logger.error(f"Error loading validation list from {file_path}: {str(e)}")
+            raise ValueError(f"Failed to load validation list: {str(e)}")

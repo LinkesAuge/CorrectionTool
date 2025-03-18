@@ -190,24 +190,6 @@ We are planning a major rework of the application to address issues with:
     - [x] Test validation
     - [x] Test exporting
 
-### Correction Manager Tasks
-1. [ ] Create `CorrectionManagerPanel` class
-2. [ ] Implement `CorrectionRulesTable` with the following:
-   - [ ] Two-column model with From/To fields
-   - [ ] Add/Edit/Delete functionality
-   - [ ] Import/Export buttons
-   - [ ] Search field
-   - [ ] Toggle for enabling/disabling individual rules
-   - [ ] Global toggle for all correction rules
-3. [ ] Create `ValidationListWidget` class for each list type:
-   - [ ] Compact table view
-   - [ ] Direct editing capability
-   - [ ] Import/Export functionality
-4. [ ] Design `ValidationListContainer` to hold all three lists
-5. [ ] Implement `ValidationControlsWidget` for bottom section
-6. [ ] Add automatic correction list loading mechanism
-7. [ ] Create persistent correction list settings
-
 ### Fuzzy Matching Tasks
 1. [x] Refactor `FuzzyMatcher` class:
    - [x] Improve performance for large validation lists
@@ -243,15 +225,6 @@ We are planning a major rework of the application to address issues with:
 6. [x] Design custom scrollbars and selection highlighting
 7. [x] Implement vertical sidebar menu on the left
 
-### Logic Improvements
-1. [ ] Refactor `Corrector` class for more consistent behavior
-   - [ ] Add auto-loading of correction lists
-   - [ ] Implement correction list toggle mechanism
-2. [ ] Improve `ValidationManager` to provide field-specific validation
-3. [ ] Enhance error reporting with specific field information
-4. [ ] Update configuration system for new UI layout
-5. [ ] Implement proper state sharing between components
-6. [ ] Add correction list state persistence
 
 ## Possible Future Enhancements
 

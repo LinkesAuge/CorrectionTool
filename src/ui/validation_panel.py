@@ -355,7 +355,7 @@ class ValidationPanel(QWidget):
 
     def _import_list(self, list_type: str, list_widget: QListWidget) -> None:
         """
-        Import a validation list from a CSV file.
+        Import a validation list from a file.
 
         Args:
             list_type (str): The validation list type
@@ -366,12 +366,18 @@ class ValidationPanel(QWidget):
             "Files", "default_validation_dir", fallback="data/validation"
         )
 
+        file_filter = "All Files (*.*)"
+        if list_type == "player":
+            file_filter = "Text Files (*.txt);;CSV Files (*.csv);;All Files (*.*)"
+        else:
+            file_filter = "CSV Files (*.csv);;Text Files (*.txt);;All Files (*.*)"
+
         # Get file path
-        file_path, _ = QFileDialog.getOpenFileName(
+        file_path, selected_filter = QFileDialog.getOpenFileName(
             self,
-            "Import Validation List",
+            f"Import {list_type.capitalize()} List",
             default_dir,
-            "Text Files (*.txt);;CSV Files (*.csv);;All Files (*.*)",
+            file_filter,
         )
 
         if not file_path:
@@ -382,14 +388,18 @@ class ValidationPanel(QWidget):
             self._config.set("Files", "default_validation_dir", str(Path(file_path).parent))
             self._config.save()
 
-            # Load validation list
-            validation_list = ValidationList.load_from_file(Path(file_path))
+            # Log import attempt
+            logging.info(f"Importing {list_type} list from: {file_path}")
 
-            # Check list type
-            if validation_list.list_type != list_type:
-                raise ValueError(
-                    f"Invalid list type: expected {list_type}, got {validation_list.list_type}"
-                )
+            # Check file extension
+            file_ext = Path(file_path).suffix.lower()
+            if file_ext == ".txt" and list_type == "player":
+                logging.info(f"Detected text file for player list: {file_path}")
+
+            # Load validation list - explicitly passing list_type for text files
+            validation_list = ValidationList.load_from_file(file_path, list_type=list_type)
+
+            logging.info(f"Loaded {list_type} list with {validation_list.count()} entries")
 
             # Update list
             self._validation_lists[list_type] = validation_list
@@ -414,12 +424,13 @@ class ValidationPanel(QWidget):
             QMessageBox.information(
                 self,
                 "Import Successful",
-                f"Validation list successfully imported from {file_path} with {validation_list.count()} entries.",
+                f"{list_type.capitalize()} list successfully imported from {file_path} with {validation_list.count()} entries.",
             )
 
         except Exception as e:
             # Show error message
-            QMessageBox.critical(self, "Import Error", f"Error importing validation list: {e}")
+            QMessageBox.critical(self, "Import Error", f"Error importing {list_type} list: {e}")
+            logging.error(f"Error importing {list_type} list: {str(e)}", exc_info=True)
 
     def _export_list(self, list_type: str) -> None:
         """
@@ -455,17 +466,20 @@ class ValidationPanel(QWidget):
             self._config.set("Files", "default_validation_dir", str(Path(file_path).parent))
             self._config.save()
 
-            # Save validation list
-            self._validation_lists[list_type].save_to_file(Path(file_path))
+            # Save validation list - pass the string path directly
+            self._validation_lists[list_type].save_to_file(file_path)
 
             # Show success message
             QMessageBox.information(
-                self, "Export Successful", f"Validation list successfully exported to {file_path}"
+                self,
+                "Export Successful",
+                f"Validation list successfully exported to {file_path}.",
             )
 
         except Exception as e:
             # Show error message
             QMessageBox.critical(self, "Export Error", f"Error exporting validation list: {e}")
+            logging.error(f"Error exporting validation list: {str(e)}", exc_info=True)
 
     def _save_validation_lists_to_config(self) -> None:
         """Save validation lists to configuration."""
