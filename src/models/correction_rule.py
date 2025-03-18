@@ -24,6 +24,7 @@ class CorrectionRule:
         rule_type (str): Type of rule ('exact' or 'fuzzy')
         priority (int): Priority of the rule (higher numbers = higher priority)
         category (Optional[str]): Category the rule applies to ('chest', 'player', 'source', 'general')
+        disabled (bool): Whether the rule is disabled
 
     Implementation Notes:
         - Uses dataclass for simplified initialization
@@ -66,6 +67,7 @@ class CorrectionRule:
     ] = "exact"
     priority: int = 0
     category: Literal["chest", "player", "source", "general"] = "general"
+    disabled: bool = False
 
     def __post_init__(self):
         """Validate and normalize the category field."""
@@ -197,6 +199,7 @@ class CorrectionRule:
             "rule_type": self.rule_type,
             "priority": str(self.priority),
             "category": self.category,
+            "disabled": str(self.disabled),
         }
 
     @classmethod
@@ -239,12 +242,15 @@ class CorrectionRule:
         else:
             category = "general"
 
+        disabled = bool(data.get("disabled", False))
+
         return cls(
             from_text=data["from_text"],
             to_text=data["to_text"],
             rule_type=rule_type,  # type: ignore
             priority=priority,
             category=category,  # type: ignore
+            disabled=disabled,
         )
 
     @classmethod
@@ -269,6 +275,7 @@ class CorrectionRule:
         from_value = None
         to_value = None
         category = "general"  # Default category
+        disabled = False  # Default to enabled
 
         # Find the 'From' field (case-insensitive)
         for key in row:
@@ -292,6 +299,14 @@ class CorrectionRule:
                         category = category_value
                 break
 
+        # Find the 'Disabled' field (case-insensitive)
+        for key in row:
+            if key.lower() == "disabled":
+                disabled_value = row[key]
+                if disabled_value and isinstance(disabled_value, str):
+                    disabled = disabled_value.lower() in ("true", "yes", "1", "t")
+                break
+
         # Check if required fields were found
         if from_value is None:
             raise ValueError("CSV row must contain 'From' column")
@@ -309,6 +324,7 @@ class CorrectionRule:
             from_text=from_value.strip(),
             to_text=to_value.strip(),
             category=category,  # type: ignore
+            disabled=disabled,
         )
 
     def to_csv_row(self) -> Dict[str, str]:
@@ -318,4 +334,9 @@ class CorrectionRule:
         Returns:
             Dict[str, str]: CSV row with 'From', 'To', and 'Category' columns
         """
-        return {"From": self.from_text, "To": self.to_text, "Category": self.category}
+        return {
+            "From": self.from_text,
+            "To": self.to_text,
+            "Category": self.category,
+            "Disabled": str(self.disabled).lower(),
+        }

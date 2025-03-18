@@ -26,12 +26,59 @@ def setup_logging():
     """Configure logging for the application."""
     log_file = Path("correction_tool.log")
 
-    # Set up logging format and level
+    # Set up logging format and level - using WARNING as default root level
     logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[logging.FileHandler(log_file), logging.StreamHandler(sys.stdout)],
+        level=logging.WARNING,  # Default level for all loggers - less verbose
+        format="%(levelname)s - %(name)s - %(message)s",
+        handlers=[
+            # Log all levels to file with UTF-8 encoding
+            logging.FileHandler(log_file, encoding="utf-8"),
+            # Only show warnings and above on console to reduce noise
+        ],
     )
+
+    # Configure console handler to be even more minimal - ERROR level only
+    # Force ASCII encoding for console output to avoid encoding errors with non-ASCII characters
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.ERROR)
+    console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+
+    # Define a filter to remove non-ASCII characters for console output
+    class ASCIIFilter(logging.Filter):
+        def filter(self, record):
+            if isinstance(record.msg, str):
+                # Replace non-ASCII characters with '?' for console output
+                record.msg = record.msg.encode("ascii", "replace").decode("ascii")
+            return True
+
+    # Add the filter to the console handler
+    console_handler.addFilter(ASCIIFilter())
+
+    # Replace the default console handler with our custom one
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers:
+        if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
+            root_logger.removeHandler(handler)
+    root_logger.addHandler(console_handler)
+
+    # Set application logger to INFO for basic app status messages
+    app_logger = logging.getLogger("src")
+    app_logger.setLevel(logging.INFO)
+
+    # Set PySide logging to ERROR level to only show serious issues
+    for logger_name in ["PySide6", "QtCore", "QtWidgets", "QtGui"]:
+        logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+    # Reduce verbosity for validation and correction logs - only show warnings
+    for logger_name in [
+        "src.models.validation_list",
+        "src.services.corrector",
+        "src.services.data_manager",
+        "src.ui.validation_list_widget",
+        "src.ui.dashboard",
+        "src.ui.correction_manager_panel",
+    ]:
+        logging.getLogger(logger_name).setLevel(logging.WARNING)
 
     # Log uncaught exceptions
     def exception_handler(exc_type, exc_value, exc_traceback):
@@ -39,6 +86,9 @@ def setup_logging():
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
     sys.excepthook = exception_handler
+
+    # Set recursion limit to prevent infinite loops
+    sys.setrecursionlimit(1000)  # Default is 1000, setting explicitly
 
     logging.info("Logging initialized")
 
@@ -54,7 +104,7 @@ def setup_environment():
         # Create data directories if they don't exist
         for directory in DEFAULT_DIRECTORIES:
             ensure_directory_exists(directory)
-            logging.info(f"Ensured directory exists: {directory}")
+            logging.info(f"Ensured directory exists: {directory}")  # Changed from debug to info
 
         # Initialize configuration
         config_manager = ConfigManager()

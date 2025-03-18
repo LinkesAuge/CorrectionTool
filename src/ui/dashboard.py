@@ -71,42 +71,48 @@ class Dashboard(QWidget):
     correction_rules_updated = Signal(list)  # List of correction rules
 
     def __init__(self, parent=None):
-        """
-        Initialize the dashboard.
-
-        Args:
-            parent: Parent widget
-        """
+        """Initialize the dashboard widget."""
         super().__init__(parent)
-
-        # Initialize properties
-        self._config = ConfigManager()
-        self._file_parser = FileParser()
-        self._corrector = Corrector()
-        self._entries: List[ChestEntry] = []
-        self._correction_rules: List[CorrectionRule] = []
-        self._validation_lists = []
-        self._corrections_applied_count = 0
-        self._validation_errors_count = 0
         self._logger = logging.getLogger(__name__)
-        self._processing_signal = False  # Flag to prevent signal loops
+        self._logger.info("Initializing Dashboard")
 
-        # Track current file paths
-        self._current_correction_file = None
+        # Prevent signal loops and cascading signals
+        self._processing_signal = False
+        self._processing_entries_loaded = False
+        self._processing_corrections_loaded = False
+        self._processing_corrections_applied = False
 
-        # Set up UI
+        # Initialize data
+        self._entries = []
+        self._correction_rules = []
+        self._validation_lists = {}
+        self._validation_errors = 0
+
+        # Initialize components
+        self._file_import_widget = None
+        self._statistics_widget = None
+        self._action_buttons = None
+        self._validation_status = None
+        self._table_view = None
+        self._splitter = None
+        self._sidebar = None
+        self._main_content = None
+        self._corrector = Corrector()
+
+        # Setup UI components
         self._setup_ui()
-
-        # Connect signals
         self._connect_signals()
 
-        # Initialize logger
-        self._logger.info("Dashboard initialized")
+        # Load saved correction rules
+        QTimer.singleShot(500, self._load_saved_correction_rules)
 
-        # Set up initial state - make sure these happen AFTER signals are connected
-        # to ensure proper propagation to other components
-        self._load_saved_correction_rules()
-        self._load_saved_validation_lists()
+        # Load saved validation lists
+        QTimer.singleShot(1000, self._load_saved_validation_lists)
+
+        # Status bar reference from parent (MainWindow)
+        self._status_bar = None
+
+        self._logger.info("Dashboard initialized")
 
     def statusBar(self):
         """
@@ -710,9 +716,9 @@ class Dashboard(QWidget):
         logger = logging.getLogger(__name__)
         logger.info(f"Received validation_lists_updated signal with {len(lists)} lists")
 
-        # Prevent signal loops
+        # More robust signal loop prevention
         if self._processing_signal:
-            logger.debug("Skipping due to signal loop prevention")
+            logger.warning("Skipping due to signal loop prevention")
             return
 
         try:
@@ -749,12 +755,20 @@ class Dashboard(QWidget):
             if self.statusBar():
                 self.statusBar().showMessage(f"Validation lists updated: {len(lists)} lists", 3000)
 
-            # Update other components
-            if self._correction_manager is not None and not getattr(
-                self._correction_manager, "_processing_signal", False
-            ):
-                logger.info(f"Updating correction manager with {len(lists)} validation lists")
-                self._correction_manager.set_validation_lists(lists)
+            # Update other components only if not already processing signals elsewhere
+            # This is the key change to prevent infinite signal loops
+            if self._correction_manager is not None:
+                # Check if correction manager is already processing signals
+                correction_manager_processing = getattr(
+                    self._correction_manager, "_processing_signal", False
+                )
+                if not correction_manager_processing:
+                    logger.info(f"Updating correction manager with {len(lists)} validation lists")
+                    # We don't need to emit signals since we're directly setting the lists
+                    self._correction_manager._validation_lists = lists
+                    # Don't call set_validation_lists as it will emit signals causing loops
+                else:
+                    logger.warning("Correction manager already processing signals, skipping update")
 
             # Trigger validation if we have entries
             if hasattr(self, "_entries") and self._entries:
@@ -772,130 +786,143 @@ class Dashboard(QWidget):
     @Slot(list)
     def _on_entries_loaded(self, entries: List[ChestEntry]):
         """
-        Handle entries loaded signal.
+        Handle entries loaded event.
 
         Args:
-            entries: List of loaded entries
+            entries: List of loaded chest entries
         """
         # Prevent signal loops
-        if self._processing_signal:
+        if self._processing_entries_loaded:
+            self._logger.debug("Skipping _on_entries_loaded due to signal loop prevention")
             return
 
         try:
-            self._processing_signal = True
-            self._logger.debug(
-                f"Dashboard processing entries_loaded signal with {len(entries)} entries"
-            )
+            self._processing_entries_loaded = True
+            self._logger.info(f"Dashboard: Processing {len(entries)} loaded entries")
+
+            # Store the entries
             self._entries = entries
 
-            # Update table view
-            self._table_view.set_entries(entries)
-
-            # Update statistics widget
-            self._statistics_widget.set_entries(entries)
-
-            # Update validation status
-            self._validation_status.set_entries(entries)
-
-            # Update action buttons
-            self._action_buttons.set_entries_loaded(len(entries) > 0)
-
-            # Forward the signal but only if we're not already processing a signal
-            self.entries_loaded.emit(entries)
-
-            # Auto-apply corrections if enabled
-            if self._correction_rules:
-                # Apply corrections without emitting signals to avoid loops
+            # Apply corrections if auto-apply is enabled
+            config_manager = ConfigManager()
+            if config_manager.get_bool("Correction", "auto_apply", fallback=True):
                 self._apply_corrections()
+            else:
+                # Emit entry loaded signal
+                self.entries_loaded.emit(entries)
+
+                # Update table view with new entries
+                self._table_view.set_entries(entries)
+
+                # Update statistics
+                self._statistics_widget.set_entries(entries)
+
+                # Show status message
+                if self._status_bar:
+                    self._status_bar.showMessage(f"Loaded {len(entries)} entries", 3000)
         except Exception as e:
             self._logger.error(f"Error in _on_entries_loaded: {str(e)}")
             import traceback
 
             self._logger.error(traceback.format_exc())
         finally:
-            self._processing_signal = False
+            self._processing_entries_loaded = False
 
     @Slot(list)
     def _on_corrections_loaded(self, rules: List[CorrectionRule]):
         """
-        Handle corrections loaded signal.
+        Handle corrections loaded event.
 
         Args:
             rules: List of loaded correction rules
         """
         # Prevent signal loops
-        if self._processing_signal:
+        if self._processing_corrections_loaded:
+            self._logger.debug("Skipping _on_corrections_loaded due to signal loop prevention")
             return
 
         try:
-            self._processing_signal = True
-            self._logger.debug(
-                f"Dashboard processing corrections_loaded signal with {len(rules)} rules"
-            )
+            self._processing_corrections_loaded = True
+            self._logger.info(f"Dashboard: Processing {len(rules)} loaded correction rules")
+
+            # Store the rules
             self._correction_rules = rules
 
-            # Update statistics widget
+            # Set them in the corrector
+            self._corrector.set_rules(rules)
+
+            # Update UI elements
+            self._action_buttons.set_corrections_loaded(len(rules) > 0)
             self._statistics_widget.set_correction_rules(rules)
 
-            # Update action buttons
-            self._action_buttons.set_corrections_loaded(len(rules) > 0)
+            # Apply corrections if auto-apply is enabled
+            config_manager = ConfigManager()
+            if len(self._entries) > 0 and config_manager.get_bool(
+                "Correction", "auto_apply", fallback=True
+            ):
+                self._apply_corrections()
 
-            # Forward the signal
+            # Emit corrections loaded signal
             self.corrections_loaded.emit(rules)
 
-            # Auto-apply corrections if enabled and we have entries
-            if self._entries:
-                # Apply corrections without emitting signals to avoid loops
-                self._apply_corrections()
+            # Show status message
+            if self._status_bar:
+                self._status_bar.showMessage(f"Loaded {len(rules)} correction rules", 3000)
         except Exception as e:
             self._logger.error(f"Error in _on_corrections_loaded: {str(e)}")
             import traceback
 
             self._logger.error(traceback.format_exc())
         finally:
-            self._processing_signal = False
+            self._processing_corrections_loaded = False
 
     @Slot(list)
     def _on_corrections_applied(self, entries: List[ChestEntry]):
         """
-        Handle corrections applied signal.
+        Handle corrections applied event.
 
         Args:
             entries: List of entries with corrections applied
         """
         # Prevent signal loops
-        if self._processing_signal:
+        if self._processing_corrections_applied:
+            self._logger.debug("Skipping _on_corrections_applied due to signal loop prevention")
             return
 
         try:
-            self._processing_signal = True
-            self._logger.debug(
-                f"Dashboard processing corrections_applied signal with {len(entries)} entries"
+            self._processing_corrections_applied = True
+            self._logger.info(
+                f"Dashboard: Processing {len(entries)} entries with corrections applied"
             )
+
+            # Store the entries
             self._entries = entries
 
-            # Count corrections applied
-            correction_count = sum(
-                len(entry.original_values) for entry in entries if entry.has_corrections()
-            )
-            self._corrections_applied_count = correction_count
-
-            # Update statistics widget
-            self._statistics_widget.set_corrections_applied(correction_count)
-
-            # Update table view
+            # Update table view with corrected entries
             self._table_view.set_entries(entries)
 
-            # Forward the signal
-            self.corrections_applied.emit(entries)
+            # Update statistics
+            self._statistics_widget.set_entries(entries)
+
+            # Emit entries updated signal
             self.entries_updated.emit(entries)
+
+            # Emit corrections applied signal
+            self.corrections_applied.emit(entries)
+
+            # Show status message
+            if self._status_bar:
+                correction_count = sum(entry.has_corrections for entry in entries)
+                self._status_bar.showMessage(
+                    f"Applied {correction_count} corrections to {len(entries)} entries", 3000
+                )
         except Exception as e:
             self._logger.error(f"Error in _on_corrections_applied: {str(e)}")
             import traceback
 
             self._logger.error(traceback.format_exc())
         finally:
-            self._processing_signal = False
+            self._processing_corrections_applied = False
 
     @Slot(bool)
     def _on_corrections_enabled_changed(self, enabled: bool):

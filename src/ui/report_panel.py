@@ -10,6 +10,7 @@ Usage:
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
+import logging
 
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import (
@@ -70,6 +71,9 @@ class ReportPanel(QWidget):
         self._config = ConfigManager()
         self._entries: List[ChestEntry] = []
         self._validation_lists: Dict[str, ValidationList] = {}
+
+        # Signal processing flag to prevent recursion
+        self._processing_signal = False
 
         # Setup UI
         self._setup_ui()
@@ -206,7 +210,29 @@ class ReportPanel(QWidget):
         Args:
             validation_lists (Dict[str, ValidationList]): The validation lists
         """
-        self._validation_lists = validation_lists
+        # Signal loop protection
+        if hasattr(self, "_processing_signal") and self._processing_signal:
+            logging.warning("ReportPanel: Signal loop detected in set_validation_lists")
+            return
+
+        if not validation_lists:
+            logging.warning("ReportPanel: Empty validation lists received")
+            return
+
+        try:
+            self._processing_signal = True
+
+            # Log the received lists
+            logging.info(f"ReportPanel: Received {len(validation_lists)} validation lists")
+
+            # Update the validation lists
+            self._validation_lists = validation_lists
+
+            logging.info("ReportPanel: Validation lists updated")
+        except Exception as e:
+            logging.error(f"ReportPanel: Error in set_validation_lists: {e}")
+        finally:
+            self._processing_signal = False
 
     @Slot()
     def _generate_report(self) -> None:

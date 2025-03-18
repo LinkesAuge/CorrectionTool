@@ -7,6 +7,7 @@ Usage:
     validation_panel = ValidationPanel(parent=self)
 """
 
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -77,6 +78,10 @@ class ValidationPanel(QWidget):
         self._entries: List[ChestEntry] = []
         self._correction_rules: List[CorrectionRule] = []
 
+        # Signal processing flags to prevent recursion
+        self._processing_signal = False
+        self._emitting_signal = False
+
         # Setup UI
         self._setup_ui()
 
@@ -87,7 +92,7 @@ class ValidationPanel(QWidget):
         self._apply_fuzzy_settings()
 
         # Emit signal to share validation lists with other components
-        self.validation_lists_updated.emit(self._validation_lists)
+        self._emit_validation_lists_updated()
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -281,7 +286,7 @@ class ValidationPanel(QWidget):
         self._save_validation_lists_to_config()
 
         # Emit signal
-        self.validation_lists_updated.emit(self._validation_lists)
+        self._emit_validation_lists_updated()
 
     def _remove_selected_entries(self, list_type: str, list_widget: QListWidget) -> None:
         """
@@ -318,7 +323,7 @@ class ValidationPanel(QWidget):
         self._save_validation_lists_to_config()
 
         # Emit signal
-        self.validation_lists_updated.emit(self._validation_lists)
+        self._emit_validation_lists_updated()
 
     def _clear_entries(self, list_type: str, list_widget: QListWidget) -> None:
         """
@@ -351,7 +356,7 @@ class ValidationPanel(QWidget):
         self._save_validation_lists_to_config()
 
         # Emit signal
-        self.validation_lists_updated.emit(self._validation_lists)
+        self._emit_validation_lists_updated()
 
     def _import_list(self, list_type: str, list_widget: QListWidget) -> None:
         """
@@ -418,7 +423,7 @@ class ValidationPanel(QWidget):
             self._save_validation_lists_to_config()
 
             # Emit signal to notify corrector panels
-            self.validation_lists_updated.emit(self._validation_lists)
+            self._emit_validation_lists_updated()
 
             # Show success message
             QMessageBox.information(
@@ -545,7 +550,7 @@ class ValidationPanel(QWidget):
         # If any lists were loaded, emit signal to update other components
         if lists_loaded:
             print(f"Validation lists loaded from config: {len(self._validation_lists)} lists")
-            self.validation_lists_updated.emit(self._validation_lists)
+            self._emit_validation_lists_updated()
 
     def get_validation_lists(self) -> Dict[str, ValidationList]:
         """
@@ -625,7 +630,7 @@ class ValidationPanel(QWidget):
             validation_list.use_fuzzy_matching = enabled
 
         # Emit signal to update other components
-        self.validation_lists_updated.emit(self._validation_lists)
+        self._emit_validation_lists_updated()
 
     def _on_fuzzy_threshold_changed(self, value: int) -> None:
         """
@@ -642,7 +647,7 @@ class ValidationPanel(QWidget):
             validation_list.update_fuzzy_threshold(threshold)
 
         # Emit signal to update other components
-        self.validation_lists_updated.emit(self._validation_lists)
+        self._emit_validation_lists_updated()
 
     def _apply_fuzzy_settings(self) -> None:
         """Apply current fuzzy matching settings to validation lists."""
@@ -683,5 +688,61 @@ class ValidationPanel(QWidget):
         Args:
             lists (Dict[str, ValidationList]): The validation lists to set
         """
-        # Update the validation lists
-        self._validation_lists = lists
+        # Signal loop protection
+        if hasattr(self, "_processing_signal") and self._processing_signal:
+            logging.warning("ValidationPanel: Signal loop detected in set_validation_lists")
+            return
+
+        if not lists:
+            logging.warning("ValidationPanel: Empty validation lists received")
+            return
+
+        try:
+            self._processing_signal = True
+
+            # Log the received lists
+            logging.info(f"ValidationPanel: Received {len(lists)} validation lists")
+
+            # Update the validation lists
+            self._validation_lists = lists
+
+            # Update UI if needed
+            for list_type in lists.keys():
+                list_widget = getattr(self, f"_{list_type}_list_widget", None)
+                if list_widget:
+                    # Clear and refill the list widget
+                    list_widget.clear()
+                    for entry in lists[list_type].get_entries():
+                        list_widget.addItem(entry)
+
+                # Update the name field if it exists
+                name_edit = self.findChild(QLineEdit, f"{list_type}_name_edit")
+                if name_edit:
+                    name_edit.setText(lists[list_type].name)
+
+            logging.info("ValidationPanel: UI updated with new validation lists")
+        except Exception as e:
+            logging.error(f"ValidationPanel: Error in set_validation_lists: {e}")
+        finally:
+            self._processing_signal = False
+
+    def _emit_validation_lists_updated(self):
+        """
+        Safely emit the validation_lists_updated signal with loop protection.
+        """
+        if hasattr(self, "_emitting_signal") and self._emitting_signal:
+            logging.warning(
+                "ValidationPanel: Signal emission loop detected in _emit_validation_lists_updated"
+            )
+            return
+
+        try:
+            self._emitting_signal = True
+            logging.info(
+                f"ValidationPanel: Emitting validation_lists_updated with {len(self._validation_lists)} lists"
+            )
+            self.validation_lists_updated.emit(self._validation_lists)
+        except Exception as e:
+            logging.error(f"ValidationPanel: Error emitting validation_lists_updated: {e}")
+        finally:
+            self._emitting_signal = False

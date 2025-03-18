@@ -291,6 +291,11 @@ class ValidationListWidget(QWidget):
         )
         logger.info(f"Widget is visible: {self.isVisible()}")
 
+        # Add signal loop prevention
+        if getattr(self, "_processing_signal", False):
+            logger.warning(f"Skipping set_list for {self._list_name} due to signal loop prevention")
+            return
+
         if not validation_list:
             logger.warning(f"Empty validation list passed to {self._list_name}")
             return
@@ -303,6 +308,8 @@ class ValidationListWidget(QWidget):
             logger.warning(f"Validation list has no file path")
 
         try:
+            self._processing_signal = True
+
             # Store the validation list
             self._validation_list = validation_list
 
@@ -356,6 +363,8 @@ class ValidationListWidget(QWidget):
         except Exception as e:
             logger.error(f"Error in set_list: {str(e)}")
             logger.error(traceback.format_exc())
+        finally:
+            self._processing_signal = False
 
     def _delayed_refresh(self):
         """
@@ -580,5 +589,23 @@ class ValidationListWidget(QWidget):
 
     def _emit_list_updated(self):
         """Emit list updated signal."""
-        validation_list = self._model.get_validation_list()
-        self.list_updated.emit(validation_list)
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Prevent signal loops
+        if getattr(self, "_processing_signal", False):
+            logger.warning(
+                f"Skipping list_updated emission for {self._list_name} due to signal loop prevention"
+            )
+            return
+
+        try:
+            self._processing_signal = True
+            validation_list = self._model.get_validation_list()
+            logger.info(
+                f"Emitting list_updated for {self._list_name} with {len(validation_list.items)} items"
+            )
+            self.list_updated.emit(validation_list)
+        finally:
+            self._processing_signal = False

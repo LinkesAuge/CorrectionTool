@@ -571,68 +571,84 @@ class CorrectionManagerPanel(QWidget):
         logger = logging.getLogger(__name__)
         logger.info(f"CorrectionManagerPanel.set_validation_lists called with {len(lists)} lists")
 
-        if not lists:
-            logger.warning("Empty validation lists passed")
+        # Add signal loop prevention
+        if getattr(self, "_processing_signal", False):
+            logger.warning("Skipping due to signal loop prevention")
             return
 
-        # Store the lists locally
-        self._validation_lists = lists
-
-        # Log the lists for debugging
-        for list_type, validation_list in lists.items():
-            logger.info(
-                f"Setting {list_type} validation list with {len(validation_list.items)} items"
-            )
-
-        # Make the validation lists tab active first
         try:
+            self._processing_signal = True
+
+            if not lists:
+                logger.warning("Empty validation lists passed")
+                return
+
+            # Store the lists locally
+            self._validation_lists = lists
+
+            # Log the lists for debugging
+            for list_type, validation_list in lists.items():
+                logger.info(
+                    f"Setting {list_type} validation list with {len(validation_list.items)} items"
+                )
+
+            # Make the validation lists tab active first
+            try:
+                if hasattr(self, "_tools_tabs") and self._tools_tabs.count() > 1:
+                    logger.info("Switching to validation lists tab")
+                    self._tools_tabs.setCurrentIndex(1)  # Switch to validation lists tab
+            except Exception as e:
+                logger.error(f"Error switching to validation tab: {str(e)}")
+
+            # Update the validation list widgets if they exist
+            try:
+                if hasattr(self, "_player_list_widget") and "player" in lists:
+                    logger.info("Setting player list in widget")
+                    self._player_list_widget.set_list(lists["player"])
+
+                if hasattr(self, "_chest_type_list_widget") and "chest_type" in lists:
+                    logger.info("Setting chest type list in widget")
+                    self._chest_type_list_widget.set_list(lists["chest_type"])
+
+                if hasattr(self, "_source_list_widget") and "source" in lists:
+                    logger.info("Setting source list in widget")
+                    self._source_list_widget.set_list(lists["source"])
+            except Exception as e:
+                logger.error(f"Error setting lists in widgets: {str(e)}")
+
+            # Make sure validation lists tab is properly initialized
             if hasattr(self, "_tools_tabs") and self._tools_tabs.count() > 1:
-                logger.info("Switching to validation lists tab")
-                self._tools_tabs.setCurrentIndex(1)  # Switch to validation lists tab
-        except Exception as e:
-            logger.error(f"Error switching to validation tab: {str(e)}")
+                # Update the tab text to show list counts
+                tab_text = "Validation Lists"
+                if lists:
+                    list_counts = []
+                    if "player" in lists:
+                        list_counts.append(f"Players: {len(lists['player'].items)}")
+                    if "chest_type" in lists:
+                        list_counts.append(f"Chests: {len(lists['chest_type'].items)}")
+                    if "source" in lists:
+                        list_counts.append(f"Sources: {len(lists['source'].items)}")
 
-        # Update the validation list widgets if they exist
-        try:
-            if hasattr(self, "_player_list_widget") and "player" in lists:
-                logger.info("Setting player list in widget")
-                self._player_list_widget.set_list(lists["player"])
+                    if list_counts:
+                        tab_text += f" ({', '.join(list_counts)})"
 
-            if hasattr(self, "_chest_type_list_widget") and "chest_type" in lists:
-                logger.info("Setting chest type list in widget")
-                self._chest_type_list_widget.set_list(lists["chest_type"])
+                logger.info(f"Updating validation lists tab text: {tab_text}")
+                self._tools_tabs.setTabText(1, tab_text)
 
-            if hasattr(self, "_source_list_widget") and "source" in lists:
-                logger.info("Setting source list in widget")
-                self._source_list_widget.set_list(lists["source"])
-        except Exception as e:
-            logger.error(f"Error setting lists in widgets: {str(e)}")
+            # Only emit signal if this is not a signal loop - crucial change
+            from_dashboard = (
+                hasattr(self.parent(), "_dashboard") and self.parent()._dashboard is not None
+            )
+            if from_dashboard and getattr(self.parent()._dashboard, "_processing_signal", False):
+                logger.info("Dashboard already processing signals, skipping emission")
+            else:
+                logger.info(f"Emitting validation_lists_updated signal with {len(lists)} lists")
+                self.validation_lists_updated.emit(lists)
 
-        # Make sure validation lists tab is properly initialized
-        if hasattr(self, "_tools_tabs") and self._tools_tabs.count() > 1:
-            # Update the tab text to show list counts
-            tab_text = "Validation Lists"
-            if lists:
-                list_counts = []
-                if "player" in lists:
-                    list_counts.append(f"Players: {len(lists['player'].items)}")
-                if "chest_type" in lists:
-                    list_counts.append(f"Chests: {len(lists['chest_type'].items)}")
-                if "source" in lists:
-                    list_counts.append(f"Sources: {len(lists['source'].items)}")
-
-                if list_counts:
-                    tab_text += f" ({', '.join(list_counts)})"
-
-            logger.info(f"Updating validation lists tab text: {tab_text}")
-            self._tools_tabs.setTabText(1, tab_text)
-
-        # Always emit signal regardless - crucial for Dashboard to know lists were set
-        logger.info(f"Emitting validation_lists_updated signal with {len(lists)} lists")
-        self.validation_lists_updated.emit(lists)
-
-        # Schedule a delayed refresh
-        QTimer.singleShot(500, lambda: self._delayed_refresh_validation_lists(lists))
+                # Schedule a delayed refresh only if needed
+                QTimer.singleShot(500, lambda: self._delayed_refresh_validation_lists(lists))
+        finally:
+            self._processing_signal = False
 
     def get_correction_rules(self) -> List[CorrectionRule]:
         """
@@ -802,9 +818,37 @@ class CorrectionManagerPanel(QWidget):
 
             # Force a viewport update
             logger.info("Forcing viewport update")
-            self._player_list_widget.viewport().update()
-            self._chest_type_list_widget.viewport().update()
-            self._source_list_widget.viewport().update()
+            try:
+                # Check if the widgets have a viewport method before calling it
+                # This is needed because ValidationListWidget might not have this method
+                # depending on which QWidget it inherits from
+                if hasattr(self._player_list_widget, "viewport") and callable(
+                    getattr(self._player_list_widget, "viewport", None)
+                ):
+                    self._player_list_widget.viewport().update()
+                else:
+                    # Alternative: update the widget itself
+                    self._player_list_widget.update()
+
+                if hasattr(self._chest_type_list_widget, "viewport") and callable(
+                    getattr(self._chest_type_list_widget, "viewport", None)
+                ):
+                    self._chest_type_list_widget.viewport().update()
+                else:
+                    self._chest_type_list_widget.update()
+
+                if hasattr(self._source_list_widget, "viewport") and callable(
+                    getattr(self._source_list_widget, "viewport", None)
+                ):
+                    self._source_list_widget.viewport().update()
+                else:
+                    self._source_list_widget.update()
+            except Exception as e:
+                logger.warning(f"Error updating viewports: {e}")
+                # Fallback: try to update the widgets directly
+                self._player_list_widget.update()
+                self._chest_type_list_widget.update()
+                self._source_list_widget.update()
 
             # Log the visible state of the lists
             model = self._player_list_widget._model

@@ -47,6 +47,9 @@ class ReportPanel(QWidget):
         self._correction_rules: List[CorrectionRule] = []
         self._validation_lists: Dict[str, ValidationList] = {}
 
+        # Signal processing flag to prevent recursion
+        self._processing_signal = False
+
         self._setup_ui()
 
     def _setup_ui(self):
@@ -88,4 +91,26 @@ class ReportPanel(QWidget):
         Args:
             lists (Dict[str, ValidationList]): The validation lists to set
         """
-        self._validation_lists = lists
+        # Signal loop protection
+        if hasattr(self, "_processing_signal") and self._processing_signal:
+            logging.warning("ReportsPanel: Signal loop detected in set_validation_lists")
+            return
+
+        if not lists:
+            logging.warning("ReportsPanel: Empty validation lists received")
+            return
+
+        try:
+            self._processing_signal = True
+
+            # Log the received lists
+            logging.info(f"ReportsPanel: Received {len(lists)} validation lists")
+
+            # Update the validation lists
+            self._validation_lists = lists
+
+            logging.info("ReportsPanel: Validation lists updated")
+        except Exception as e:
+            logging.error(f"ReportsPanel: Error in set_validation_lists: {e}")
+        finally:
+            self._processing_signal = False
