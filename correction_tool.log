@@ -130,3 +130,198 @@ INFO - src.services.file_parser - Parsing text content with 7764 lines
 INFO - src.services.file_parser - Parsed 2588 entries from text content
 INFO - src.services.file_parser - Successfully parsed text file with encoding: utf-8
 INFO - src.services.file_parser - Successfully parsed 2588 entries from D:\Projekte\CorrectionTool\tests\sample_data\input_samples\chests_2025-03-16.txt
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+WARNING - src.ui.dashboard - Correction manager not available for signal connection
+INFO - src.ui.correction_rules_table - Initializing CorrectionRulesTable
+INFO - src.ui.correction_rules_table - Initializing CorrectionRulesModel
+INFO - src.ui.main_window - Connecting MainWindow signals
+INFO - src.ui.main_window - All signals connected successfully
+INFO - src.ui.main_window - Restoring application state
+INFO - src.ui.main_window - Loading initial data
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.ui.main_window - Loaded 43 correction rules
+INFO - src.ui.correction_rules_table - CorrectionRulesTable.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - CorrectionRulesModel.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - Rule 0 after set: КАС29 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 1 after set: Маһоп12 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 2 after set: АЙ -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 3 after set: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+INFO - src.ui.correction_rules_table - Rule 4 after set: Hermes" Store -> Hermes' Store (category: source)
+INFO - src.ui.correction_rules_table - Successfully set 43 rules in table
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+INFO - src.ui.correction_rules_table - CorrectionRulesTable.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - CorrectionRulesModel.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - Rule 0 after set: КАС29 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 1 after set: Маһоп12 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 2 after set: АЙ -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 3 after set: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+INFO - src.ui.correction_rules_table - Rule 4 after set: Hermes" Store -> Hermes' Store (category: source)
+INFO - src.ui.correction_rules_table - Successfully set 43 rules in table
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+INFO - src.ui.main_window - Loaded 3 validation lists
+WARNING - src.ui.correction_manager_panel - Skipping due to signal loop prevention
+INFO - src.ui.main_window - Application state restored successfully
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+WARNING - src.ui.dashboard - Correction manager not available for delayed emit
+INFO - src.services.file_parser - Parsing entry file: D:\Projekte\CorrectionTool\tests\sample_data\input_samples\chests_2025-03-16.txt
+INFO - src.services.file_parser - Attempting to parse text file with encoding: utf-8
+INFO - src.services.file_parser - Parsing text content with 7764 lines
+INFO - src.services.file_parser - Parsed 2588 entries from text content
+INFO - src.services.file_parser - Successfully parsed text file with encoding: utf-8
+INFO - src.services.file_parser - Successfully parsed 2588 entries from D:\Projekte\CorrectionTool\tests\sample_data\input_samples\chests_2025-03-16.txt
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+WARNING - src.ui.dashboard - Correction manager not available for signal connection
+INFO - src.ui.correction_rules_table - Initializing CorrectionRulesTable
+INFO - src.ui.correction_rules_table - Initializing CorrectionRulesModel
+INFO - src.ui.main_window - Connecting MainWindow signals
+INFO - src.ui.main_window - All signals connected successfully
+INFO - src.ui.main_window - Restoring application state
+INFO - src.ui.main_window - Loading initial data
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.ui.main_window - Loaded 43 correction rules
+INFO - src.ui.correction_rules_table - CorrectionRulesTable.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - CorrectionRulesModel.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - Rule 0 after set: КАС29 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 1 after set: Маһоп12 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 2 after set: АЙ -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 3 after set: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+INFO - src.ui.correction_rules_table - Rule 4 after set: Hermes" Store -> Hermes' Store (category: source)
+INFO - src.ui.correction_rules_table - Successfully set 43 rules in table
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+INFO - src.ui.correction_rules_table - CorrectionRulesTable.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - CorrectionRulesModel.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - Rule 0 after set: КАС29 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 1 after set: Маһоп12 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 2 after set: АЙ -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 3 after set: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+INFO - src.ui.correction_rules_table - Rule 4 after set: Hermes" Store -> Hermes' Store (category: source)
+INFO - src.ui.correction_rules_table - Successfully set 43 rules in table
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+INFO - src.ui.main_window - Loaded 3 validation lists
+WARNING - src.ui.correction_manager_panel - Skipping due to signal loop prevention
+INFO - src.ui.main_window - Application state restored successfully
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+WARNING - src.ui.dashboard - Correction manager not available for delayed emit
+INFO - src.services.file_parser - Parsing entry file: D:\Projekte\CorrectionTool\tests\sample_data\input_samples\chests_2025-03-16.txt
+INFO - src.services.file_parser - Attempting to parse text file with encoding: utf-8
+INFO - src.services.file_parser - Parsing text content with 7764 lines
+INFO - src.services.file_parser - Parsed 2588 entries from text content
+INFO - src.services.file_parser - Successfully parsed text file with encoding: utf-8
+INFO - src.services.file_parser - Successfully parsed 2588 entries from D:\Projekte\CorrectionTool\tests\sample_data\input_samples\chests_2025-03-16.txt
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+WARNING - src.ui.dashboard - Correction manager not available for signal connection
+INFO - src.ui.correction_rules_table - Initializing CorrectionRulesTable
+INFO - src.ui.correction_rules_table - Initializing CorrectionRulesModel
+INFO - src.ui.main_window - Connecting MainWindow signals
+INFO - src.ui.main_window - All signals connected successfully
+INFO - src.ui.main_window - Restoring application state
+INFO - src.ui.main_window - Loading initial data
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.ui.main_window - Loaded 43 correction rules
+INFO - src.ui.correction_rules_table - CorrectionRulesTable.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - CorrectionRulesModel.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - Rule 0 after set: КАС29 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 1 after set: Маһоп12 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 2 after set: АЙ -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 3 after set: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+INFO - src.ui.correction_rules_table - Rule 4 after set: Hermes" Store -> Hermes' Store (category: source)
+INFO - src.ui.correction_rules_table - Successfully set 43 rules in table
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+INFO - src.ui.correction_rules_table - CorrectionRulesTable.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - CorrectionRulesModel.set_rules called with 43 rules
+INFO - src.ui.correction_rules_table - Rule 0 after set: КАС29 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 1 after set: Маһоп12 -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 2 after set: АЙ -> D4rkBlizZ4rD (category: player)
+INFO - src.ui.correction_rules_table - Rule 3 after set: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+INFO - src.ui.correction_rules_table - Rule 4 after set: Hermes" Store -> Hermes' Store (category: source)
+INFO - src.ui.correction_rules_table - Successfully set 43 rules in table
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+WARNING - src.ui.correction_manager_panel - Already processing signal, skipping duplicate call
+INFO - src.ui.main_window - Loaded 3 validation lists
+WARNING - src.ui.correction_manager_panel - Skipping due to signal loop prevention
+INFO - src.ui.main_window - Application state restored successfully
+INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+INFO - src.services.file_parser - Found required headers (case-insensitive)
+INFO - src.services.file_parser - Successfully parsed 43 rules from CSV
+INFO - src.services.file_parser - Successfully parsed 43 rules from D:\Projekte\CorrectionTool\tests\sample_data\correction_samples\ChestTrackerCorrectionList.csv
+WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+WARNING - src.ui.dashboard - Correction manager not available for delayed emit
+INFO - src.services.file_parser - Parsing entry file: D:\Projekte\CorrectionTool\tests\sample_data\input_samples\chests_2025-03-16.txt
+INFO - src.services.file_parser - Attempting to parse text file with encoding: utf-8
+INFO - src.services.file_parser - Parsing text content with 7764 lines
+INFO - src.services.file_parser - Parsed 2588 entries from text content
+INFO - src.services.file_parser - Successfully parsed text file with encoding: utf-8
+INFO - src.services.file_parser - Successfully parsed 2588 entries from D:\Projekte\CorrectionTool\tests\sample_data\input_samples\chests_2025-03-16.txt

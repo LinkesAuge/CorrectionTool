@@ -270,40 +270,45 @@ class CorrectionRulesModel(QSortFilterProxyModel):
                 f"Found {len(invalid_rules)} rules with empty from_text or to_text at indices: {invalid_rules}"
             )
 
+        # Start the reset process - ensure we only call begin/endResetModel once
         self.beginResetModel()
-        self._rules = rules
 
-        # Enable all rules by default
-        # Create a unique identifier based on from_text and to_text since CorrectionRule doesn't have an id
-        self._enabled_rules = set((rule.from_text, rule.to_text) for rule in rules)
+        try:
+            # Update our internal data
+            self._rules = rules
 
-        # Clear and reset the source model
-        self._source_model.clear()
-        self._source_model.setColumnCount(len(self._COLUMNS))
-        self._source_model.setRowCount(len(rules))
+            # Enable all rules by default
+            # Create a unique identifier based on from_text and to_text since CorrectionRule doesn't have an id
+            self._enabled_rules = set((rule.from_text, rule.to_text) for rule in rules)
 
-        # Set column headers in source model
-        for col, header in enumerate(self._COLUMNS):
-            self._source_model.setHeaderData(col, Qt.Horizontal, header, Qt.DisplayRole)
+            # Prepare source model without calling clear() which would trigger another reset
+            self._source_model.setRowCount(0)  # Clear rows without triggering reset
+            self._source_model.setRowCount(len(rules))
+            self._source_model.setColumnCount(len(self._COLUMNS))
 
-        # Populate source model with data for better proxy integration
-        from PySide6.QtGui import QStandardItem
+            # Set column headers in source model
+            for col, header in enumerate(self._COLUMNS):
+                self._source_model.setHeaderData(col, Qt.Horizontal, header, Qt.DisplayRole)
 
-        for row, rule in enumerate(rules):
-            # Just need to create empty items to ensure proper row handling
-            for col in range(len(self._COLUMNS)):
-                self._source_model.setItem(row, col, QStandardItem())
+            # Populate source model with data for better proxy integration
+            from PySide6.QtGui import QStandardItem
 
-        self.endResetModel()
+            for row, rule in enumerate(rules):
+                # Just need to create empty items to ensure proper row handling
+                for col in range(len(self._COLUMNS)):
+                    self._source_model.setItem(row, col, QStandardItem())
 
-        # Log some rules for debugging
-        for i, rule in enumerate(rules[:5]):
-            logger.info(
-                f"Rule {i} after set: {rule.from_text} -> {rule.to_text} (category: {rule.category})"
-            )
+            # Log some rules for debugging
+            for i, rule in enumerate(rules[:5]):
+                logger.info(
+                    f"Rule {i} after set: {rule.from_text} -> {rule.to_text} (category: {rule.category})"
+                )
+        finally:
+            # Always ensure we end the reset to prevent model inconsistency
+            self.endResetModel()
 
-        # Notify view that data has changed
-        self.layoutChanged.emit()
+        # No need for explicit layoutChanged after reset
+        # self.layoutChanged.emit()
 
     def get_rules(self) -> List[CorrectionRule]:
         """
