@@ -7,6 +7,7 @@ Usage:
     widget = ValidationListWidget("Players")
 """
 
+import logging
 from pathlib import Path
 from typing import List, Optional, Set
 
@@ -516,7 +517,7 @@ class ValidationListWidget(QWidget):
                     validation_list.file_path = file_path
 
                     # Save file path to config
-                    config = ConfigManager.get_instance()
+                    config = ConfigManager()
                     config.set("Files", "default_dir", str(Path(file_path).parent))
                     config.set("Files", f"default_{list_type}_list", file_path)
                     config.save()

@@ -1,3 +1,6 @@
+Type,player
+Name,Default Player List
+Entry
 Alarich
 Alexa Elly
 Alf

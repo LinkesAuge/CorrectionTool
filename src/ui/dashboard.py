@@ -289,8 +289,35 @@ class Dashboard(QWidget):
         # Get the DataManager instance
         data_manager = DataManager.get_instance()
 
+        # Get config manager
+        if not hasattr(self, "_config"):
+            self._config = ConfigManager()
+
         # Load rules through the data manager
         rules = data_manager.load_saved_correction_rules()
+
+        # If no rules were loaded but we have a last correction file path, try to load it directly
+        if not rules:
+            last_file = self._config.get("General", "last_correction_file", "")
+            if last_file:
+                logger.info(
+                    f"DataManager couldn't load rules, trying direct load from: {last_file}"
+                )
+                try:
+                    from pathlib import Path
+                    from src.services.file_parser import FileParser
+
+                    parser = FileParser()
+                    if Path(last_file).exists():
+                        rules = parser.parse_correction_file(last_file)
+                        if rules:
+                            logger.info(
+                                f"Successfully loaded {len(rules)} rules directly from file"
+                            )
+                            # Store them in DataManager as well
+                            data_manager.set_correction_rules(rules, last_file)
+                except Exception as e:
+                    logger.error(f"Failed to load correction file directly: {str(e)}")
 
         if rules:
             logger.info(f"Successfully loaded {len(rules)} correction rules via DataManager")
@@ -329,6 +356,10 @@ class Dashboard(QWidget):
         try:
             # Get the DataManager instance
             data_manager = DataManager.get_instance()
+
+            # Make sure we have config manager
+            if not hasattr(self, "_config"):
+                self._config = ConfigManager()
 
             # Check if file_path is actually a list of rules
             if isinstance(file_path, list):
@@ -390,6 +421,18 @@ class Dashboard(QWidget):
             self._correction_rules = correction_rules
             self._current_correction_file = file_path if not isinstance(file_path, list) else None
 
+            # Save the current file path to config
+            if self._current_correction_file:
+                file_path_str = str(self._current_correction_file)
+                self._config.set("General", "last_correction_file", file_path_str)
+                self._config.set("Correction", "default_correction_rules", file_path_str)
+
+                # Save folder path for next time
+                folder_path = str(Path(file_path_str).parent)
+                self._config.set("General", "last_folder", folder_path)
+                self._config.set("Files", "last_correction_directory", folder_path)
+                self._config.save()
+
             # Update UI
             self._action_buttons.set_corrections_loaded(len(correction_rules) > 0)
             self._statistics_widget.set_correction_rules(correction_rules)
@@ -404,9 +447,20 @@ class Dashboard(QWidget):
             logger.info(f"Emitting corrections_loaded signal with {len(correction_rules)} rules")
             self.corrections_loaded.emit(correction_rules)
 
-            # Apply correction rules to entries if available
+            # Apply correction rules to entries if available - wrap in try/except to prevent crashes
             if hasattr(self, "_entries") and self._entries:
-                self._apply_corrections()
+                try:
+                    logger.info(f"Applying loaded correction rules to {len(self._entries)} entries")
+                    self._apply_corrections()
+                except Exception as e:
+                    logger.error(f"Error applying corrections: {str(e)}")
+                    from PySide6.QtWidgets import QMessageBox
+
+                    QMessageBox.warning(
+                        self,
+                        "Correction Warning",
+                        f"Loaded correction rules, but couldn't apply them automatically: {str(e)}",
+                    )
 
             return correction_rules
 
@@ -997,10 +1051,22 @@ class Dashboard(QWidget):
 
                 self._corrector = Corrector()
 
-            # Apply corrections
-            results = self._corrector.apply_corrections(self._entries, self._correction_rules)
+            # Set rules in the corrector
+            self._corrector.set_rules(self._correction_rules)
 
-            # Count corrections
+            # Apply corrections with defensive error handling
+            try:
+                results = self._corrector.apply_corrections(self._entries, self._correction_rules)
+            except Exception as e:
+                logger.error(f"Error in corrector.apply_corrections: {str(e)}", exc_info=True)
+                QMessageBox.critical(
+                    self,
+                    "Correction Error",
+                    f"An error occurred while applying corrections:\n\n{str(e)}",
+                )
+                return
+
+            # Count corrections that were actually applied
             correction_count = sum(1 for result in results if result.was_corrected)
 
             # Only show message if corrections were actually needed and we're not in a signal loop
@@ -1008,8 +1074,9 @@ class Dashboard(QWidget):
                 # Group results by entry for a more meaningful message
                 entry_counts = {}
                 for result in results:
-                    entry_idx = result.entry_index
-                    entry_counts[entry_idx] = entry_counts.get(entry_idx, 0) + 1
+                    if result.was_corrected:  # Only count actual corrections
+                        entry_idx = result.entry_index
+                        entry_counts[entry_idx] = entry_counts.get(entry_idx, 0) + 1
 
                 entry_count = len(entry_counts)
                 QMessageBox.information(
@@ -1023,8 +1090,12 @@ class Dashboard(QWidget):
                 self.entries_updated.emit(self._entries)
                 self.corrections_applied.emit(self._entries)
 
+            # Update the table view regardless of corrections
+            if hasattr(self, "_table_view"):
+                self._table_view.set_entries(self._entries)
+
         except Exception as e:
-            logger.error(f"Error applying corrections: {str(e)}")
+            logger.error(f"Error applying corrections: {str(e)}", exc_info=True)
             QMessageBox.critical(
                 self,
                 "Correction Error",
@@ -1160,7 +1231,13 @@ class Dashboard(QWidget):
         self._show_correction_manager_panel()
 
         # Switch to validation lists tab
-        self._correction_manager._tools_tabs.setCurrentIndex(1)
+        if hasattr(self, "_correction_manager") and self._correction_manager is not None:
+            if hasattr(self._correction_manager, "_tools_tabs"):
+                self._correction_manager._tools_tabs.setCurrentIndex(1)
+            else:
+                logging.warning("CorrectionManagerPanel does not have _tools_tabs attribute")
+        else:
+            logging.warning("Dashboard does not have _correction_manager attribute or it is None")
 
     def _show_correction_rules(self):
         """Show the correction rules tab in the correction manager."""
@@ -1168,7 +1245,13 @@ class Dashboard(QWidget):
         self._show_correction_manager_panel()
 
         # Switch to correction rules tab
-        self._correction_manager._tools_tabs.setCurrentIndex(0)
+        if hasattr(self, "_correction_manager") and self._correction_manager is not None:
+            if hasattr(self._correction_manager, "_tools_tabs"):
+                self._correction_manager._tools_tabs.setCurrentIndex(0)
+            else:
+                logging.warning("CorrectionManagerPanel does not have _tools_tabs attribute")
+        else:
+            logging.warning("Dashboard does not have _correction_manager attribute or it is None")
 
     def _on_load_text(self, file_path=None):
         """

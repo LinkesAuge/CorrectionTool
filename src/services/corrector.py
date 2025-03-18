@@ -60,6 +60,16 @@ class CorrectionResult:
         self.rule = rule
         self.match_score = match_score
 
+    @property
+    def was_corrected(self) -> bool:
+        """
+        Check if a correction was actually applied.
+
+        Returns:
+            bool: True if the original value is different from the corrected value
+        """
+        return self.original_value != self.corrected_value
+
     def __str__(self) -> str:
         """
         Get string representation of the correction result.
@@ -67,10 +77,17 @@ class CorrectionResult:
         Returns:
             String representation
         """
+        # Handle case where rule_type can be either a string or an enum-like object
+        rule_type_name = (
+            self.rule.rule_type
+            if isinstance(self.rule.rule_type, str)
+            else self.rule.rule_type.name
+        )
+
         return (
             f"CorrectionResult(entry={self.entry_index}, field={self.field}, "
             f"original='{self.original_value}', corrected='{self.corrected_value}', "
-            f"rule={self.rule.rule_type.name}, score={self.match_score:.2f})"
+            f"rule={rule_type_name}, score={self.match_score:.2f})"
         )
 
 
@@ -167,12 +184,18 @@ class Corrector:
             List of correction results
         """
         logger = logging.getLogger(__name__)
+
+        # Check if entries list is valid
+        if not entries:
+            logger.warning("No entries provided to apply_corrections")
+            return []
+
         logger.info(f"Applying corrections to {len(entries)} entries")
 
         # If no rules provided, use the stored rules
         if rules is None:
             rules = self._rules
-            logger.info(f"Using {len(rules)} stored rules")
+            logger.info(f"Using {len(rules) if rules else 0} stored rules")
 
             # If still no rules, try to get from DataManager as last resort
             if not rules:
@@ -180,7 +203,12 @@ class Corrector:
 
                 data_manager = DataManager.get_instance()
                 rules = data_manager.get_correction_rules()
-                logger.info(f"Fetched {len(rules)} rules from DataManager")
+                logger.info(f"Fetched {len(rules) if rules else 0} rules from DataManager")
+
+        # Final check - if we still don't have rules, return empty results
+        if not rules:
+            logger.warning("No correction rules available to apply")
+            return []
 
         # Default to all fields if none specified
         if fields is None:
@@ -225,30 +253,34 @@ class Corrector:
                     if not current_value:
                         continue
 
-                    # Apply the rule based on its type
-                    corrected_value, match_score = self._apply_rule(
-                        rule, current_value, entry, field
-                    )
+                    try:
+                        # Apply the rule based on its type
+                        corrected_value, match_score = self._apply_rule(
+                            rule, current_value, entry, field
+                        )
 
-                    # Skip if no change was made
-                    if corrected_value == current_value:
+                        # Skip if no change was made
+                        if corrected_value == current_value:
+                            continue
+
+                        # Apply the correction and record it in the entry's history
+                        entry.add_correction(field, corrected_value)
+
+                        # Record this correction in our results
+                        result = CorrectionResult(
+                            entry_index=i,
+                            field=field,
+                            original_value=field_value,
+                            corrected_value=corrected_value,
+                            rule=rule,
+                            match_score=match_score,
+                        )
+
+                        logger.debug(f"Applied correction: {result}")
+                        results.append(result)
+                    except Exception as e:
+                        logger.error(f"Error applying rule to entry {i}, field {field}: {str(e)}")
                         continue
-
-                    # Apply the correction and record it in the entry's history
-                    entry.correct_field(field, corrected_value)
-
-                    # Record this correction in our results
-                    result = CorrectionResult(
-                        entry_index=i,
-                        field=field,
-                        original_value=field_value,
-                        corrected_value=corrected_value,
-                        rule=rule,
-                        match_score=match_score,
-                    )
-
-                    logger.debug(f"Applied correction: {result}")
-                    results.append(result)
 
                     # Skip processing further rules for this field if a correction was applied
                     break
@@ -256,6 +288,9 @@ class Corrector:
         # Store the results
         self._last_correction_results = results
         logger.info(f"Applied {len(results)} corrections to {len(entries)} entries")
+
+        # Log the results for debugging
+        self._log_correction_results()
 
         return results
 
@@ -284,7 +319,7 @@ class Corrector:
 
             # If correction was applied, record the result
             if corrected:
-                entry.correct_field(field, corrected_value)
+                entry.add_correction(field, corrected_value)
                 return corrected_value, match_score
 
             return value, 0.0
@@ -365,15 +400,24 @@ class Corrector:
         field_counts: Dict[str, int] = {}
 
         for result in self._last_correction_results:
-            rule_type = result.rule.rule_type.name
+            rule_type = (
+                result.rule.rule_type
+                if isinstance(result.rule.rule_type, str)
+                else result.rule.rule_type.name
+            )
             rule_type_counts[rule_type] = rule_type_counts.get(rule_type, 0) + 1
             field_counts[result.field] = field_counts.get(result.field, 0) + 1
 
             # Log detailed information at debug level
+            rule_type_name = (
+                result.rule.rule_type
+                if isinstance(result.rule.rule_type, str)
+                else result.rule.rule_type.name
+            )
             self._logger.debug(
                 f"  {result.entry_index:3d}: {result.field:10s} "
                 f"'{result.original_value}' -> '{result.corrected_value}' "
-                f"({result.rule.rule_type.name}, score={result.match_score:.2f})"
+                f"({rule_type_name}, score={result.match_score:.2f})"
             )
 
         # Log summary at info level

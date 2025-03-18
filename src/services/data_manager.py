@@ -204,45 +204,93 @@ class DataManager(QObject):
 
         self._logger.info("DataManager: Loading saved correction rules")
 
-        # Get the previously saved correction rules file
-        rule_file = self._config.get("Correction", "default_correction_rules", "")
+        # Check several possible config keys and sections for the correction rules file path
+        possible_paths = []
 
-        if not rule_file:
-            # Try alternate location
-            rule_file = self._config.get("General", "last_correction_file", "")
+        # Try multiple locations in config in order of preference
+        config_locations = [
+            ("Correction", "default_correction_rules"),
+            ("General", "last_correction_file"),
+            ("Paths", "default_correction_rules"),
+            ("Files", "default_correction_list"),
+            ("paths", "default_correction_rules"),
+        ]
+
+        for section, key in config_locations:
+            rule_file = self._config.get(section, key, "")
+            if rule_file:
+                self._logger.info(f"Found possible rule file path in {section}.{key}: {rule_file}")
+                possible_paths.append(rule_file)
+
+        # Try each path until we find one that works
+        for rule_file in possible_paths:
             if not rule_file:
-                self._logger.info("No saved correction rules file found")
-                return []
+                continue
 
-        self._logger.info(f"Loading correction rules from: {rule_file}")
-        rule_path = Path(rule_file)
+            self._logger.info(f"Attempting to load correction rules from: {rule_file}")
+            rule_path = Path(rule_file)
 
-        if not rule_path.exists():
-            self._logger.warning(f"Correction rules file not found: {rule_path}")
-            return []
+            if not rule_path.exists():
+                self._logger.warning(f"Correction rules file not found: {rule_path}")
+                continue
 
-        try:
-            # Parse the correction file using FileParser
-            parser = FileParser()
-            rules = parser.parse_correction_file(rule_path)
+            try:
+                # Parse the correction file using FileParser
+                parser = FileParser()
+                rules = parser.parse_correction_file(rule_path)
 
-            if not rules:
-                self._logger.warning("No rules loaded from file")
-                return []
+                if not rules:
+                    self._logger.warning(f"No rules loaded from file: {rule_path}")
+                    continue
 
-            self._logger.info(f"Loaded {len(rules)} correction rules")
+                self._logger.info(
+                    f"Successfully loaded {len(rules)} correction rules from {rule_path}"
+                )
 
-            # Store the file path
-            self._correction_file_path = rule_path
+                # Store the file path
+                self._correction_file_path = rule_path
 
-            # Store the rules and return them (but don't emit signal yet)
-            self._correction_rules = rules
-            return rules
+                # Store the rules and return them (but don't emit signal yet)
+                self._correction_rules = rules
 
-        except Exception as e:
-            self._logger.error(f"Error loading correction rules: {str(e)}")
-            self._logger.error(traceback.format_exc())
-            return []
+                # Update the config to make this the default path in all locations
+                self._update_correction_file_path(str(rule_path))
+
+                return rules
+
+            except Exception as e:
+                self._logger.error(f"Error loading correction rules from {rule_path}: {str(e)}")
+                self._logger.error(traceback.format_exc())
+                # Continue to try the next path
+
+        # If we got here, no rules were loaded
+        self._logger.warning("No correction rules were successfully loaded from any path")
+        return []
+
+    def _update_correction_file_path(self, file_path: str):
+        """
+        Update all correction file path references in the config.
+
+        Args:
+            file_path: Path to the correction file
+        """
+        config_locations = [
+            ("Correction", "default_correction_rules"),
+            ("General", "last_correction_file"),
+            ("Paths", "default_correction_rules"),
+            ("Files", "default_correction_list"),
+        ]
+
+        for section, key in config_locations:
+            self._config.set(section, key, file_path)
+
+        # Save the folder path too
+        folder_path = str(Path(file_path).parent)
+        self._config.set("General", "last_folder", folder_path)
+        self._config.set("Files", "last_correction_directory", folder_path)
+
+        # Save the config
+        self._config.save()
 
     def load_saved_validation_lists(self) -> Dict[str, ValidationList]:
         """

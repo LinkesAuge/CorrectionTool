@@ -1,3 +1,6 @@
+Type,source
+Name,Default Source List
+Entry
 Level 5 Crypt
 Level 10 Crypt
 Level 15 Crypt
