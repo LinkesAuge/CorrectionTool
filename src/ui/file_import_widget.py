@@ -86,6 +86,7 @@ class FileImportWidget(QWidget):
         self._last_correction_directory = self._config.get(
             "Files", "last_correction_directory", fallback=str(Path.home())
         )
+        self._processing_signal = False
 
         # Set up UI
         self._setup_ui()
@@ -266,23 +267,33 @@ class FileImportWidget(QWidget):
         Args:
             rules: List of correction rules
         """
-        self._correction_rules = rules
+        # Prevent recursive signal loops
+        if self._processing_signal:
+            return
 
-        # Update status label
-        rule_count = len(rules)
-        if rule_count > 0:
-            self._corrections_status_label.setText(f"{rule_count} correction rules loaded")
-            self._corrections_status_label.setStyleSheet("color: #007700;")
-        else:
-            self._corrections_status_label.setText("No corrections loaded")
-            self._corrections_status_label.setStyleSheet("")
+        try:
+            self._processing_signal = True
 
-        # Emit signal with the updated rules
-        self.corrections_loaded.emit(rules)
+            self._correction_rules = rules
 
-        # Auto-apply corrections if enabled
-        if self._corrections_enabled and self._entries:
-            self._apply_corrections()
+            # Update status label
+            rule_count = len(rules)
+            if rule_count > 0:
+                self._corrections_status_label.setText(f"{rule_count} correction rules loaded")
+                self._corrections_status_label.setStyleSheet("color: #007700;")
+            else:
+                self._corrections_status_label.setText("No corrections loaded")
+                self._corrections_status_label.setStyleSheet("")
+
+            # Emit signal with the updated rules
+            self.corrections_loaded.emit(rules)
+
+            # Auto-apply corrections if enabled and we have entries
+            if self._corrections_enabled and self._entries:
+                self._apply_corrections()
+
+        finally:
+            self._processing_signal = False
 
     def _apply_corrections(self):
         """Apply correction rules to the loaded entries."""

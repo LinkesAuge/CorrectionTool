@@ -90,9 +90,12 @@ class Corrector:
         - Provides detailed correction results
     """
 
-    def __init__(self):
+    def __init__(self, rules: Optional[List[CorrectionRule]] = None):
         """
         Initialize the Corrector.
+
+        Args:
+            rules: Initial list of correction rules (optional)
         """
         self._config = ConfigManager()
         self._fuzzy_matcher = FuzzyMatcher()
@@ -107,6 +110,36 @@ class Corrector:
         self._last_correction_results: List[CorrectionResult] = []
         self._logger = logging.getLogger(__name__)
 
+        # Get rules from DataManager if not provided
+        if rules is None:
+            from src.services.data_manager import DataManager
+
+            data_manager = DataManager.get_instance()
+            rules = data_manager.get_correction_rules()
+            self._logger.info(f"Using {len(rules)} rules from DataManager")
+
+        # Store the rules
+        self._rules: List[CorrectionRule] = rules if rules else []
+
+    def set_rules(self, rules: List[CorrectionRule]) -> None:
+        """
+        Set the correction rules to be used by the corrector.
+
+        Args:
+            rules: List of correction rules
+        """
+        self._logger.info(f"Setting {len(rules)} correction rules in Corrector")
+        self._rules = rules
+
+    def get_rules(self) -> List[CorrectionRule]:
+        """
+        Get the current correction rules.
+
+        Returns:
+            List of correction rules
+        """
+        return self._rules
+
     def get_last_results(self) -> List[CorrectionResult]:
         """
         Get the results of the last correction operation.
@@ -119,154 +152,151 @@ class Corrector:
     def apply_corrections(
         self,
         entries: List[ChestEntry],
-        rules: List[CorrectionRule],
+        rules: Optional[List[CorrectionRule]] = None,
         fields: Optional[List[str]] = None,
-    ) -> List[ChestEntry]:
+    ) -> List[CorrectionResult]:
         """
         Apply correction rules to a list of entries.
 
         Args:
             entries: List of chest entries to correct
-            rules: List of correction rules to apply
-            fields: Optional list of fields to correct (defaults to all fields)
+            rules: List of correction rules to apply (if None, uses the rules set via set_rules)
+            fields: List of fields to correct (if None, corrects all fields)
 
         Returns:
-            List of corrected entries
+            List of correction results
         """
-        if not entries or not rules:
-            return entries
+        logger = logging.getLogger(__name__)
+        logger.info(f"Applying corrections to {len(entries)} entries")
 
-        # Clear last results
-        self._last_correction_results = []
+        # If no rules provided, use the stored rules
+        if rules is None:
+            rules = self._rules
+            logger.info(f"Using {len(rules)} stored rules")
 
-        # Default fields if not specified
+            # If still no rules, try to get from DataManager as last resort
+            if not rules:
+                from src.services.data_manager import DataManager
+
+                data_manager = DataManager.get_instance()
+                rules = data_manager.get_correction_rules()
+                logger.info(f"Fetched {len(rules)} rules from DataManager")
+
+        # Default to all fields if none specified
         if fields is None:
             fields = ["chest_type", "player", "source"]
 
-        # Sort rules by priority (highest first)
+        # Sort rules by priority (higher priority rules are applied first)
         sorted_rules = sorted(rules, key=lambda r: r.priority, reverse=True)
 
-        # Group rules by category for more efficient application
-        field_to_category = {"chest_type": "chest", "player": "player", "source": "source"}
+        # Log rule counts
+        logger.info(f"Applying {len(sorted_rules)} rules to {len(entries)} entries")
 
-        category_rules = {"chest": [], "player": [], "source": [], "general": []}
+        # Initialize results
+        results = []
 
-        for rule in sorted_rules:
-            if rule.category in category_rules:
-                category_rules[rule.category].append(rule)
-            else:
-                # Default to general if category is not recognized
-                category_rules["general"].append(rule)
+        # Apply each rule to each entry
+        for i, entry in enumerate(entries):
+            for field in fields:
+                # Skip fields that are not valid
+                if not hasattr(entry, field):
+                    continue
 
-        # Apply corrections to each entry
-        for entry_idx, entry in enumerate(entries):
-            # Create copy of the entry to avoid modifying the original
-            entry_copy = entry
+                # Get field value
+                field_value = getattr(entry, field)
+                if not field_value:
+                    continue
 
-            try:
-                # Apply field-specific rules
-                for field in fields:
-                    if not hasattr(entry_copy, field):
-                        self._logger.warning(f"Entry has no field '{field}'")
+                # Find applicable rules for this field
+                applicable_rules = [
+                    r
+                    for r in sorted_rules
+                    if r.category.lower() == field.lower() or r.category.lower() == "general"
+                ]
+
+                # Apply the rules in priority order
+                for rule in applicable_rules:
+                    # Only apply if the rule is not disabled
+                    if rule.disabled:
                         continue
 
-                    # Get current field value
-                    value = getattr(entry_copy, field)
-                    if not value:
+                    # Get the current field value (which might have been changed by previous rules)
+                    current_value = getattr(entry, field)
+                    if not current_value:
                         continue
 
-                    # Get category for this field
-                    category = field_to_category.get(field)
-                    if not category:
+                    # Apply the rule based on its type
+                    corrected_value, match_score = self._apply_rule(
+                        rule, current_value, entry, field
+                    )
+
+                    # Skip if no change was made
+                    if corrected_value == current_value:
                         continue
 
-                    # Apply category-specific rules
-                    category_specific_rules = category_rules.get(category, [])
-                    for rule in category_specific_rules:
-                        corrected_value, corrected = self._apply_rule_to_value(
-                            value, rule, entry_idx, field
-                        )
-                        if corrected:
-                            # Store original value if not already stored
-                            if field not in entry_copy.original_values:
-                                entry_copy.original_values[field] = value
+                    # Apply the correction and record it in the entry's history
+                    entry.correct_field(field, corrected_value)
 
-                            # Update the field value
-                            setattr(entry_copy, field, corrected_value)
-                            value = corrected_value
+                    # Record this correction in our results
+                    result = CorrectionResult(
+                        entry_index=i,
+                        field=field,
+                        original_value=field_value,
+                        corrected_value=corrected_value,
+                        rule=rule,
+                        match_score=match_score,
+                    )
 
-                    # Apply general rules to all fields
-                    for rule in category_rules["general"]:
-                        corrected_value, corrected = self._apply_rule_to_value(
-                            value, rule, entry_idx, field
-                        )
-                        if corrected:
-                            # Store original value if not already stored
-                            if field not in entry_copy.original_values:
-                                entry_copy.original_values[field] = value
+                    logger.debug(f"Applied correction: {result}")
+                    results.append(result)
 
-                            # Update the field value
-                            setattr(entry_copy, field, corrected_value)
-                            value = corrected_value
+                    # Skip processing further rules for this field if a correction was applied
+                    break
 
-                # Replace the original entry with the corrected one
-                entries[entry_idx] = entry_copy
+        # Store the results
+        self._last_correction_results = results
+        logger.info(f"Applied {len(results)} corrections to {len(entries)} entries")
 
-            except Exception as e:
-                self._logger.error(f"Error applying corrections to entry {entry_idx}: {str(e)}")
-                # Continue with the next entry
+        return results
 
-        # Log correction results
-        self._log_correction_results()
-
-        return entries
-
-    def _apply_rule_to_value(
-        self, value: str, rule: CorrectionRule, entry_idx: int, field: str
-    ) -> Tuple[str, bool]:
+    def _apply_rule(
+        self, rule: CorrectionRule, value: str, entry: ChestEntry, field: str
+    ) -> Tuple[str, float]:
         """
         Apply a correction rule to a string value.
 
         Args:
-            value: String value to correct
             rule: Correction rule to apply
-            entry_idx: Index of the entry
+            value: String value to correct
+            entry: Chest entry to update
             field: Field being corrected
 
         Returns:
-            Tuple of (corrected value, whether correction was applied)
+            Tuple of (corrected value, match score)
         """
         try:
             # Check if the rule applies to this field
             if not rule.applies_to_field(field):
-                return value, False
+                return value, 0.0
 
             # Apply the rule
-            corrected_value, corrected, match_score = self._apply_rule(value, rule)
+            corrected_value, corrected, match_score = self._apply_rule_to_value(value, rule)
 
             # If correction was applied, record the result
             if corrected:
-                result = CorrectionResult(
-                    entry_index=entry_idx,
-                    field=field,
-                    original_value=value,
-                    corrected_value=corrected_value,
-                    rule=rule,
-                    match_score=match_score,
-                )
-                self._last_correction_results.append(result)
-                return corrected_value, True
+                entry.correct_field(field, corrected_value)
+                return corrected_value, match_score
 
-            return value, False
+            return value, 0.0
 
         except Exception as e:
             self._logger.error(
                 f"Error applying rule to value: {str(e)}, "
                 f"value='{value}', rule='{rule}', field='{field}'"
             )
-            return value, False
+            return value, 0.0
 
-    def _apply_rule(self, value: str, rule: CorrectionRule) -> Tuple[str, bool, float]:
+    def _apply_rule_to_value(self, value: str, rule: CorrectionRule) -> Tuple[str, bool, float]:
         """
         Apply a correction rule to a string value.
 

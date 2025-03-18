@@ -10,7 +10,7 @@ Usage:
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-from PySide6.QtCore import Qt, Signal, Slot, QSortFilterProxyModel, QModelIndex
+from PySide6.QtCore import Qt, Signal, Slot, QSortFilterProxyModel, QModelIndex, QTimer
 from PySide6.QtGui import QIntValidator, QStandardItemModel
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 
 from src.models.correction_rule import CorrectionRule
 from src.services.config_manager import ConfigManager
+from src.services.data_manager import DataManager
 
 
 class CorrectionRulesModel(QSortFilterProxyModel):
@@ -720,7 +721,7 @@ class CorrectionRulesTable(QTableView):
 
     def set_rules(self, rules: List[CorrectionRule]):
         """
-        Set the rules.
+        Set the rules in the table.
 
         Args:
             rules: List of correction rules
@@ -730,28 +731,28 @@ class CorrectionRulesTable(QTableView):
         logger = logging.getLogger(__name__)
         logger.info(f"CorrectionRulesTable.set_rules called with {len(rules)} rules")
 
-        # Log a few rules for debugging
-        for i, rule in enumerate(rules[:5]):
-            logger.info(
-                f"Table Rule {i}: {rule.from_text} -> {rule.to_text} (category: {rule.category})"
-            )
+        # Get the data manager for persistence
+        data_manager = DataManager.get_instance()
 
-        # Apply the rules to the model
+        # Set the rules in the model
         self._model.set_rules(rules)
 
-        # Force update the view
+        # Update the view
         self.reset()
-        # Use viewport update instead of self.update()
-        self.viewport().update()
-
-        # Update column widths and appearance
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
-        # Log current model state
-        logger.info(
-            f"Model now has {self._model.rowCount()} rows and {self._model.columnCount()} columns"
-        )
+        # Force visual update
+        self.viewport().update()
+
+        # Emit signal for file path changes if we have it
+        if (
+            hasattr(data_manager, "get_correction_file_path")
+            and data_manager.get_correction_file_path()
+        ):
+            self.file_path_changed.emit(str(data_manager.get_correction_file_path()))
+
+        logger.info(f"Successfully set {len(rules)} rules in table")
 
     def get_rules(self) -> List[CorrectionRule]:
         """
@@ -1101,3 +1102,19 @@ class CorrectionRulesTable(QTableView):
 
     # Add this signal definition to the class (under the existing signals at around line 648)
     file_path_changed = Signal(str)  # Signal to notify when a file path has been loaded/imported
+
+    def _delayed_refresh(self):
+        """Handle delayed refresh to ensure UI updates properly."""
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug("Performing delayed refresh of CorrectionRulesTable")
+
+        # Refresh the view
+        self.viewport().update()
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+
+        # Log current table state
+        rules = self._model.get_rules()
+        logger.info(f"After delayed refresh, table shows {len(rules)} rules")

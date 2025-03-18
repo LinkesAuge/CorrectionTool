@@ -9,7 +9,7 @@ Usage:
 
 from typing import Dict, List, Optional, Tuple
 
-from PySide6.QtCore import Qt, Signal, Slot, QModelIndex
+from PySide6.QtCore import Qt, Signal, Slot, QModelIndex, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
@@ -75,6 +75,7 @@ class CorrectionManagerPanel(QWidget):
         self._correction_rules: List[CorrectionRule] = []
         self._validation_lists: Dict[str, ValidationList] = {}
         self._entries: List[ChestEntry] = []
+        self._processing_signal = False
 
         # Get configuration manager
         from src.services.config_manager import ConfigManager
@@ -188,10 +189,9 @@ class CorrectionManagerPanel(QWidget):
 
     def _setup_correction_rules_tab(self):
         """Set up the correction rules tab."""
-        # Create tab content
-        rules_tab = QWidget()
-        rules_layout = QVBoxLayout(rules_tab)
-        rules_layout.setContentsMargins(0, 0, 0, 0)
+        # Create layout for the tab
+        layout = QVBoxLayout(self._correction_rules_tab)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         # Add header with tools
         tools_layout = QHBoxLayout()
@@ -202,10 +202,10 @@ class CorrectionManagerPanel(QWidget):
         search_layout.setSpacing(5)
         search_layout.addWidget(QLabel("Search:"))
 
-        self._search_field = QLineEdit()
-        self._search_field.setPlaceholderText("Filter rules...")
-        self._search_field.setMaximumWidth(200)
-        search_layout.addWidget(self._search_field)
+        self._rules_search_field = QLineEdit()
+        self._rules_search_field.setPlaceholderText("Filter rules...")
+        self._rules_search_field.setMaximumWidth(200)
+        search_layout.addWidget(self._rules_search_field)
 
         tools_layout.addLayout(search_layout)
         tools_layout.addStretch()
@@ -227,18 +227,15 @@ class CorrectionManagerPanel(QWidget):
         add_button.clicked.connect(self._on_add_rule)
         tools_layout.addWidget(add_button)
 
-        rules_layout.addLayout(tools_layout)
+        layout.addLayout(tools_layout)
 
         # Add correction rules table
         self._correction_rules_table = CorrectionRulesTable()
-        rules_layout.addWidget(self._correction_rules_table)
+        layout.addWidget(self._correction_rules_table)
 
         # Connect signals
-        self._search_field.textChanged.connect(self._on_search_text_changed)
+        self._rules_search_field.textChanged.connect(self._on_search_text_changed)
         self._correction_rules_table.file_path_changed.connect(self._on_file_path_changed)
-
-        # Store the tab widget for later reference
-        self._correction_rules_tab = rules_tab
 
     def _setup_validation_lists_tab(self):
         """Set up the validation lists tab."""
@@ -510,76 +507,56 @@ class CorrectionManagerPanel(QWidget):
         logger = logging.getLogger(__name__)
         logger.info(f"CorrectionManagerPanel.set_correction_rules called with {len(rules)} rules")
 
-        if not rules:
-            logger.warning("Empty rules list passed to set_correction_rules")
+        # Prevent recursive signal processing
+        if getattr(self, "_processing_signal", False):
+            logger.warning("Already processing signal, skipping duplicate call")
             return
 
-        # Check if rules are already set and unchanged
-        if self._correction_rules == rules:
-            logger.info("Rules are unchanged, no need to update")
-            # Still make sure the tab is visible
-            if self._tools_tabs.currentIndex() != 0:
-                self._tools_tabs.setCurrentIndex(0)
-            return
-
-        # Log some rules for debugging
-        for i, rule in enumerate(rules[:5]):  # Log first 5 rules for debugging
-            logger.info(
-                f"Panel Rule {i}: {rule.from_text} -> {rule.to_text} (category: {rule.category})"
-            )
-
-        # Store the rules locally
-        self._correction_rules = rules
-
-        # Set rules in the table - this will update the display
-        self._correction_rules_table.set_rules(rules)
-
-        # Make sure table is visible and the rules tab is active
-        if self._tools_tabs.currentIndex() != 0:  # If not on correction rules tab
-            logger.info("Switching to correction rules tab")
-            self._tools_tabs.setCurrentIndex(0)
-
-        # Update the count in the tab text
-        self._tools_tabs.setTabText(0, f"Correction Rules ({len(rules)})")
-
-        # Check if we have a current file path and update config
-        if hasattr(self, "_current_file_path") and self._current_file_path:
-            file_path = str(self._current_file_path)
-            folder_path = str(Path(file_path).parent)
-
-            # Update all config settings to ensure consistency
-            self._config.set("General", "last_correction_file", file_path)
-            self._config.set("General", "last_folder", folder_path)
-            self._config.set("Files", "last_correction_directory", folder_path)
-            self._config.set("Paths", "default_correction_rules", file_path)
-
-            # Save changes to disk
-            self._config.save()
-            logger.info(f"Saved config with correction file: {file_path}")
-
-        # Apply table update and make sure it's visually updated
-        self._correction_rules_table.reset()
-        self._correction_rules_table.resizeColumnsToContents()
-        self._correction_rules_table.resizeRowsToContents()
-
-        # Make sure the table has the right size
-        self._correction_rules_table.setMinimumHeight(400)
-
-        # Update status message if parent has status bar
-        if self.parent() and hasattr(self.parent(), "statusBar"):
-            self.parent().statusBar().showMessage(f"Loaded {len(rules)} correction rules", 3000)
-
-        # Emit signal - but only emit if we weren't called from the Dashboard
-        # to avoid signal loops
-        parent_is_setting_rules = False
         try:
-            parent_is_setting_rules = getattr(self.parent(), "_processing_signal", False)
-        except (AttributeError, Exception):
-            pass
+            # Set processing flag
+            self._processing_signal = True
 
-        if not parent_is_setting_rules:
+            # Store the rules locally
+            self._correction_rules = rules.copy()
+
+            # Set rules in the table - this will update the display
+            if hasattr(self, "_correction_rules_table"):
+                logger.info("Setting rules in correction rules table")
+                self._correction_rules_table.set_rules(rules)
+
+                # Force a reset and update of the table
+                self._correction_rules_table.reset()
+                self._correction_rules_table.viewport().update()
+
+            # Make sure the correction tab is visible if we're currently displayed
+            if self.isVisible() and hasattr(self, "_tools_tabs"):
+                logger.info("Making correction rules tab active")
+
+                # Set the tab as active
+                self._tools_tabs.setCurrentIndex(0)
+
+                # Update the tab text
+                tab_text = f"Correction Rules ({len(rules)})"
+                self._tools_tabs.setTabText(0, tab_text)
+
+            # Emit signal to notify other components
             logger.info(f"Emitting correction_rules_updated signal with {len(rules)} rules")
             self.correction_rules_updated.emit(rules)
+
+            # Update status message
+            if self.parent() and hasattr(self.parent(), "statusBar"):
+                status_bar = self.parent().statusBar()
+                if status_bar:
+                    status_bar.showMessage(f"Loaded {len(rules)} correction rules", 3000)
+
+        except Exception as e:
+            logger.error(f"Error in set_correction_rules: {str(e)}")
+            import traceback
+
+            logger.error(traceback.format_exc())
+        finally:
+            # Always reset processing flag
+            self._processing_signal = False
 
     @Slot(dict)
     def set_validation_lists(self, lists: Dict[str, ValidationList]):
@@ -589,19 +566,73 @@ class CorrectionManagerPanel(QWidget):
         Args:
             lists: Dictionary of validation lists
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"CorrectionManagerPanel.set_validation_lists called with {len(lists)} lists")
+
+        if not lists:
+            logger.warning("Empty validation lists passed")
+            return
+
+        # Store the lists locally
         self._validation_lists = lists
 
-        # Update the validation list widgets
-        if "player" in lists:
-            self._player_list_widget.set_list(lists["player"])
+        # Log the lists for debugging
+        for list_type, validation_list in lists.items():
+            logger.info(
+                f"Setting {list_type} validation list with {len(validation_list.items)} items"
+            )
 
-        if "chest_type" in lists:
-            self._chest_type_list_widget.set_list(lists["chest_type"])
+        # Make the validation lists tab active first
+        try:
+            if hasattr(self, "_tools_tabs") and self._tools_tabs.count() > 1:
+                logger.info("Switching to validation lists tab")
+                self._tools_tabs.setCurrentIndex(1)  # Switch to validation lists tab
+        except Exception as e:
+            logger.error(f"Error switching to validation tab: {str(e)}")
 
-        if "source" in lists:
-            self._source_list_widget.set_list(lists["source"])
+        # Update the validation list widgets if they exist
+        try:
+            if hasattr(self, "_player_list_widget") and "player" in lists:
+                logger.info("Setting player list in widget")
+                self._player_list_widget.set_list(lists["player"])
 
+            if hasattr(self, "_chest_type_list_widget") and "chest_type" in lists:
+                logger.info("Setting chest type list in widget")
+                self._chest_type_list_widget.set_list(lists["chest_type"])
+
+            if hasattr(self, "_source_list_widget") and "source" in lists:
+                logger.info("Setting source list in widget")
+                self._source_list_widget.set_list(lists["source"])
+        except Exception as e:
+            logger.error(f"Error setting lists in widgets: {str(e)}")
+
+        # Make sure validation lists tab is properly initialized
+        if hasattr(self, "_tools_tabs") and self._tools_tabs.count() > 1:
+            # Update the tab text to show list counts
+            tab_text = "Validation Lists"
+            if lists:
+                list_counts = []
+                if "player" in lists:
+                    list_counts.append(f"Players: {len(lists['player'].items)}")
+                if "chest_type" in lists:
+                    list_counts.append(f"Chests: {len(lists['chest_type'].items)}")
+                if "source" in lists:
+                    list_counts.append(f"Sources: {len(lists['source'].items)}")
+
+                if list_counts:
+                    tab_text += f" ({', '.join(list_counts)})"
+
+            logger.info(f"Updating validation lists tab text: {tab_text}")
+            self._tools_tabs.setTabText(1, tab_text)
+
+        # Always emit signal regardless - crucial for Dashboard to know lists were set
+        logger.info(f"Emitting validation_lists_updated signal with {len(lists)} lists")
         self.validation_lists_updated.emit(lists)
+
+        # Schedule a delayed refresh
+        QTimer.singleShot(500, lambda: self._delayed_refresh_validation_lists(lists))
 
     def get_correction_rules(self) -> List[CorrectionRule]:
         """
@@ -666,6 +697,123 @@ class CorrectionManagerPanel(QWidget):
         # Apply filter to the rules table
         if hasattr(self, "_correction_rules_table"):
             self._correction_rules_table.filter_rules(text)
+
+    def _delayed_refresh_rules(self, rules):
+        """
+        Perform a delayed refresh of the correction rules table.
+        This is called after a delay to ensure the UI has time to initialize.
+
+        Args:
+            rules: List of correction rules
+        """
+        import logging
+        import traceback
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"Performing delayed refresh with {len(rules)} rules")
+        logger.info(f"Widget is now visible: {self.isVisible()}")
+
+        # Prevent recursive signal processing
+        if getattr(self, "_processing_signal", False):
+            logger.warning("Already processing signal, skipping delayed refresh")
+            return
+
+        try:
+            # Set processing flag
+            self._processing_signal = True
+
+            # This is critical: FIRST make the correction manager panel visible
+            # before attempting to show the rules
+            if hasattr(self.parent(), "_validation_btn") and not self.isVisible():
+                logger.info("Making correction manager tab visible")
+                self.parent()._validation_btn.click()
+
+            # Check if we're on the right tab
+            current_tab = (
+                self.parent()._content_widget.currentIndex()
+                if hasattr(self.parent(), "_content_widget")
+                else -1
+            )
+            logger.info(f"Current widget stack index: {current_tab}")
+
+            # Force the model to update with the rules again
+            self._correction_rules_table.set_rules(rules)
+
+            # Make the correction rules tab active
+            if hasattr(self, "_tools_tabs"):
+                logger.info("Ensuring correction rules tab is active")
+                self._tools_tabs.setCurrentIndex(0)  # Force to correction rules tab
+
+            # Force a viewport update
+            logger.info("Forcing viewport update")
+            self._correction_rules_table.viewport().update()
+
+            # Log the visible state of the rules
+            model = self._correction_rules_table._model
+            if model:
+                visible_count = model.rowCount()
+                logger.info(f"Model now shows {visible_count} rows")
+        except Exception as e:
+            logger.error(f"Error in delayed refresh: {str(e)}")
+            logger.error(traceback.format_exc())
+        finally:
+            # Reset processing flag
+            self._processing_signal = False
+
+    def _delayed_refresh_validation_lists(self, lists):
+        """
+        Perform a delayed refresh of the validation lists.
+        This is called after a delay to ensure the UI has time to initialize.
+
+        Args:
+            lists: Dictionary of validation lists
+        """
+        import logging
+        import traceback
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"Performing delayed refresh with {len(lists)} lists")
+        logger.info(f"Widget is now visible: {self.isVisible()}")
+
+        try:
+            # This is critical: FIRST make the correction manager panel visible
+            # before attempting to show the lists
+            if hasattr(self.parent(), "_validation_btn") and not self.isVisible():
+                logger.info("Making correction manager tab visible")
+                self.parent()._validation_btn.click()
+
+            # Check if we're on the right tab
+            current_tab = (
+                self.parent()._content_widget.currentIndex()
+                if hasattr(self.parent(), "_content_widget")
+                else -1
+            )
+            logger.info(f"Current widget stack index: {current_tab}")
+
+            # Force the model to update with the lists again
+            self._player_list_widget.set_list(lists["player"])
+            self._chest_type_list_widget.set_list(lists["chest_type"])
+            self._source_list_widget.set_list(lists["source"])
+
+            # Make the validation lists tab active
+            if hasattr(self, "_tools_tabs"):
+                logger.info("Ensuring validation lists tab is active")
+                self._tools_tabs.setCurrentIndex(1)  # Force to validation lists tab
+
+            # Force a viewport update
+            logger.info("Forcing viewport update")
+            self._player_list_widget.viewport().update()
+            self._chest_type_list_widget.viewport().update()
+            self._source_list_widget.viewport().update()
+
+            # Log the visible state of the lists
+            model = self._player_list_widget._model
+            if model:
+                visible_count = model.rowCount()
+                logger.info(f"Model now shows {visible_count} rows")
+        except Exception as e:
+            logger.error(f"Error in delayed refresh: {str(e)}")
+            logger.error(traceback.format_exc())
 
 
 class CreateRuleDialog(QDialog):

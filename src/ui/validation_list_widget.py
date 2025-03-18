@@ -10,7 +10,7 @@ Usage:
 from pathlib import Path
 from typing import List, Optional, Set
 
-from PySide6.QtCore import Qt, Signal, Slot, QModelIndex
+from PySide6.QtCore import Qt, Signal, Slot, QModelIndex, QTimer
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtWidgets import (
     QDialog,
@@ -279,10 +279,128 @@ class ValidationListWidget(QWidget):
         Set the validation list.
 
         Args:
-            validation_list: ValidationList instance
+            validation_list: ValidationList object
         """
-        self._validation_list = validation_list
-        self._model.set_validation_list(validation_list)
+        import logging
+        import traceback
+
+        logger = logging.getLogger(__name__)
+        logger.info(
+            f"ValidationListWidget.set_list called for {self._list_name} with {len(validation_list.items)} items"
+        )
+        logger.info(f"Widget is visible: {self.isVisible()}")
+
+        if not validation_list:
+            logger.warning(f"Empty validation list passed to {self._list_name}")
+            return
+
+        # Check if the validation list has a file path
+        file_path = getattr(validation_list, "file_path", None)
+        if file_path:
+            logger.info(f"Validation list has file path: {file_path}")
+        else:
+            logger.warning(f"Validation list has no file path")
+
+        try:
+            # Store the validation list
+            self._validation_list = validation_list
+
+            # Set in the model
+            if self._model:
+                logger.info(f"Setting validation list in model for {self._list_name}")
+                self._model.set_validation_list(validation_list)
+
+                # Log model state
+                row_count = self._model.rowCount()
+                logger.info(f"Model now has {row_count} rows")
+            else:
+                logger.error(f"No model exists for {self._list_name}")
+
+            # Save to configuration
+            if file_path:
+                from src.services.config_manager import ConfigManager
+                from pathlib import Path
+
+                config = ConfigManager()
+
+                # Ensure file_path is a string
+                file_path_str = str(file_path)
+                logger.info(f"Saving file path to config: {file_path_str}")
+
+                # Map list name to config key
+                list_type_map = {
+                    "Players": "player",
+                    "Chest Types": "chest_type",
+                    "Sources": "source",
+                }
+
+                list_type = list_type_map.get(self._list_name, self._list_name.lower())
+
+                # Save in both config locations for redundancy
+                config.set("General", f"{list_type}_list_path", file_path_str)
+                config.set("Validation", f"{list_type}_list", file_path_str)
+                config.save()
+
+                # Log saved paths
+                general_path = config.get("General", f"{list_type}_list_path", "not set")
+                validation_path = config.get("Validation", f"{list_type}_list", "not set")
+                logger.info(
+                    f"Saved paths in config - General: {general_path}, Validation: {validation_path}"
+                )
+
+            # UI updates
+            self._table_view.reset()
+            self._table_view.resizeColumnsToContents()
+            self._table_view.viewport().update()
+
+            # Schedule a delayed check
+            QTimer.singleShot(500, self._delayed_refresh)
+
+        except Exception as e:
+            logger.error(f"Error in set_list: {str(e)}")
+            logger.error(traceback.format_exc())
+
+    def _delayed_refresh(self):
+        """
+        Perform a delayed refresh to ensure UI is properly updated.
+        """
+        import logging
+        import traceback
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"Performing delayed refresh for {self._list_name}")
+        logger.info(f"Widget is visible: {self.isVisible()}")
+
+        try:
+            # Check if widget is visible
+            if not self.isVisible():
+                logger.warning(f"{self._list_name} widget not visible during refresh")
+                return
+
+            # Force visual updates
+            self._table_view.reset()
+            self._table_view.viewport().update()
+
+            # Log state
+            if hasattr(self._model, "rowCount"):
+                row_count = self._model.rowCount()
+                logger.info(f"Model shows {row_count} rows after refresh")
+
+            # Verify validation list is stored
+            if hasattr(self, "_validation_list"):
+                item_count = len(self._validation_list.items)
+                logger.info(f"Validation list has {item_count} items")
+
+                # Get file path if available
+                file_path = getattr(self._validation_list, "file_path", None)
+                if file_path:
+                    logger.info(f"File path: {file_path}")
+            else:
+                logger.warning("No validation list is stored!")
+
+        except Exception as e:
+            logger.error(f"Error in delayed refresh: {str(e)}")
+            logger.error(traceback.format_exc())
 
     def get_list(self) -> ValidationList:
         """

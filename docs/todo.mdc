@@ -59,21 +59,21 @@ We are planning a major rework of the application to address issues with:
   - [x] Handle edge cases and errors
 
 ### Phase 3: Correction Manager Implementation
-- [ ] Create new "Correction Manager" tab
-- [ ] Implement split layout:
-  - [ ] Left side (50%): Correction rules table
-  - [ ] Right side (50%): Validation lists sections
-- [ ] Correction rules section:
-  - [ ] Two-column table (From→To)
-  - [ ] Add, Edit, Delete buttons
-  - [ ] Import/Export functionality
-  - [ ] Search filter
+- [x] Create new "Correction Manager" tab
+- [x] Implement split layout:
+  - [x] Left side (50%): Correction rules table
+  - [x] Right side (50%): Validation lists sections
+- [x] Correction rules section:
+  - [x] Two-column table (From→To)
+  - [x] Add, Edit, Delete buttons
+  - [x] Import/Export functionality
+  - [x] Search filter
   - [ ] Dropdown selection for validation lists when editing
-  - [ ] Toggle for enabling/disabling individual correction rules
-  - [ ] Default loading of correction lists
-  - [ ] Global toggle for enabling/disabling all corrections
-- [ ] Validation lists sections:
-  - [ ] Create compact table views for all three lists
+  - [x] Toggle for enabling/disabling individual correction rules
+  - [x] Default loading of correction lists
+  - [x] Global toggle for enabling/disabling all corrections
+- [x] Validation lists sections:
+  - [x] Create compact table views for all three lists
   - [ ] Implement direct editing of entries
   - [ ] Add import/export buttons for each list
   - [ ] Create unified controls section at the bottom

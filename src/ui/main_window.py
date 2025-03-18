@@ -37,6 +37,7 @@ from src.models.chest_entry import ChestEntry
 from src.models.correction_rule import CorrectionRule
 from src.models.validation_list import ValidationList
 from src.services.config_manager import ConfigManager
+from src.services.data_manager import DataManager
 from src.ui.dashboard import Dashboard
 from src.ui.correction_manager_panel import CorrectionManagerPanel
 from src.ui.reports_panel import ReportPanel
@@ -65,11 +66,15 @@ class MainWindow(QMainWindow):
 
         # Initialize properties
         self._config = ConfigManager()
+
+        # Initialize the data manager (must be done before creating UI components)
+        self._data_manager = DataManager.get_instance()
+
+        # These will be created during setup
         self._dashboard = None
+        self._correction_manager = None
         self._validation_panel = None
         self._report_panel = None
-        self._validation_lists = {}
-        self._correction_rules = []
         self._connected_signals = set()  # Track connected signals
 
         # Set window properties
@@ -275,36 +280,58 @@ class MainWindow(QMainWindow):
     def _connect_signals(self):
         """Connect signals to slots."""
         try:
-            # Dashboard signals
-            self._dashboard.entries_loaded.connect(self._correction_manager.set_entries)
-            self._dashboard.entries_loaded.connect(self._report_panel.set_entries)
-            self._dashboard.entries_loaded.connect(self._on_entries_loaded)
+            import logging
 
-            self._dashboard.entries_updated.connect(self._correction_manager.set_entries)
-            self._dashboard.entries_updated.connect(self._report_panel.set_entries)
-            self._dashboard.entries_updated.connect(self._on_entries_updated)
+            logger = logging.getLogger(__name__)
+            logger.info("Connecting MainWindow signals")
 
-            self._dashboard.corrections_loaded.connect(
+            # Connect DataManager signals to components
+            # This is the key change - all components listen to the central DataManager
+            data_manager = self._data_manager
+
+            # Connect DataManager to Dashboard
+            data_manager.correction_rules_changed.connect(self._dashboard.set_correction_rules)
+            data_manager.validation_lists_changed.connect(self._dashboard.set_validation_lists)
+            data_manager.entries_changed.connect(self._dashboard.set_entries)
+
+            # Connect DataManager to CorrectionManagerPanel
+            data_manager.correction_rules_changed.connect(
                 self._correction_manager.set_correction_rules
             )
-            self._dashboard.corrections_loaded.connect(self._report_panel.set_correction_rules)
-            self._dashboard.corrections_loaded.connect(self._on_corrections_loaded)
+            data_manager.validation_lists_changed.connect(
+                self._correction_manager.set_validation_lists
+            )
+            data_manager.entries_changed.connect(self._correction_manager.set_entries)
 
-            self._dashboard.corrections_applied.connect(self._on_corrections_applied)
+            # Connect DataManager to ReportPanel
+            data_manager.entries_changed.connect(self._report_panel.set_entries)
+            data_manager.correction_rules_changed.connect(self._report_panel.set_correction_rules)
+            data_manager.validation_lists_changed.connect(self._report_panel.set_validation_lists)
 
-            # Correction manager signals
+            # Connect components to DataManager
+            # Dashboard -> DataManager
+            self._dashboard.corrections_loaded.connect(data_manager.set_correction_rules)
+            self._dashboard.entries_loaded.connect(data_manager.set_entries)
+            self._dashboard.entries_updated.connect(data_manager.set_entries)
+
+            # CorrectionManagerPanel -> DataManager
             self._correction_manager.correction_rules_updated.connect(
-                self._dashboard.set_correction_rules
+                data_manager.set_correction_rules
             )
             self._correction_manager.validation_lists_updated.connect(
-                self._dashboard.set_validation_lists
+                data_manager.set_validation_lists
             )
-            self._correction_manager.validation_lists_updated.connect(
-                self._report_panel.set_validation_lists
-            )
+
+            # Dashboard to MainWindow signals (for status updates)
+            self._dashboard.entries_loaded.connect(self._on_entries_loaded)
+            self._dashboard.entries_updated.connect(self._on_entries_updated)
+            self._dashboard.corrections_loaded.connect(self._on_corrections_loaded)
+            self._dashboard.corrections_applied.connect(self._on_corrections_applied)
 
             # Audit signals to prevent multiple connections
             self._audit_signal_connections()
+
+            logger.info("All signals connected successfully")
 
         except Exception as e:
             logging.error(f"Error connecting signals: {str(e)}")
@@ -370,26 +397,46 @@ class MainWindow(QMainWindow):
                     self._connected_signals.add(connection)
 
     def _restore_state(self):
-        """Restore window state from configuration."""
-        # Restore window geometry
-        geometry = self._config.get("Window", "geometry", fallback=None)
-        if geometry:
-            self.restoreGeometry(geometry)
+        """Restore window state and settings from config."""
+        import logging
 
-        # Restore window state
-        state = self._config.get("Window", "state", fallback=None)
-        if state:
-            self.restoreState(state)
+        logger = logging.getLogger(__name__)
+        logger.info("Restoring application state")
 
-        # Restore active tab
-        active_tab = self._config.get_int("Window", "active_tab", fallback=0)
-        self._content_widget.setCurrentIndex(active_tab)
+        try:
+            # Restore window geometry
+            geometry = self._config.get("Window", "geometry", "")
+            if geometry:
+                self.restoreGeometry(bytes.fromhex(geometry))
 
-        # Update sidebar button states
-        self._dashboard_btn.setChecked(active_tab == 0)
-        self._validation_btn.setChecked(active_tab == 1)
-        self._reports_btn.setChecked(active_tab == 2)
-        self._settings_btn.setChecked(active_tab == 3)
+            # Set active tab
+            active_tab = self._config.get_int("Window", "active_tab", fallback=0)
+            self._content_widget.setCurrentIndex(active_tab)
+
+            # Load initial data from DataManager
+            logger.info("Loading initial data")
+
+            # Load correction rules
+            rules = self._data_manager.load_saved_correction_rules()
+            if rules:
+                logger.info(f"Loaded {len(rules)} correction rules")
+                # Emit the signal to notify all components
+                self._data_manager.correction_rules_changed.emit(rules)
+
+            # Load validation lists
+            lists = self._data_manager.load_saved_validation_lists()
+            if lists:
+                logger.info(f"Loaded {len(lists)} validation lists")
+                # Emit the signal to notify all components
+                self._data_manager.validation_lists_changed.emit(lists)
+
+            logger.info("Application state restored successfully")
+
+        except Exception as e:
+            logger.error(f"Error restoring state: {str(e)}")
+            import traceback
+
+            logger.error(traceback.format_exc())
 
     def _save_state(self):
         """Save window state to configuration."""
