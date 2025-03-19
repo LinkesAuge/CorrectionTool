@@ -30,11 +30,9 @@ logger = logging.getLogger(__name__)
 
 def test_player_list_csv_import():
     """Test importing a player list from a CSV file with the problematic format."""
-    # Check if player_list.csv exists
-    file_path = Path("tests/sample_data/validation_samples/player_list.csv")
-    if not file_path.exists():
-        logger.error(f"Test file {file_path} does not exist!")
-        return False
+    # Check if players.txt exists
+    file_path = Path("tests/sample_data/validation_samples/players.txt")
+    assert file_path.exists(), f"Test file {file_path} does not exist!"
 
     logger.info(f"Testing import from: {file_path.absolute()}")
 
@@ -68,25 +66,24 @@ def test_player_list_csv_import():
         assert validation_list.count() > 0, "List should have entries"
 
         logger.info("✅ Player list CSV import test PASSED")
-        return True
     except Exception as e:
         logger.error(f"❌ Test failed: {str(e)}")
         logger.error(traceback.format_exc())
-        return False
+        assert False, f"Test failed: {str(e)}"
 
 
 def main():
     """Run all tests."""
     logger.info("Starting validation list import tests...")
 
-    success = test_player_list_csv_import()
-
-    logger.info("All tests completed.")
-    if success:
+    try:
+        test_player_list_csv_import()
+        logger.info("All tests completed.")
         logger.info("✅ All tests PASSED")
         sys.exit(0)
-    else:
+    except AssertionError as e:
         logger.error("❌ Some tests FAILED")
+        logger.error(f"Error: {str(e)}")
         sys.exit(1)
 
 

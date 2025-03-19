@@ -237,6 +237,18 @@ class CorrectionManagerPanel(QWidget):
         self._rules_search_field.textChanged.connect(self._on_search_text_changed)
         self._correction_rules_table.file_path_changed.connect(self._on_file_path_changed)
 
+        # Connect the rules_updated signal to our panel's correction_rules_updated signal
+        import logging
+
+        logger = logging.getLogger(__name__)
+        if hasattr(self._correction_rules_table, "rules_updated"):
+            logger.info(
+                "Connecting rules_updated signal from table to correction_rules_updated signal"
+            )
+            self._correction_rules_table.rules_updated.connect(self.correction_rules_updated)
+        else:
+            logger.warning("correction_rules_table does not have rules_updated signal")
+
     def _setup_validation_lists_tab(self):
         """Set up the validation lists tab."""
         # Create layout for validation lists tab
@@ -713,6 +725,14 @@ class CorrectionManagerPanel(QWidget):
         # Apply filter to the rules table
         if hasattr(self, "_correction_rules_table"):
             self._correction_rules_table.filter_rules(text)
+        else:
+            logger.warning("No correction_rules_table found to filter")
+
+        # Force update of the view for immediate feedback
+        if hasattr(self, "_correction_rules_table") and hasattr(
+            self._correction_rules_table, "viewport"
+        ):
+            self._correction_rules_table.viewport().update()
 
     def _delayed_refresh_rules(self, rules):
         """
@@ -807,9 +827,14 @@ class CorrectionManagerPanel(QWidget):
             logger.info(f"Current widget stack index: {current_tab}")
 
             # Force the model to update with the lists again
-            self._player_list_widget.set_list(lists["player"])
-            self._chest_type_list_widget.set_list(lists["chest_type"])
-            self._source_list_widget.set_list(lists["source"])
+            if "player" in lists:
+                self._player_list_widget.set_list(lists["player"])
+
+            if "chest_type" in lists:
+                self._chest_type_list_widget.set_list(lists["chest_type"])
+
+            if "source" in lists:
+                self._source_list_widget.set_list(lists["source"])
 
             # Make the validation lists tab active
             if hasattr(self, "_tools_tabs"):

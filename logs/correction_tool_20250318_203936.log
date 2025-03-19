@@ -1,0 +1,44 @@
+2025-03-18 20:39:36.594 - INFO - root - Logging initialized with level: DEBUG
+2025-03-18 20:39:36.594 - INFO - root - Logging to file: logs\correction_tool_20250318_203936.log
+2025-03-18 20:39:36.595 - INFO - root - ================================================================================
+2025-03-18 20:39:36.595 - INFO - root - APPLICATION STARTING
+2025-03-18 20:39:36.595 - INFO - root - Python version: 3.12.9 (main, Feb 12 2025, 14:52:31) [MSC v.1942 64 bit (AMD64)]
+2025-03-18 20:39:36.595 - INFO - root - Working directory: D:\Projekte\CorrectionTool
+2025-03-18 20:39:36.595 - INFO - root - Command line: d:/Projekte/CorrectionTool/main.py
+2025-03-18 20:39:36.595 - INFO - root - ================================================================================
+2025-03-18 20:39:36.596 - INFO - root - Ensured directory exists: data
+2025-03-18 20:39:36.596 - INFO - root - Ensured directory exists: data/input
+2025-03-18 20:39:36.596 - INFO - root - Ensured directory exists: data/output
+2025-03-18 20:39:36.596 - INFO - root - Ensured directory exists: data/corrections
+2025-03-18 20:39:36.596 - INFO - root - Ensured directory exists: data/validation
+2025-03-18 20:39:36.597 - INFO - root - Configuration initialized
+2025-03-18 20:39:36.614 - INFO - root - Setting up MainWindow
+2025-03-18 20:39:36.615 - INFO - src.services.config_manager - Initializing ConfigManager
+2025-03-18 20:39:36.615 - INFO - src.services.config_manager - Using config path: d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:39:36.616 - INFO - src.services.config_manager - Loading configuration from d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:39:36.616 - INFO - src.services.config_manager - Configuration loaded successfully
+2025-03-18 20:39:36.616 - CRITICAL - root - Error creating or showing MainWindow: 'ConfigManager' object has no attribute 'migrate_config'
+Traceback (most recent call last):
+  File "d:\Projekte\CorrectionTool\main.py", line 80, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "d:\Projekte\CorrectionTool\src\ui\main_window.py", line 68, in __init__
+    self._config = ConfigManager()
+                   ^^^^^^^^^^^^^^^
+  File "d:\Projekte\CorrectionTool\src\services\config_manager.py", line 105, in __init__
+    self.migrate_config()
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ConfigManager' object has no attribute 'migrate_config'
+2025-03-18 20:39:36.618 - CRITICAL - root - Fatal error starting application: 'ConfigManager' object has no attribute 'migrate_config'
+2025-03-18 20:39:36.619 - CRITICAL - root - Traceback (most recent call last):
+  File "d:\Projekte\CorrectionTool\main.py", line 80, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "d:\Projekte\CorrectionTool\src\ui\main_window.py", line 68, in __init__
+    self._config = ConfigManager()
+                   ^^^^^^^^^^^^^^^
+  File "d:\Projekte\CorrectionTool\src\services\config_manager.py", line 105, in __init__
+    self.migrate_config()
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ConfigManager' object has no attribute 'migrate_config'
+

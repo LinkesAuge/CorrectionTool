@@ -1,0 +1,489 @@
+2025-03-18 19:23:06.060 - INFO - root - Logging initialized with level: DEBUG
+2025-03-18 19:23:06.060 - INFO - root - Logging to file: logs\correction_tool_20250318_192306.log
+2025-03-18 19:23:06.061 - INFO - root - ================================================================================
+2025-03-18 19:23:06.061 - INFO - root - APPLICATION STARTING
+2025-03-18 19:23:06.061 - INFO - root - Python version: 3.12.9 (main, Feb 12 2025, 14:52:31) [MSC v.1942 64 bit (AMD64)]
+2025-03-18 19:23:06.061 - INFO - root - Working directory: D:\Projekte\CorrectionTool
+2025-03-18 19:23:06.061 - INFO - root - Command line: d:/Projekte/CorrectionTool/main.py
+2025-03-18 19:23:06.061 - INFO - root - ================================================================================
+2025-03-18 19:23:06.062 - INFO - root - Ensured directory exists: data
+2025-03-18 19:23:06.062 - INFO - root - Ensured directory exists: data/input
+2025-03-18 19:23:06.062 - INFO - root - Ensured directory exists: data/output
+2025-03-18 19:23:06.062 - INFO - root - Ensured directory exists: data/corrections
+2025-03-18 19:23:06.062 - INFO - root - Ensured directory exists: data/validation
+2025-03-18 19:23:06.063 - INFO - root - Configuration initialized
+2025-03-18 19:23:06.080 - INFO - root - Setting up MainWindow
+2025-03-18 19:23:06.081 - INFO - src.services.data_manager - DataManager initialized
+2025-03-18 19:23:06.306 - INFO - src.ui.dashboard - Initializing Dashboard
+2025-03-18 19:23:06.306 - INFO - src.services.corrector - Using 0 rules from DataManager
+2025-03-18 19:23:06.309 - INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.309 - INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.309 - INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+2025-03-18 19:23:06.310 - DEBUG - src.services.file_parser - Delimiter ';' gives 1 columns
+2025-03-18 19:23:06.310 - DEBUG - src.services.file_parser - Delimiter ',' gives 3 columns
+2025-03-18 19:23:06.310 - DEBUG - src.services.file_parser - Delimiter '	' gives 1 columns
+2025-03-18 19:23:06.310 - INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+2025-03-18 19:23:06.310 - INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+2025-03-18 19:23:06.311 - INFO - src.services.file_parser - Found required headers (case-insensitive)
+2025-03-18 19:23:06.311 - DEBUG - src.services.file_parser - Processing row 2: {'From': 'Маһоп12', 'To': 'D4rkBlizZ4rD', 'Category': 'player'}
+2025-03-18 19:23:06.311 - DEBUG - src.services.file_parser - Created rule: Маһоп12 -> D4rkBlizZ4rD (category: player)
+2025-03-18 19:23:06.311 - DEBUG - src.services.file_parser - Processing row 3: {'From': 'АЙ', 'To': 'D4rkBlizZ4rD', 'Category': 'player'}
+2025-03-18 19:23:06.311 - DEBUG - src.services.file_parser - Created rule: АЙ -> D4rkBlizZ4rD (category: player)
+2025-03-18 19:23:06.311 - DEBUG - src.services.file_parser - Processing row 4: {'From': 'Fenrir"s Chest', 'To': "Fenrir's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.311 - DEBUG - src.services.file_parser - Created rule: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+2025-03-18 19:23:06.312 - DEBUG - src.services.file_parser - Processing row 5: {'From': 'Hermes" Store', 'To': "Hermes' Store", 'Category': 'source'}
+2025-03-18 19:23:06.312 - DEBUG - src.services.file_parser - Created rule: Hermes" Store -> Hermes' Store (category: source)
+2025-03-18 19:23:06.312 - DEBUG - src.services.file_parser - Processing row 6: {'From': 'VVarrior"s Chest"', 'To': "Warrior's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.312 - DEBUG - src.services.file_parser - Created rule: VVarrior"s Chest" -> Warrior's Chest (category: chest)
+2025-03-18 19:23:06.312 - DEBUG - src.services.file_parser - Processing row 7: {'From': 'Clan vvealth', 'To': 'Clan wealth', 'Category': 'source'}
+2025-03-18 19:23:06.312 - DEBUG - src.services.file_parser - Created rule: Clan vvealth -> Clan wealth (category: source)
+2025-03-18 19:23:06.312 - DEBUG - src.services.file_parser - Processing row 8: {'From': 'OsmanliTorunu', 'To': 'OsmanlıTorunu', 'Category': 'player'}
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Created rule: OsmanliTorunu -> OsmanlıTorunu (category: player)
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Processing row 9: {'From': 'Epic Ancient sguad', 'To': 'Epic Ancient squad', 'Category': 'source'}
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Created rule: Epic Ancient sguad -> Epic Ancient squad (category: source)
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Processing row 10: {'From': 'Snovvvveaver', 'To': 'Snowweaver', 'Category': 'player'}
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Created rule: Snovvvveaver -> Snowweaver (category: player)
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Processing row 11: {'From': 'Krimelmonster', 'To': 'Krümelmonster', 'Category': 'player'}
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Created rule: Krimelmonster -> Krümelmonster (category: player)
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Processing row 12: {'From': 'GUARDIENOfTHUNDER', 'To': 'GUARDIENofTHUNDER', 'Category': 'player'}
+2025-03-18 19:23:06.313 - DEBUG - src.services.file_parser - Created rule: GUARDIENOfTHUNDER -> GUARDIENofTHUNDER (category: player)
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Processing row 13: {'From': 'Rare Chest of VVealth', 'To': 'Rare Chest of Wealth', 'Category': 'chest'}
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Created rule: Rare Chest of VVealth -> Rare Chest of Wealth (category: chest)
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Processing row 14: {'From': 'Epic Chest of Vvealth', 'To': 'Epic Chest of Wealth', 'Category': 'chest'}
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Created rule: Epic Chest of Vvealth -> Epic Chest of Wealth (category: chest)
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Processing row 15: {'From': 'Sir Nightvvoolf', 'To': 'Sir Nightwoolf', 'Category': 'player'}
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Created rule: Sir Nightvvoolf -> Sir Nightwoolf (category: player)
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Processing row 16: {'From': 'Hammerschlagi', 'To': 'Hammerschlag1', 'Category': 'player'}
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Created rule: Hammerschlagi -> Hammerschlag1 (category: player)
+2025-03-18 19:23:06.314 - DEBUG - src.services.file_parser - Processing row 17: {'From': 'Feldjager', 'To': 'Feldjäger', 'Category': 'player'}
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Created rule: Feldjager -> Feldjäger (category: player)
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Processing row 18: {'From': 'Feldj䧥r', 'To': 'Feldjäger', 'Category': 'player'}
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Created rule: Feldj䧥r -> Feldjäger (category: player)
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Processing row 19: {'From': 'Lord Ore', 'To': 'Lord Öre', 'Category': 'player'}
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Created rule: Lord Ore -> Lord Öre (category: player)
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Processing row 20: {'From': 'Lord ֲe', 'To': 'Lord Öre', 'Category': 'player'}
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Created rule: Lord ֲe -> Lord Öre (category: player)
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Processing row 21: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source'}
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-18 19:23:06.315 - DEBUG - src.services.file_parser - Processing row 22: {'From': 'Ouick March Chest', 'To': 'Quick March Chest', 'Category': 'chest'}
+2025-03-18 19:23:06.316 - DEBUG - src.services.file_parser - Created rule: Ouick March Chest -> Quick March Chest (category: chest)
+2025-03-18 19:23:06.316 - DEBUG - src.services.file_parser - Processing row 23: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source'}
+2025-03-18 19:23:06.316 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-18 19:23:06.316 - DEBUG - src.services.file_parser - Processing row 24: {'From': 'Union of Triumph personal revvard', 'To': 'Union of Triumph personal reward', 'Category': 'source'}
+2025-03-18 19:23:06.316 - DEBUG - src.services.file_parser - Created rule: Union of Triumph personal revvard -> Union of Triumph personal reward (category: source)
+2025-03-18 19:23:06.316 - DEBUG - src.services.file_parser - Processing row 25: {'From': 'revvard', 'To': 'reward', 'Category': 'general'}
+2025-03-18 19:23:06.316 - DEBUG - src.services.file_parser - Created rule: revvard -> reward (category: general)
+2025-03-18 19:23:06.316 - DEBUG - src.services.file_parser - Processing row 26: {'From': 'sguad', 'To': 'squad', 'Category': 'general'}
+2025-03-18 19:23:06.317 - DEBUG - src.services.file_parser - Created rule: sguad -> squad (category: general)
+2025-03-18 19:23:06.317 - DEBUG - src.services.file_parser - Processing row 27: {'From': 'Vvealth', 'To': 'Wealth', 'Category': 'general'}
+2025-03-18 19:23:06.317 - DEBUG - src.services.file_parser - Created rule: Vvealth -> Wealth (category: general)
+2025-03-18 19:23:06.317 - DEBUG - src.services.file_parser - Processing row 28: {'From': 'VVealth', 'To': 'Wealth', 'Category': 'general'}
+2025-03-18 19:23:06.317 - DEBUG - src.services.file_parser - Created rule: VVealth -> Wealth (category: general)
+2025-03-18 19:23:06.317 - DEBUG - src.services.file_parser - Processing row 29: {'From': 'Julius Casar', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.317 - DEBUG - src.services.file_parser - Created rule: Julius Casar -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Processing row 30: {'From': 'Juslius C䳡r', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Created rule: Juslius C䳡r -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Processing row 31: {'From': 'Juslius Cäsar', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Created rule: Juslius Cäsar -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Processing row 32: {'From': 'Ancients"', 'To': "Ancients'", 'Category': 'general'}
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Created rule: Ancients" -> Ancients' (category: general)
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Processing row 33: {'From': 'Quick March Chest Chest', 'To': 'Quick March Chest', 'Category': 'chest'}
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Created rule: Quick March Chest Chest -> Quick March Chest (category: chest)
+2025-03-18 19:23:06.318 - DEBUG - src.services.file_parser - Processing row 34: {'From': 'Union of Triumf personal reward', 'To': 'Union of Triumph personal reward', 'Category': 'general'}
+2025-03-18 19:23:06.319 - DEBUG - src.services.file_parser - Created rule: Union of Triumf personal reward -> Union of Triumph personal reward (category: general)
+2025-03-18 19:23:06.319 - DEBUG - src.services.file_parser - Processing row 35: {'From': 'Triumf', 'To': 'Triumph', 'Category': 'general'}
+2025-03-18 19:23:06.319 - DEBUG - src.services.file_parser - Created rule: Triumf -> Triumph (category: general)
+2025-03-18 19:23:06.319 - DEBUG - src.services.file_parser - Processing row 36: {'From': 'Triumfp', 'To': 'Triumph', 'Category': 'general'}
+2025-03-18 19:23:06.319 - DEBUG - src.services.file_parser - Created rule: Triumfp -> Triumph (category: general)
+2025-03-18 19:23:06.319 - DEBUG - src.services.file_parser - Processing row 37: {'From': 'JÃªrmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.319 - DEBUG - src.services.file_parser - Created rule: JÃªrmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.319 - DEBUG - src.services.file_parser - Processing row 38: {'From': 'Jêrmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Created rule: Jêrmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Processing row 39: {'From': 'J㪲mungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Created rule: J㪲mungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Processing row 40: {'From': 'JÃ²rmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Processing row 41: {'From': "Jòrmungandr's", 'To': "Jormungandr's", 'Category': 'general'}
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's -> Jormungandr's (category: general)
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Processing row 42: {'From': "JÃ²rmungandr's", 'To': "Jormungandr's", 'Category': 'general'}
+2025-03-18 19:23:06.320 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr's -> Jormungandr's (category: general)
+2025-03-18 19:23:06.321 - DEBUG - src.services.file_parser - Processing row 43: {'From': 'JÃ²rmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source'}
+2025-03-18 19:23:06.321 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-18 19:23:06.321 - DEBUG - src.services.file_parser - Processing row 44: {'From': 'Jòrmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source'}
+2025-03-18 19:23:06.321 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-18 19:23:06.321 - DEBUG - src.services.file_parser - Processing row 45: {'From': "Jòrmungandr's Chest", 'To': "Jormungandr's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.321 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's Chest -> Jormungandr's Chest (category: chest)
+2025-03-18 19:23:06.321 - DEBUG - src.services.file_parser - Processing row 46: {'From': 'Epic Jêrmungandr sguad', 'To': 'Epic Jormungandr squad', 'Category': 'source'}
+2025-03-18 19:23:06.322 - DEBUG - src.services.file_parser - Created rule: Epic Jêrmungandr sguad -> Epic Jormungandr squad (category: source)
+2025-03-18 19:23:06.322 - INFO - src.services.file_parser - Successfully parsed 45 rules from CSV
+2025-03-18 19:23:06.322 - INFO - src.services.file_parser - Successfully parsed 45 rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.347 - INFO - src.ui.dashboard - Connecting Dashboard signals
+2025-03-18 19:23:06.347 - WARNING - src.ui.dashboard - Correction manager not available for signal connection
+2025-03-18 19:23:06.347 - INFO - src.ui.dashboard - Dashboard signals connected successfully
+2025-03-18 19:23:06.347 - INFO - src.ui.dashboard - Dashboard initialized
+2025-03-18 19:23:06.354 - INFO - src.ui.correction_rules_table - Initializing CorrectionRulesModel
+2025-03-18 19:23:06.355 - DEBUG - src.ui.correction_rules_table - rowCount first call, returning 0
+2025-03-18 19:23:06.356 - DEBUG - src.ui.correction_rules_table - Resetting table view
+2025-03-18 19:23:06.356 - INFO - src.ui.correction_rules_table - Forcing view update
+2025-03-18 19:23:06.358 - INFO - src.ui.correction_manager_panel - Connecting rules_updated signal from table to correction_rules_updated signal
+2025-03-18 19:23:06.429 - INFO - src.ui.main_window - Connecting MainWindow signals
+2025-03-18 19:23:06.430 - INFO - src.ui.main_window - All signals connected successfully
+2025-03-18 19:23:06.430 - INFO - src.ui.main_window - Restoring application state
+2025-03-18 19:23:06.430 - INFO - src.ui.main_window - Loading initial data
+2025-03-18 19:23:06.430 - INFO - src.services.data_manager - DataManager: Loading saved correction rules
+2025-03-18 19:23:06.430 - INFO - src.services.data_manager - Found possible rule file path in Correction.default_correction_rules: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.430 - INFO - src.services.data_manager - Found possible rule file path in General.last_correction_file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.430 - INFO - src.services.data_manager - Found possible rule file path in Paths.default_correction_rules: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.431 - INFO - src.services.data_manager - Found possible rule file path in Files.default_correction_list: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.431 - INFO - src.services.data_manager - Found possible rule file path in paths.default_correction_rules: D:/Projekte/CorrectionTool/tests/sample_data/correction_samples/ChestTrackerCorrectionList.csv
+2025-03-18 19:23:06.431 - INFO - src.services.data_manager - Attempting to load correction rules from: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.431 - INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.431 - INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.431 - INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+2025-03-18 19:23:06.432 - DEBUG - src.services.file_parser - Delimiter ';' gives 1 columns
+2025-03-18 19:23:06.432 - DEBUG - src.services.file_parser - Delimiter ',' gives 3 columns
+2025-03-18 19:23:06.432 - DEBUG - src.services.file_parser - Delimiter '	' gives 1 columns
+2025-03-18 19:23:06.432 - INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+2025-03-18 19:23:06.432 - INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+2025-03-18 19:23:06.432 - INFO - src.services.file_parser - Found required headers (case-insensitive)
+2025-03-18 19:23:06.432 - DEBUG - src.services.file_parser - Processing row 2: {'From': 'Маһоп12', 'To': 'D4rkBlizZ4rD', 'Category': 'player'}
+2025-03-18 19:23:06.433 - DEBUG - src.services.file_parser - Created rule: Маһоп12 -> D4rkBlizZ4rD (category: player)
+2025-03-18 19:23:06.433 - DEBUG - src.services.file_parser - Processing row 3: {'From': 'АЙ', 'To': 'D4rkBlizZ4rD', 'Category': 'player'}
+2025-03-18 19:23:06.433 - DEBUG - src.services.file_parser - Created rule: АЙ -> D4rkBlizZ4rD (category: player)
+2025-03-18 19:23:06.433 - DEBUG - src.services.file_parser - Processing row 4: {'From': 'Fenrir"s Chest', 'To': "Fenrir's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.433 - DEBUG - src.services.file_parser - Created rule: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+2025-03-18 19:23:06.433 - DEBUG - src.services.file_parser - Processing row 5: {'From': 'Hermes" Store', 'To': "Hermes' Store", 'Category': 'source'}
+2025-03-18 19:23:06.433 - DEBUG - src.services.file_parser - Created rule: Hermes" Store -> Hermes' Store (category: source)
+2025-03-18 19:23:06.434 - DEBUG - src.services.file_parser - Processing row 6: {'From': 'VVarrior"s Chest"', 'To': "Warrior's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.434 - DEBUG - src.services.file_parser - Created rule: VVarrior"s Chest" -> Warrior's Chest (category: chest)
+2025-03-18 19:23:06.434 - DEBUG - src.services.file_parser - Processing row 7: {'From': 'Clan vvealth', 'To': 'Clan wealth', 'Category': 'source'}
+2025-03-18 19:23:06.434 - DEBUG - src.services.file_parser - Created rule: Clan vvealth -> Clan wealth (category: source)
+2025-03-18 19:23:06.434 - DEBUG - src.services.file_parser - Processing row 8: {'From': 'OsmanliTorunu', 'To': 'OsmanlıTorunu', 'Category': 'player'}
+2025-03-18 19:23:06.434 - DEBUG - src.services.file_parser - Created rule: OsmanliTorunu -> OsmanlıTorunu (category: player)
+2025-03-18 19:23:06.435 - DEBUG - src.services.file_parser - Processing row 9: {'From': 'Epic Ancient sguad', 'To': 'Epic Ancient squad', 'Category': 'source'}
+2025-03-18 19:23:06.435 - DEBUG - src.services.file_parser - Created rule: Epic Ancient sguad -> Epic Ancient squad (category: source)
+2025-03-18 19:23:06.435 - DEBUG - src.services.file_parser - Processing row 10: {'From': 'Snovvvveaver', 'To': 'Snowweaver', 'Category': 'player'}
+2025-03-18 19:23:06.435 - DEBUG - src.services.file_parser - Created rule: Snovvvveaver -> Snowweaver (category: player)
+2025-03-18 19:23:06.435 - DEBUG - src.services.file_parser - Processing row 11: {'From': 'Krimelmonster', 'To': 'Krümelmonster', 'Category': 'player'}
+2025-03-18 19:23:06.435 - DEBUG - src.services.file_parser - Created rule: Krimelmonster -> Krümelmonster (category: player)
+2025-03-18 19:23:06.435 - DEBUG - src.services.file_parser - Processing row 12: {'From': 'GUARDIENOfTHUNDER', 'To': 'GUARDIENofTHUNDER', 'Category': 'player'}
+2025-03-18 19:23:06.435 - DEBUG - src.services.file_parser - Created rule: GUARDIENOfTHUNDER -> GUARDIENofTHUNDER (category: player)
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Processing row 13: {'From': 'Rare Chest of VVealth', 'To': 'Rare Chest of Wealth', 'Category': 'chest'}
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Created rule: Rare Chest of VVealth -> Rare Chest of Wealth (category: chest)
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Processing row 14: {'From': 'Epic Chest of Vvealth', 'To': 'Epic Chest of Wealth', 'Category': 'chest'}
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Created rule: Epic Chest of Vvealth -> Epic Chest of Wealth (category: chest)
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Processing row 15: {'From': 'Sir Nightvvoolf', 'To': 'Sir Nightwoolf', 'Category': 'player'}
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Created rule: Sir Nightvvoolf -> Sir Nightwoolf (category: player)
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Processing row 16: {'From': 'Hammerschlagi', 'To': 'Hammerschlag1', 'Category': 'player'}
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Created rule: Hammerschlagi -> Hammerschlag1 (category: player)
+2025-03-18 19:23:06.436 - DEBUG - src.services.file_parser - Processing row 17: {'From': 'Feldjager', 'To': 'Feldjäger', 'Category': 'player'}
+2025-03-18 19:23:06.437 - DEBUG - src.services.file_parser - Created rule: Feldjager -> Feldjäger (category: player)
+2025-03-18 19:23:06.437 - DEBUG - src.services.file_parser - Processing row 18: {'From': 'Feldj䧥r', 'To': 'Feldjäger', 'Category': 'player'}
+2025-03-18 19:23:06.437 - DEBUG - src.services.file_parser - Created rule: Feldj䧥r -> Feldjäger (category: player)
+2025-03-18 19:23:06.437 - DEBUG - src.services.file_parser - Processing row 19: {'From': 'Lord Ore', 'To': 'Lord Öre', 'Category': 'player'}
+2025-03-18 19:23:06.437 - DEBUG - src.services.file_parser - Created rule: Lord Ore -> Lord Öre (category: player)
+2025-03-18 19:23:06.437 - DEBUG - src.services.file_parser - Processing row 20: {'From': 'Lord ֲe', 'To': 'Lord Öre', 'Category': 'player'}
+2025-03-18 19:23:06.437 - DEBUG - src.services.file_parser - Created rule: Lord ֲe -> Lord Öre (category: player)
+2025-03-18 19:23:06.437 - DEBUG - src.services.file_parser - Processing row 21: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source'}
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Processing row 22: {'From': 'Ouick March Chest', 'To': 'Quick March Chest', 'Category': 'chest'}
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Created rule: Ouick March Chest -> Quick March Chest (category: chest)
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Processing row 23: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source'}
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Processing row 24: {'From': 'Union of Triumph personal revvard', 'To': 'Union of Triumph personal reward', 'Category': 'source'}
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Created rule: Union of Triumph personal revvard -> Union of Triumph personal reward (category: source)
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Processing row 25: {'From': 'revvard', 'To': 'reward', 'Category': 'general'}
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Created rule: revvard -> reward (category: general)
+2025-03-18 19:23:06.438 - DEBUG - src.services.file_parser - Processing row 26: {'From': 'sguad', 'To': 'squad', 'Category': 'general'}
+2025-03-18 19:23:06.439 - DEBUG - src.services.file_parser - Created rule: sguad -> squad (category: general)
+2025-03-18 19:23:06.439 - DEBUG - src.services.file_parser - Processing row 27: {'From': 'Vvealth', 'To': 'Wealth', 'Category': 'general'}
+2025-03-18 19:23:06.439 - DEBUG - src.services.file_parser - Created rule: Vvealth -> Wealth (category: general)
+2025-03-18 19:23:06.439 - DEBUG - src.services.file_parser - Processing row 28: {'From': 'VVealth', 'To': 'Wealth', 'Category': 'general'}
+2025-03-18 19:23:06.439 - DEBUG - src.services.file_parser - Created rule: VVealth -> Wealth (category: general)
+2025-03-18 19:23:06.439 - DEBUG - src.services.file_parser - Processing row 29: {'From': 'Julius Casar', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.439 - DEBUG - src.services.file_parser - Created rule: Julius Casar -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.439 - DEBUG - src.services.file_parser - Processing row 30: {'From': 'Juslius C䳡r', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.440 - DEBUG - src.services.file_parser - Created rule: Juslius C䳡r -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.440 - DEBUG - src.services.file_parser - Processing row 31: {'From': 'Juslius Cäsar', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.440 - DEBUG - src.services.file_parser - Created rule: Juslius Cäsar -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.440 - DEBUG - src.services.file_parser - Processing row 32: {'From': 'Ancients"', 'To': "Ancients'", 'Category': 'general'}
+2025-03-18 19:23:06.440 - DEBUG - src.services.file_parser - Created rule: Ancients" -> Ancients' (category: general)
+2025-03-18 19:23:06.440 - DEBUG - src.services.file_parser - Processing row 33: {'From': 'Quick March Chest Chest', 'To': 'Quick March Chest', 'Category': 'chest'}
+2025-03-18 19:23:06.440 - DEBUG - src.services.file_parser - Created rule: Quick March Chest Chest -> Quick March Chest (category: chest)
+2025-03-18 19:23:06.440 - DEBUG - src.services.file_parser - Processing row 34: {'From': 'Union of Triumf personal reward', 'To': 'Union of Triumph personal reward', 'Category': 'general'}
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Created rule: Union of Triumf personal reward -> Union of Triumph personal reward (category: general)
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Processing row 35: {'From': 'Triumf', 'To': 'Triumph', 'Category': 'general'}
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Created rule: Triumf -> Triumph (category: general)
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Processing row 36: {'From': 'Triumfp', 'To': 'Triumph', 'Category': 'general'}
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Created rule: Triumfp -> Triumph (category: general)
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Processing row 37: {'From': 'JÃªrmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Created rule: JÃªrmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Processing row 38: {'From': 'Jêrmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Created rule: Jêrmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Processing row 39: {'From': 'J㪲mungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.441 - DEBUG - src.services.file_parser - Created rule: J㪲mungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Processing row 40: {'From': 'JÃ²rmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Processing row 41: {'From': "Jòrmungandr's", 'To': "Jormungandr's", 'Category': 'general'}
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's -> Jormungandr's (category: general)
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Processing row 42: {'From': "JÃ²rmungandr's", 'To': "Jormungandr's", 'Category': 'general'}
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr's -> Jormungandr's (category: general)
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Processing row 43: {'From': 'JÃ²rmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source'}
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Processing row 44: {'From': 'Jòrmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source'}
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Processing row 45: {'From': "Jòrmungandr's Chest", 'To': "Jormungandr's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's Chest -> Jormungandr's Chest (category: chest)
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Processing row 46: {'From': 'Epic Jêrmungandr sguad', 'To': 'Epic Jormungandr squad', 'Category': 'source'}
+2025-03-18 19:23:06.442 - DEBUG - src.services.file_parser - Created rule: Epic Jêrmungandr sguad -> Epic Jormungandr squad (category: source)
+2025-03-18 19:23:06.443 - INFO - src.services.file_parser - Successfully parsed 45 rules from CSV
+2025-03-18 19:23:06.443 - INFO - src.services.file_parser - Successfully parsed 45 rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.443 - INFO - src.services.data_manager - Successfully loaded 45 correction rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.443 - INFO - src.ui.main_window - Loaded 45 correction rules
+2025-03-18 19:23:06.444 - DEBUG - src.services.data_manager - Rules are unchanged, skipping
+2025-03-18 19:23:06.444 - INFO - src.ui.correction_manager_panel - CorrectionManagerPanel.set_correction_rules called with 45 rules
+2025-03-18 19:23:06.444 - INFO - src.ui.correction_manager_panel - Setting rules in correction rules table
+2025-03-18 19:23:06.444 - INFO - src.ui.correction_rules_table - Setting 45 rules in table view
+2025-03-18 19:23:06.444 - DEBUG - src.ui.correction_rules_table - Update throttled (too frequent), skipping
+2025-03-18 19:23:06.444 - DEBUG - src.ui.correction_rules_table - Resetting table view
+2025-03-18 19:23:06.444 - DEBUG - src.ui.correction_rules_table - Reset throttled (too frequent), skipping
+2025-03-18 19:23:06.447 - INFO - src.ui.correction_manager_panel - Emitting correction_rules_updated signal with 45 rules
+2025-03-18 19:23:06.447 - DEBUG - src.services.data_manager - Rules are unchanged, skipping
+2025-03-18 19:23:06.448 - INFO - src.services.data_manager - DataManager: Loading saved validation lists
+2025-03-18 19:23:06.448 - INFO - src.services.data_manager - Loading player list from: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.448 - INFO - src.models.validation_list - Loading validation list from: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.448 - INFO - src.models.validation_list - Loaded 94 entries from text file. First few entries: ['Alarich', 'Alexa Elly', 'Alf', 'Alisea', 'Anararad']
+2025-03-18 19:23:06.448 - INFO - src.services.data_manager - Loaded player list with 94 items
+2025-03-18 19:23:06.448 - INFO - src.services.data_manager - Loading chest type list from: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:06.449 - INFO - src.models.validation_list - Loading validation list from: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:06.449 - INFO - src.models.validation_list - Loaded 72 entries from text file. First few entries: ['Abandoned Chest', "Ancient Warrior's Chest", 'Ancient Bastion Chest', "Ancients' Chest", 'Arachne Chest']
+2025-03-18 19:23:06.449 - INFO - src.services.data_manager - Loaded chest type list with 72 items
+2025-03-18 19:23:06.449 - INFO - src.services.data_manager - Loading source list from: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:06.449 - INFO - src.models.validation_list - Loading validation list from: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:06.449 - INFO - src.models.validation_list - Loaded 82 entries from text file. First few entries: ['Level 5 Crypt', 'Level 10 Crypt', 'Level 15 Crypt', 'Level 20 Crypt', 'Level 25 Crypt']
+2025-03-18 19:23:06.450 - INFO - src.services.data_manager - Loaded source list with 82 items
+2025-03-18 19:23:06.450 - INFO - src.ui.main_window - Loaded 3 validation lists
+2025-03-18 19:23:06.450 - INFO - src.ui.correction_manager_panel - CorrectionManagerPanel.set_validation_lists called with 3 lists
+2025-03-18 19:23:06.450 - INFO - src.ui.correction_manager_panel - Setting chest_type validation list with 72 items
+2025-03-18 19:23:06.450 - INFO - src.ui.correction_manager_panel - Setting player validation list with 94 items
+2025-03-18 19:23:06.450 - INFO - src.ui.correction_manager_panel - Setting source validation list with 82 items
+2025-03-18 19:23:06.451 - INFO - src.ui.correction_manager_panel - Switching to validation lists tab
+2025-03-18 19:23:06.451 - INFO - src.ui.correction_manager_panel - Setting player list in widget
+2025-03-18 19:23:06.451 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Players with 94 items
+2025-03-18 19:23:06.451 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:06.451 - INFO - src.ui.validation_list_widget - Validation list has file path: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.451 - INFO - src.ui.validation_list_widget - Setting validation list in model for Players
+2025-03-18 19:23:06.452 - INFO - src.ui.validation_list_widget - Model now has 94 rows
+2025-03-18 19:23:06.452 - INFO - src.ui.validation_list_widget - Saving file path to config: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.452 - INFO - src.ui.validation_list_widget - Saved paths in config - General: tests\sample_data\validation_samples\players.txt, Validation: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.453 - INFO - src.ui.correction_manager_panel - Setting chest type list in widget
+2025-03-18 19:23:06.453 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Chest Types with 72 items
+2025-03-18 19:23:06.454 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:06.454 - INFO - src.ui.validation_list_widget - Validation list has file path: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:06.454 - INFO - src.ui.validation_list_widget - Setting validation list in model for Chest Types
+2025-03-18 19:23:06.454 - INFO - src.ui.validation_list_widget - Model now has 72 rows
+2025-03-18 19:23:06.454 - INFO - src.ui.validation_list_widget - Saving file path to config: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:06.455 - INFO - src.ui.validation_list_widget - Saved paths in config - General: tests\sample_data\validation_samples\chest_types.txt, Validation: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:06.456 - INFO - src.ui.correction_manager_panel - Setting source list in widget
+2025-03-18 19:23:06.456 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Sources with 82 items
+2025-03-18 19:23:06.456 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:06.456 - INFO - src.ui.validation_list_widget - Validation list has file path: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:06.456 - INFO - src.ui.validation_list_widget - Setting validation list in model for Sources
+2025-03-18 19:23:06.457 - INFO - src.ui.validation_list_widget - Model now has 82 rows
+2025-03-18 19:23:06.457 - INFO - src.ui.validation_list_widget - Saving file path to config: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:06.457 - INFO - src.ui.validation_list_widget - Saved paths in config - General: tests\sample_data\validation_samples\sources.txt, Validation: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:06.458 - INFO - src.ui.correction_manager_panel - Updating validation lists tab text: Validation Lists (Players: 94, Chests: 72, Sources: 82)
+2025-03-18 19:23:06.458 - INFO - src.ui.correction_manager_panel - Emitting validation_lists_updated signal with 3 lists
+2025-03-18 19:23:06.458 - DEBUG - src.services.data_manager - Validation lists are unchanged, skipping
+2025-03-18 19:23:06.459 - INFO - root - ReportsPanel: Received 3 validation lists
+2025-03-18 19:23:06.459 - INFO - root - ReportsPanel: Validation lists updated
+2025-03-18 19:23:06.459 - INFO - src.ui.main_window - Application state restored successfully
+2025-03-18 19:23:06.459 - INFO - root - MainWindow created successfully
+2025-03-18 19:23:06.531 - INFO - root - MainWindow shown successfully
+2025-03-18 19:23:06.531 - INFO - root - Application started successfully
+2025-03-18 19:23:06.842 - INFO - src.ui.dashboard - Dashboard: Using DataManager to load saved correction rules
+2025-03-18 19:23:06.842 - INFO - src.services.data_manager - DataManager: Loading saved correction rules
+2025-03-18 19:23:06.842 - INFO - src.services.data_manager - Found possible rule file path in Correction.default_correction_rules: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.843 - INFO - src.services.data_manager - Found possible rule file path in General.last_correction_file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.843 - INFO - src.services.data_manager - Found possible rule file path in Paths.default_correction_rules: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.843 - INFO - src.services.data_manager - Found possible rule file path in Files.default_correction_list: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.843 - INFO - src.services.data_manager - Found possible rule file path in paths.default_correction_rules: D:/Projekte/CorrectionTool/tests/sample_data/correction_samples/ChestTrackerCorrectionList.csv
+2025-03-18 19:23:06.843 - INFO - src.services.data_manager - Attempting to load correction rules from: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.843 - INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.843 - INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.844 - INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+2025-03-18 19:23:06.844 - DEBUG - src.services.file_parser - Delimiter ';' gives 1 columns
+2025-03-18 19:23:06.844 - DEBUG - src.services.file_parser - Delimiter ',' gives 3 columns
+2025-03-18 19:23:06.844 - DEBUG - src.services.file_parser - Delimiter '	' gives 1 columns
+2025-03-18 19:23:06.844 - INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+2025-03-18 19:23:06.844 - INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+2025-03-18 19:23:06.844 - INFO - src.services.file_parser - Found required headers (case-insensitive)
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Processing row 2: {'From': 'Маһоп12', 'To': 'D4rkBlizZ4rD', 'Category': 'player'}
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Created rule: Маһоп12 -> D4rkBlizZ4rD (category: player)
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Processing row 3: {'From': 'АЙ', 'To': 'D4rkBlizZ4rD', 'Category': 'player'}
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Created rule: АЙ -> D4rkBlizZ4rD (category: player)
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Processing row 4: {'From': 'Fenrir"s Chest', 'To': "Fenrir's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Created rule: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Processing row 5: {'From': 'Hermes" Store', 'To': "Hermes' Store", 'Category': 'source'}
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Created rule: Hermes" Store -> Hermes' Store (category: source)
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Processing row 6: {'From': 'VVarrior"s Chest"', 'To': "Warrior's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Created rule: VVarrior"s Chest" -> Warrior's Chest (category: chest)
+2025-03-18 19:23:06.845 - DEBUG - src.services.file_parser - Processing row 7: {'From': 'Clan vvealth', 'To': 'Clan wealth', 'Category': 'source'}
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Created rule: Clan vvealth -> Clan wealth (category: source)
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Processing row 8: {'From': 'OsmanliTorunu', 'To': 'OsmanlıTorunu', 'Category': 'player'}
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Created rule: OsmanliTorunu -> OsmanlıTorunu (category: player)
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Processing row 9: {'From': 'Epic Ancient sguad', 'To': 'Epic Ancient squad', 'Category': 'source'}
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Created rule: Epic Ancient sguad -> Epic Ancient squad (category: source)
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Processing row 10: {'From': 'Snovvvveaver', 'To': 'Snowweaver', 'Category': 'player'}
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Created rule: Snovvvveaver -> Snowweaver (category: player)
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Processing row 11: {'From': 'Krimelmonster', 'To': 'Krümelmonster', 'Category': 'player'}
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Created rule: Krimelmonster -> Krümelmonster (category: player)
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Processing row 12: {'From': 'GUARDIENOfTHUNDER', 'To': 'GUARDIENofTHUNDER', 'Category': 'player'}
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Created rule: GUARDIENOfTHUNDER -> GUARDIENofTHUNDER (category: player)
+2025-03-18 19:23:06.846 - DEBUG - src.services.file_parser - Processing row 13: {'From': 'Rare Chest of VVealth', 'To': 'Rare Chest of Wealth', 'Category': 'chest'}
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Created rule: Rare Chest of VVealth -> Rare Chest of Wealth (category: chest)
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Processing row 14: {'From': 'Epic Chest of Vvealth', 'To': 'Epic Chest of Wealth', 'Category': 'chest'}
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Created rule: Epic Chest of Vvealth -> Epic Chest of Wealth (category: chest)
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Processing row 15: {'From': 'Sir Nightvvoolf', 'To': 'Sir Nightwoolf', 'Category': 'player'}
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Created rule: Sir Nightvvoolf -> Sir Nightwoolf (category: player)
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Processing row 16: {'From': 'Hammerschlagi', 'To': 'Hammerschlag1', 'Category': 'player'}
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Created rule: Hammerschlagi -> Hammerschlag1 (category: player)
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Processing row 17: {'From': 'Feldjager', 'To': 'Feldjäger', 'Category': 'player'}
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Created rule: Feldjager -> Feldjäger (category: player)
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Processing row 18: {'From': 'Feldj䧥r', 'To': 'Feldjäger', 'Category': 'player'}
+2025-03-18 19:23:06.847 - DEBUG - src.services.file_parser - Created rule: Feldj䧥r -> Feldjäger (category: player)
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Processing row 19: {'From': 'Lord Ore', 'To': 'Lord Öre', 'Category': 'player'}
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Created rule: Lord Ore -> Lord Öre (category: player)
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Processing row 20: {'From': 'Lord ֲe', 'To': 'Lord Öre', 'Category': 'player'}
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Created rule: Lord ֲe -> Lord Öre (category: player)
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Processing row 21: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source'}
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Processing row 22: {'From': 'Ouick March Chest', 'To': 'Quick March Chest', 'Category': 'chest'}
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Created rule: Ouick March Chest -> Quick March Chest (category: chest)
+2025-03-18 19:23:06.848 - DEBUG - src.services.file_parser - Processing row 23: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source'}
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Processing row 24: {'From': 'Union of Triumph personal revvard', 'To': 'Union of Triumph personal reward', 'Category': 'source'}
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Created rule: Union of Triumph personal revvard -> Union of Triumph personal reward (category: source)
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Processing row 25: {'From': 'revvard', 'To': 'reward', 'Category': 'general'}
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Created rule: revvard -> reward (category: general)
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Processing row 26: {'From': 'sguad', 'To': 'squad', 'Category': 'general'}
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Created rule: sguad -> squad (category: general)
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Processing row 27: {'From': 'Vvealth', 'To': 'Wealth', 'Category': 'general'}
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Created rule: Vvealth -> Wealth (category: general)
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Processing row 28: {'From': 'VVealth', 'To': 'Wealth', 'Category': 'general'}
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Created rule: VVealth -> Wealth (category: general)
+2025-03-18 19:23:06.849 - DEBUG - src.services.file_parser - Processing row 29: {'From': 'Julius Casar', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.850 - DEBUG - src.services.file_parser - Created rule: Julius Casar -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.850 - DEBUG - src.services.file_parser - Processing row 30: {'From': 'Juslius C䳡r', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.850 - DEBUG - src.services.file_parser - Created rule: Juslius C䳡r -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.850 - DEBUG - src.services.file_parser - Processing row 31: {'From': 'Juslius Cäsar', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 19:23:06.850 - DEBUG - src.services.file_parser - Created rule: Juslius Cäsar -> Julius Cäsar (category: player)
+2025-03-18 19:23:06.850 - DEBUG - src.services.file_parser - Processing row 32: {'From': 'Ancients"', 'To': "Ancients'", 'Category': 'general'}
+2025-03-18 19:23:06.850 - DEBUG - src.services.file_parser - Created rule: Ancients" -> Ancients' (category: general)
+2025-03-18 19:23:06.850 - DEBUG - src.services.file_parser - Processing row 33: {'From': 'Quick March Chest Chest', 'To': 'Quick March Chest', 'Category': 'chest'}
+2025-03-18 19:23:06.851 - DEBUG - src.services.file_parser - Created rule: Quick March Chest Chest -> Quick March Chest (category: chest)
+2025-03-18 19:23:06.851 - DEBUG - src.services.file_parser - Processing row 34: {'From': 'Union of Triumf personal reward', 'To': 'Union of Triumph personal reward', 'Category': 'general'}
+2025-03-18 19:23:06.851 - DEBUG - src.services.file_parser - Created rule: Union of Triumf personal reward -> Union of Triumph personal reward (category: general)
+2025-03-18 19:23:06.851 - DEBUG - src.services.file_parser - Processing row 35: {'From': 'Triumf', 'To': 'Triumph', 'Category': 'general'}
+2025-03-18 19:23:06.851 - DEBUG - src.services.file_parser - Created rule: Triumf -> Triumph (category: general)
+2025-03-18 19:23:06.851 - DEBUG - src.services.file_parser - Processing row 36: {'From': 'Triumfp', 'To': 'Triumph', 'Category': 'general'}
+2025-03-18 19:23:06.851 - DEBUG - src.services.file_parser - Created rule: Triumfp -> Triumph (category: general)
+2025-03-18 19:23:06.851 - DEBUG - src.services.file_parser - Processing row 37: {'From': 'JÃªrmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Created rule: JÃªrmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Processing row 38: {'From': 'Jêrmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Created rule: Jêrmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Processing row 39: {'From': 'J㪲mungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Created rule: J㪲mungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Processing row 40: {'From': 'JÃ²rmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr -> Jormungandr (category: general)
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Processing row 41: {'From': "Jòrmungandr's", 'To': "Jormungandr's", 'Category': 'general'}
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's -> Jormungandr's (category: general)
+2025-03-18 19:23:06.852 - DEBUG - src.services.file_parser - Processing row 42: {'From': "JÃ²rmungandr's", 'To': "Jormungandr's", 'Category': 'general'}
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr's -> Jormungandr's (category: general)
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Processing row 43: {'From': 'JÃ²rmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source'}
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Processing row 44: {'From': 'Jòrmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source'}
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Processing row 45: {'From': "Jòrmungandr's Chest", 'To': "Jormungandr's Chest", 'Category': 'chest'}
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's Chest -> Jormungandr's Chest (category: chest)
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Processing row 46: {'From': 'Epic Jêrmungandr sguad', 'To': 'Epic Jormungandr squad', 'Category': 'source'}
+2025-03-18 19:23:06.853 - DEBUG - src.services.file_parser - Created rule: Epic Jêrmungandr sguad -> Epic Jormungandr squad (category: source)
+2025-03-18 19:23:06.853 - INFO - src.services.file_parser - Successfully parsed 45 rules from CSV
+2025-03-18 19:23:06.853 - INFO - src.services.file_parser - Successfully parsed 45 rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.853 - INFO - src.services.data_manager - Successfully loaded 45 correction rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:23:06.854 - INFO - src.ui.dashboard - Successfully loaded 45 correction rules via DataManager
+2025-03-18 19:23:06.854 - INFO - src.services.corrector - Setting 45 correction rules in Corrector
+2025-03-18 19:23:06.952 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Chest Types
+2025-03-18 19:23:06.952 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:06.952 - WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+2025-03-18 19:23:06.952 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Players
+2025-03-18 19:23:06.952 - INFO - src.ui.validation_list_widget - Widget is visible: True
+2025-03-18 19:23:06.953 - INFO - src.ui.validation_list_widget - Model shows 94 rows after refresh
+2025-03-18 19:23:06.953 - INFO - src.ui.validation_list_widget - Validation list has 94 items
+2025-03-18 19:23:06.953 - INFO - src.ui.validation_list_widget - File path: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.968 - INFO - src.ui.correction_manager_panel - Performing delayed refresh with 3 lists
+2025-03-18 19:23:06.968 - INFO - src.ui.correction_manager_panel - Widget is now visible: True
+2025-03-18 19:23:06.968 - INFO - src.ui.correction_manager_panel - Current widget stack index: -1
+2025-03-18 19:23:06.968 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Players with 94 items
+2025-03-18 19:23:06.968 - INFO - src.ui.validation_list_widget - Widget is visible: True
+2025-03-18 19:23:06.969 - INFO - src.ui.validation_list_widget - Validation list has file path: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.969 - INFO - src.ui.validation_list_widget - Setting validation list in model for Players
+2025-03-18 19:23:06.969 - INFO - src.ui.validation_list_widget - Model now has 94 rows
+2025-03-18 19:23:06.970 - INFO - src.ui.validation_list_widget - Saving file path to config: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.970 - INFO - src.ui.validation_list_widget - Saved paths in config - General: tests\sample_data\validation_samples\players.txt, Validation: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:06.971 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Chest Types with 72 items
+2025-03-18 19:23:06.971 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:06.971 - INFO - src.ui.validation_list_widget - Validation list has file path: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:06.971 - INFO - src.ui.validation_list_widget - Setting validation list in model for Chest Types
+2025-03-18 19:23:06.972 - INFO - src.ui.validation_list_widget - Model now has 72 rows
+2025-03-18 19:23:06.972 - INFO - src.ui.validation_list_widget - Saving file path to config: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:06.972 - INFO - src.ui.validation_list_widget - Saved paths in config - General: tests\sample_data\validation_samples\chest_types.txt, Validation: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:06.973 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Sources with 82 items
+2025-03-18 19:23:06.973 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:06.973 - INFO - src.ui.validation_list_widget - Validation list has file path: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:06.974 - INFO - src.ui.validation_list_widget - Setting validation list in model for Sources
+2025-03-18 19:23:06.974 - INFO - src.ui.validation_list_widget - Model now has 82 rows
+2025-03-18 19:23:06.974 - INFO - src.ui.validation_list_widget - Saving file path to config: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:06.975 - INFO - src.ui.validation_list_widget - Saved paths in config - General: tests\sample_data\validation_samples\sources.txt, Validation: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:06.976 - INFO - src.ui.correction_manager_panel - Ensuring validation lists tab is active
+2025-03-18 19:23:06.976 - INFO - src.ui.correction_manager_panel - Forcing viewport update
+2025-03-18 19:23:06.976 - INFO - src.ui.correction_manager_panel - Model now shows 94 rows
+2025-03-18 19:23:06.977 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Sources
+2025-03-18 19:23:06.977 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:06.977 - WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+2025-03-18 19:23:07.336 - INFO - src.ui.dashboard - Dashboard: Loading saved validation lists
+2025-03-18 19:23:07.336 - INFO - src.ui.dashboard - Dashboard widget is visible: False
+2025-03-18 19:23:07.336 - INFO - src.ui.dashboard - Loading player list from: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:07.336 - INFO - src.ui.dashboard - Player list file exists at: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:07.336 - INFO - src.models.validation_list - Loading validation list from: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:07.337 - INFO - src.models.validation_list - Loaded 94 entries from text file. First few entries: ['Alarich', 'Alexa Elly', 'Alf', 'Alisea', 'Anararad']
+2025-03-18 19:23:07.337 - INFO - src.ui.dashboard - Loaded player list with 94 items
+2025-03-18 19:23:07.337 - INFO - src.ui.dashboard - Loading chest type list from: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:07.337 - INFO - src.ui.dashboard - Chest type list file exists at: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:07.337 - INFO - src.models.validation_list - Loading validation list from: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:07.338 - INFO - src.models.validation_list - Loaded 72 entries from text file. First few entries: ['Abandoned Chest', "Ancient Warrior's Chest", 'Ancient Bastion Chest', "Ancients' Chest", 'Arachne Chest']
+2025-03-18 19:23:07.338 - INFO - src.ui.dashboard - Loaded chest type list with 72 items
+2025-03-18 19:23:07.338 - INFO - src.ui.dashboard - Loading source list from: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:07.338 - INFO - src.ui.dashboard - Source list file exists at: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:07.338 - INFO - src.models.validation_list - Loading validation list from: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:07.339 - INFO - src.models.validation_list - Loaded 82 entries from text file. First few entries: ['Level 5 Crypt', 'Level 10 Crypt', 'Level 15 Crypt', 'Level 20 Crypt', 'Level 25 Crypt']
+2025-03-18 19:23:07.339 - INFO - src.ui.dashboard - Loaded source list with 82 items
+2025-03-18 19:23:07.339 - INFO - src.ui.dashboard - Saving player list path to config: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:07.339 - INFO - src.ui.dashboard - Saving chest_type list path to config: tests\sample_data\validation_samples\chest_types.txt
+2025-03-18 19:23:07.339 - INFO - src.ui.dashboard - Saving source list path to config: tests\sample_data\validation_samples\sources.txt
+2025-03-18 19:23:07.340 - INFO - src.ui.dashboard - Saved validation list paths to config
+2025-03-18 19:23:07.340 - INFO - src.ui.dashboard - Emitting validation_lists_updated signal with 3 lists
+2025-03-18 19:23:07.458 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Chest Types
+2025-03-18 19:23:07.458 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:07.458 - WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+2025-03-18 19:23:07.458 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Players
+2025-03-18 19:23:07.458 - INFO - src.ui.validation_list_widget - Widget is visible: True
+2025-03-18 19:23:07.459 - INFO - src.ui.validation_list_widget - Model shows 94 rows after refresh
+2025-03-18 19:23:07.459 - INFO - src.ui.validation_list_widget - Validation list has 94 items
+2025-03-18 19:23:07.459 - INFO - src.ui.validation_list_widget - File path: tests\sample_data\validation_samples\players.txt
+2025-03-18 19:23:07.487 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Sources
+2025-03-18 19:23:07.487 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 19:23:07.487 - WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+2025-03-18 19:23:08.334 - INFO - src.ui.dashboard - Re-emitting 3 validation lists
+2025-03-18 19:23:08.334 - INFO - src.ui.dashboard - Dashboard widget is visible: False
+2025-03-18 19:23:08.335 - WARNING - src.ui.dashboard - Correction manager not available for delayed emit

@@ -1,0 +1,95 @@
+2025-03-18 20:33:01.155 - INFO - root - Logging initialized with level: DEBUG
+2025-03-18 20:33:01.156 - INFO - root - Logging to file: logs\correction_tool_20250318_203301.log
+2025-03-18 20:33:01.156 - INFO - root - ================================================================================
+2025-03-18 20:33:01.156 - INFO - root - APPLICATION STARTING
+2025-03-18 20:33:01.156 - INFO - root - Python version: 3.12.9 (main, Feb 12 2025, 14:52:31) [MSC v.1942 64 bit (AMD64)]
+2025-03-18 20:33:01.156 - INFO - root - Working directory: D:\Projekte\CorrectionTool
+2025-03-18 20:33:01.156 - INFO - root - Command line: main.py
+2025-03-18 20:33:01.156 - INFO - root - ================================================================================
+2025-03-18 20:33:01.156 - INFO - root - Ensured directory exists: data
+2025-03-18 20:33:01.156 - INFO - root - Ensured directory exists: data/input
+2025-03-18 20:33:01.157 - INFO - root - Ensured directory exists: data/output
+2025-03-18 20:33:01.157 - INFO - root - Ensured directory exists: data/corrections
+2025-03-18 20:33:01.157 - INFO - root - Ensured directory exists: data/validation
+2025-03-18 20:33:01.157 - INFO - src.services.config_manager - Initializing ConfigManager
+2025-03-18 20:33:01.157 - INFO - src.services.config_manager - Using config path: D:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:33:01.157 - INFO - src.services.config_manager - Loading configuration from D:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:33:01.158 - INFO - src.services.config_manager - Configuration loaded successfully
+2025-03-18 20:33:01.158 - INFO - src.services.config_manager - Migrating configuration to consolidated structure
+2025-03-18 20:33:01.158 - INFO - src.services.config_manager - Saving configuration to D:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:33:01.158 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:33:01.159 - INFO - src.services.config_manager - Configuration migration completed
+2025-03-18 20:33:01.159 - INFO - src.services.config_manager - ConfigManager initialized successfully
+2025-03-18 20:33:01.159 - INFO - root - Configuration initialized
+2025-03-18 20:33:01.175 - INFO - root - Setting up MainWindow
+2025-03-18 20:33:01.176 - INFO - src.services.data_manager - DataManager initialized
+2025-03-18 20:33:01.390 - INFO - src.ui.dashboard - Initializing Dashboard
+2025-03-18 20:33:01.414 - INFO - src.ui.dashboard - Connecting Dashboard signals
+2025-03-18 20:33:01.414 - WARNING - src.ui.dashboard - Correction manager not available for signal connection
+2025-03-18 20:33:01.414 - INFO - src.ui.dashboard - Dashboard signals connected successfully
+2025-03-18 20:33:01.414 - INFO - src.ui.dashboard - Status bar initialized from parent
+2025-03-18 20:33:01.414 - INFO - src.ui.dashboard - Dashboard: Loading saved correction rules
+2025-03-18 20:33:01.414 - INFO - src.ui.dashboard - No correction rules file found in config
+2025-03-18 20:33:01.414 - INFO - src.ui.dashboard - Dashboard: Loading saved validation lists
+2025-03-18 20:33:01.415 - INFO - src.ui.dashboard - Loading validation lists from config: player=, chest=, source=
+2025-03-18 20:33:01.415 - WARNING - src.ui.dashboard - No validation lists found in config
+2025-03-18 20:33:01.415 - ERROR - src.ui.dashboard - Error loading validation lists from config: 'Dashboard' object has no attribute '_load_default_validation_lists'
+2025-03-18 20:33:01.416 - DEBUG - src.ui.dashboard - Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 534, in _load_saved_validation_lists
+    self._load_default_validation_lists()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_load_default_validation_lists'. Did you mean: '_load_saved_validation_lists'?
+
+2025-03-18 20:33:01.417 - CRITICAL - root - Error creating or showing MainWindow: 'Dashboard' object has no attribute '_load_default_validation_lists'
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 534, in _load_saved_validation_lists
+    self._load_default_validation_lists()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_load_default_validation_lists'. Did you mean: '_load_saved_validation_lists'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 82, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 222, in _setup_content
+    self._setup_dashboard_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 240, in _setup_dashboard_page
+    self._dashboard = Dashboard(self)
+                      ^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 123, in __init__
+    self._load_saved_validation_lists()
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 543, in _load_saved_validation_lists
+    self._load_default_validation_lists()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_load_default_validation_lists'. Did you mean: '_load_saved_validation_lists'?
+2025-03-18 20:33:01.421 - CRITICAL - root - Fatal error starting application: 'Dashboard' object has no attribute '_load_default_validation_lists'
+2025-03-18 20:33:01.422 - CRITICAL - root - Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 534, in _load_saved_validation_lists
+    self._load_default_validation_lists()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_load_default_validation_lists'. Did you mean: '_load_saved_validation_lists'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 82, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 222, in _setup_content
+    self._setup_dashboard_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 240, in _setup_dashboard_page
+    self._dashboard = Dashboard(self)
+                      ^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 123, in __init__
+    self._load_saved_validation_lists()
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 543, in _load_saved_validation_lists
+    self._load_default_validation_lists()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_load_default_validation_lists'. Did you mean: '_load_saved_validation_lists'?
+

@@ -9,6 +9,7 @@ Usage:
 
 from typing import Dict, List, Optional, Tuple, Any, Set, Union
 import logging
+import time
 
 from PySide6.QtCore import (
     Qt,
@@ -140,6 +141,8 @@ class ChestEntryTableModel(QAbstractTableModel):
                     return entry.player if entry.player else ""
                 elif index.column() == ChestEntryTableModel.COLUMN_SOURCE:
                     return entry.source if entry.source else ""
+                elif index.column() == 4:  # Status column
+                    return entry.status if hasattr(entry, "status") else "Pending"
 
             elif role == Qt.BackgroundRole:
                 # Use background color for validation error indication
@@ -271,9 +274,46 @@ class ChestEntryTableModel(QAbstractTableModel):
         """
         # Log the operation for debugging
         logger = logging.getLogger(__name__)
+
+        # Prevent redundant processing
+        if hasattr(self, "_processing_signal") and self._processing_signal:
+            logger.warning("Signal loop detected in set_entries, skipping")
+            return
+
+        # Throttle updates to avoid excessive refreshes
+        current_time = time.time()
+        if hasattr(self, "_last_update_time") and current_time - self._last_update_time < 0.5:
+            logger.debug("Update throttled (too frequent), skipping")
+            return
+
+        # Check if entries are identical
+        if hasattr(self, "_entries") and len(self._entries) == len(entries):
+            # Quick check - if same number of entries, might be the same
+            # Do a deeper check on a few entries
+            sample_size = min(5, len(entries))
+            if sample_size > 0:
+                same_entries = True
+                for i in range(sample_size):
+                    if entries[i] != self._entries[i]:
+                        same_entries = False
+                        break
+
+                if same_entries:
+                    logger.debug("Entries appear unchanged, skipping redundant update")
+                    return
+
         logger.debug(f"Setting {len(entries)} entries in table view")
 
         try:
+            # Set flags to prevent recursive calls
+            if not hasattr(self, "_processing_signal"):
+                self._processing_signal = False
+            if not hasattr(self, "_last_update_time"):
+                self._last_update_time = 0
+
+            self._processing_signal = True
+            self._last_update_time = current_time
+
             # Make a defensive copy of entries to prevent modification of original
             self._entries = list(entries)
 
@@ -305,6 +345,9 @@ class ChestEntryTableModel(QAbstractTableModel):
             import traceback
 
             logger.error(traceback.format_exc())
+        finally:
+            if hasattr(self, "_processing_signal"):
+                self._processing_signal = False
 
 
 class ValidationErrorDelegate(QStyledItemDelegate):
@@ -546,50 +589,6 @@ class EnhancedTableView(QTableView):
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Error in _setup_view: {e}")
-            import traceback
-
-            logger.error(traceback.format_exc())
-
-    def set_entries(self, entries):
-        """
-        Set the entries to display.
-
-        Args:
-            entries: List of ChestEntry objects
-        """
-        # Log the operation for debugging
-        logger = logging.getLogger(__name__)
-        logger.debug(f"Setting {len(entries)} entries in table view")
-
-        try:
-            # Make a defensive copy of entries to prevent modification of original
-            self._entries = list(entries)
-
-            # Create model for the entries
-            model = ChestEntryTableModel(self._entries)
-
-            # Update or create proxy model
-            if self._proxy_model is None:
-                self._proxy_model = QSortFilterProxyModel()
-                self._proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
-                self._proxy_model.setFilterKeyColumn(-1)  # Filter on all columns
-                self.setModel(self._proxy_model)
-
-            # Update the source model
-            self._proxy_model.setSourceModel(model)
-
-            # Ensure selection signals are connected
-            if self.selectionModel():
-                self.selectionModel().selectionChanged.connect(self._on_selection_changed)
-
-            # Refresh the view
-            self._refresh_view()
-
-            # Log success
-            logger.debug(f"Successfully set {len(entries)} entries in table view")
-
-        except Exception as e:
-            logger.error(f"Error setting entries in table view: {e}")
             import traceback
 
             logger.error(traceback.format_exc())
@@ -836,6 +835,73 @@ class EnhancedTableView(QTableView):
             QMessageBox.critical(
                 self, "Error", f"An error occurred while trying to reset the entry: {str(e)}"
             )
+
+    def set_entries(self, entries):
+        """
+        Set the entries to display in the table.
+
+        Args:
+            entries: List of ChestEntry objects
+        """
+        # Log the operation for debugging
+        logger = logging.getLogger(__name__)
+
+        # Prevent redundant processing
+        if hasattr(self, "_processing_signal") and self._processing_signal:
+            logger.warning("Signal loop detected in EnhancedTableView.set_entries, skipping")
+            return
+
+        # Throttle updates to avoid excessive refreshes
+        current_time = time.time()
+        if hasattr(self, "_last_update_time") and current_time - self._last_update_time < 0.5:
+            logger.debug("Update throttled (too frequent), skipping")
+            return
+
+        logger.debug(f"Setting {len(entries)} entries in EnhancedTableView")
+
+        try:
+            # Set flags to prevent recursive calls
+            if not hasattr(self, "_processing_signal"):
+                self._processing_signal = False
+            if not hasattr(self, "_last_update_time"):
+                self._last_update_time = 0
+
+            self._processing_signal = True
+            self._last_update_time = current_time
+
+            # Store entries for direct access
+            self._entries = list(entries)
+
+            # Create a new model with the entries
+            model = ChestEntryTableModel(self._entries)
+
+            # Update or create proxy model
+            if not hasattr(self, "_proxy_model") or self._proxy_model is None:
+                self._proxy_model = QSortFilterProxyModel()
+                self._proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
+                self._proxy_model.setFilterKeyColumn(-1)  # Filter on all columns
+                self.setModel(self._proxy_model)
+
+            # Set the source model for the proxy
+            self._proxy_model.setSourceModel(model)
+
+            # Ensure selection signals are connected
+            if self.selectionModel():
+                self.selectionModel().selectionChanged.connect(self._on_selection_changed)
+
+            # Refresh the view
+            self._refresh_view()
+
+            logger.debug(f"Successfully set {len(entries)} entries in EnhancedTableView")
+
+        except Exception as e:
+            logger.error(f"Error setting entries in EnhancedTableView: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())
+        finally:
+            if hasattr(self, "_processing_signal"):
+                self._processing_signal = False
 
     def filter_entries(self, text):
         """

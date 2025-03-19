@@ -52,35 +52,30 @@ def test_validation_lists_loading():
     # Verify lists are loaded
     # Check that player list has entries
     player_list = lists.get("player", None)
-    if not player_list or not player_list.entries:
-        logger.error("Player list not loaded or empty")
-        return False
+    assert player_list is not None, "Player list not loaded"
+    assert player_list.entries, "Player list is empty"
 
     # Check that chest type list has entries
     chest_type_list = lists.get("chest_type", None)
-    if not chest_type_list or not chest_type_list.entries:
-        logger.error("Chest type list not loaded or empty")
-        return False
+    assert chest_type_list is not None, "Chest type list not loaded"
+    assert chest_type_list.entries, "Chest type list is empty"
 
     # Check that source list has entries
     source_list = lists.get("source", None)
-    if not source_list or not source_list.entries:
-        logger.error("Source list not loaded or empty")
-        return False
+    assert source_list is not None, "Source list not loaded"
+    assert source_list.entries, "Source list is empty"
 
     logger.info("Validation list loading test PASSED")
-    return True
 
 
 def main():
     """Run all tests and report results."""
-    success = test_validation_lists_loading()
-
-    if success:
+    try:
+        test_validation_lists_loading()
         logger.info("All tests PASSED")
         return 0
-    else:
-        logger.error("Some tests FAILED")
+    except AssertionError as e:
+        logger.error(f"Some tests FAILED: {str(e)}")
         return 1
 
 

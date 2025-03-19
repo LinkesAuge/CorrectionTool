@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import Qt, Signal, Slot, QTimer
 from PySide6.QtGui import QIcon, QColor
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -69,22 +69,27 @@ class FileImportWidget(QWidget):
         """
         super().__init__(parent)
 
+        # Initialize logger
+        import logging
+
+        self.logger = logging.getLogger(__name__)
+
         # Initialize properties
         self._config = ConfigManager()
         self._file_parser = FileParser()
         self._entries: List[ChestEntry] = []
         self._correction_rules: List[CorrectionRule] = []
-        self._corrections_enabled = self._config.get_bool(
-            "Corrections", "auto_apply", fallback=True
+        self._corrections_enabled = self._config.get_boolean(
+            "Correction", "auto_apply_corrections", fallback=True
         )
-        self._default_correction_path = self._config.get(
-            "Paths", "default_correction_rules", fallback=str(Path.cwd() / "corrections.csv")
+
+        # Get paths using the new path methods
+        self._default_correction_path = self._config.get_path("correction_rules_file")
+        self._last_entry_directory = self._config.get_last_used_path(
+            "last_entry_directory", fallback=Path.home()
         )
-        self._last_entry_directory = self._config.get(
-            "Files", "last_entry_directory", fallback=str(Path.home())
-        )
-        self._last_correction_directory = self._config.get(
-            "Files", "last_correction_directory", fallback=str(Path.home())
+        self._last_correction_directory = self._config.get_last_used_path(
+            "last_correction_directory", fallback=Path.home()
         )
         self._processing_signal = False
 
@@ -99,36 +104,65 @@ class FileImportWidget(QWidget):
 
     def _auto_load_corrections(self):
         """Automatically load correction rules from the default path."""
-        if Path(self._default_correction_path).exists():
-            try:
-                # Show loading status
-                self._corrections_status_label.setText("Loading corrections...")
-                self._corrections_status_label.setStyleSheet("color: #CC7700;")
+        # Set a flag to indicate auto-loading is in progress
+        self._auto_loading = True
 
-                # Parse the file
-                correction_rules = self._file_parser.parse_correction_file(
-                    self._default_correction_path
-                )
+        try:
+            # Get the absolute path
+            correction_path = self._config.get_absolute_path(self._default_correction_path)
 
-                # Update rules
-                self.set_correction_rules(correction_rules)
+            # Only load if file exists
+            if correction_path.exists():
+                self.logger.info(f"Auto-loading correction rules from {correction_path}")
 
-                # Update status with success message
-                self._show_status_message(
-                    f"Loaded {len(correction_rules)} correction rules from default path", "success"
-                )
-            except Exception as e:
-                # Update status with error message
-                self._show_status_message(f"Error loading corrections: {str(e)}", "error")
-                self._corrections_status_label.setText(f"Error loading corrections")
-                self._corrections_status_label.setStyleSheet("color: #CC0000;")
+                # Use the correct FileParser method
+                rules = self._file_parser.parse_correction_file(str(correction_path))
+
+                if rules:
+                    # This won't emit signals due to _auto_loading flag
+                    self.set_correction_rules(rules)
+                    self.logger.info(f"Loaded {len(rules)} rules from {correction_path}")
+
+                    # Use the correct label name - wait until after UI initialization
+                    if hasattr(self, "_corrections_status_label"):
+                        self._corrections_status_label.setText(
+                            f"{len(rules)} correction rules loaded"
+                        )
+                        self._corrections_status_label.setStyleSheet("color: green;")
+
+                    # Update last used path
+                    self._config.set_last_used_path("last_correction_file", str(correction_path))
+                    self._config.set_last_used_path(
+                        "last_correction_directory", str(correction_path.parent)
+                    )
+
+                    # Now that UI is updated, emit signal once for DataManager
+                    self.logger.info(
+                        f"Auto-load complete, emitting corrections_loaded with {len(rules)} rules"
+                    )
+                    self.corrections_loaded.emit(rules)
+            else:
+                self.logger.warning(f"Default correction rules file not found: {correction_path}")
+                if hasattr(self, "_corrections_status_label"):
+                    self._corrections_status_label.setText("No correction rules loaded")
+                    self._corrections_status_label.setStyleSheet("color: orange;")
+        except Exception as e:
+            self.logger.error(f"Error auto-loading correction rules: {e}")
+            if hasattr(self, "_corrections_status_label"):
+                self._corrections_status_label.setText("Error loading correction rules")
+                self._corrections_status_label.setStyleSheet("color: red;")
+        finally:
+            # Clear the auto-loading flag
+            self._auto_loading = False
 
     def _setup_ui(self):
         """Set up the user interface."""
         # Main layout
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
 
+        # Create UI components first before attempting to update them
         # Title
         title_layout = QHBoxLayout()
         title_label = QLabel("File Import")
@@ -225,6 +259,9 @@ class FileImportWidget(QWidget):
         self._status_message_label.setVisible(False)
         main_layout.addWidget(self._status_message_label)
 
+        # Remember to call _auto_load_corrections after setting up the UI
+        QTimer.singleShot(100, self._auto_load_corrections)
+
     def _connect_signals(self):
         """Connect signals to slots."""
         self._import_entries_button.clicked.connect(self.import_entries)
@@ -269,10 +306,20 @@ class FileImportWidget(QWidget):
         """
         # Prevent recursive signal loops
         if self._processing_signal:
+            self.logger.info(
+                "Skipping redundant set_correction_rules call due to signal loop prevention"
+            )
             return
 
         try:
             self._processing_signal = True
+
+            # Check if rules are the same to avoid unnecessary processing
+            if self._correction_rules == rules:
+                self.logger.debug("Rules are unchanged, skipping update")
+                return
+
+            self.logger.info(f"FileImportWidget: Setting {len(rules)} correction rules")
 
             self._correction_rules = rules
 
@@ -285,11 +332,19 @@ class FileImportWidget(QWidget):
                 self._corrections_status_label.setText("No corrections loaded")
                 self._corrections_status_label.setStyleSheet("")
 
-            # Emit signal with the updated rules
-            self.corrections_loaded.emit(rules)
+            # Emit signal with the updated rules ONLY if the update came from a user action
+            # like loading a file, not if it came from another component
+            # This helps prevent cascading signals
+            auto_load = getattr(self, "_auto_loading", False)
+            if not auto_load:
+                self.logger.info(f"Emitting corrections_loaded signal with {len(rules)} rules")
+                self.corrections_loaded.emit(rules)
+            else:
+                self.logger.info("Auto-loading, skipping emissions to prevent signal cascades")
 
             # Auto-apply corrections if enabled and we have entries
-            if self._corrections_enabled and self._entries:
+            # Only do this if auto_load is False to prevent applying corrections multiple times
+            if self._corrections_enabled and self._entries and not auto_load:
                 self._apply_corrections()
 
         finally:
@@ -371,106 +426,83 @@ class FileImportWidget(QWidget):
 
     @Slot()
     def import_entries(self):
-        """Import chest entries from a file."""
-        # Get the file filter based on selected format
-        file_filter = self._get_entry_file_filter()
+        """Import entries from a file."""
+        try:
+            # Get the last directory from config
+            last_dir = self._config.get_last_used_path("last_entry_directory", fallback=Path.home())
 
-        # Show file dialog
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Import Entries", self._last_entry_directory, file_filter
-        )
+            # Get file filters based on selected format
+            file_filter = self._get_entry_file_filter()
 
-        if file_path:
-            try:
-                # Update status
-                self._entries_status_label.setText("Loading entries...")
-                self._entries_status_label.setStyleSheet("color: #CC7700;")
+            # Open file dialog
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Open File", str(last_dir), file_filter
+            )
 
-                # Save the directory for next time
-                self._last_entry_directory = str(Path(file_path).parent)
-                self._config.set("Files", "last_entry_directory", self._last_entry_directory)
+            if file_path:
+                # Save the last directory
+                self._config.set_last_used_path("last_entry_directory", str(Path(file_path).parent))
+                self._config.set_last_used_path("last_input_file", file_path)
 
-                # Parse the file
+                # Load entries using the correct FileParser method
                 entries = self._file_parser.parse_entry_file(file_path)
 
-                # Update entries
-                self.set_entries(entries)
+                if entries:
+                    self.set_entries(entries)
 
-                # Show success message
-                self._show_status_message(
-                    f"Loaded {len(entries)} entries from {Path(file_path).name}", "success"
-                )
-            except Exception as e:
-                # Show error in status label
-                self._entries_status_label.setText("Error loading entries")
-                self._entries_status_label.setStyleSheet("color: #CC0000;")
+                    # Show status message
+                    self._show_status_message(f"Loaded {len(entries)} entries from {file_path}")
 
-                # Show detailed error message
-                self._show_status_message(f"Error loading entries: {str(e)}", "error")
-
-                # Show error dialog for serious errors
-                QMessageBox.critical(
-                    self, "Import Error", f"An error occurred while importing entries:\n\n{str(e)}"
-                )
+                    # Apply corrections if enabled
+                    if self._corrections_enabled and self._correction_rules:
+                        self._apply_corrections()
+                else:
+                    self._show_status_message("No entries found in the file", "warning")
+        except Exception as e:
+            self._show_status_message(f"Error importing entries: {str(e)}", "error")
 
     @Slot()
     def import_corrections(self):
         """Import correction rules from a file."""
-        # Get the file filter based on selected format
-        file_filter = self._get_correction_file_filter()
+        try:
+            # Get the last directory from config
+            last_dir = self._config.get_last_used_path(
+                "last_correction_directory", fallback=Path.home()
+            )
 
-        # Show file dialog
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Import Corrections", self._last_correction_directory, file_filter
-        )
+            # Get file filters based on selected format
+            file_filter = self._get_correction_file_filter()
 
-        if file_path:
-            try:
-                # Update status
-                self._corrections_status_label.setText("Loading corrections...")
-                self._corrections_status_label.setStyleSheet("color: #CC7700;")
+            # Open file dialog
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Open Correction File", str(last_dir), file_filter
+            )
 
-                # Save the directory for next time
-                self._last_correction_directory = str(Path(file_path).parent)
-                self._config.set(
-                    "Files", "last_correction_directory", self._last_correction_directory
+            if file_path:
+                # Save the last directory
+                self._config.set_last_used_path(
+                    "last_correction_directory", str(Path(file_path).parent)
                 )
+                self._config.set_last_used_path("last_correction_file", file_path)
 
-                # Also update the General last_folder to ensure consistency with Dashboard
-                self._config.set("General", "last_folder", self._last_correction_directory)
+                # Load correction rules using the correct FileParser method
+                rules = self._file_parser.parse_correction_file(file_path)
 
-                # Save the path as the default for future auto-loading
-                self._default_correction_path = file_path
-                self._config.set("Paths", "default_correction_rules", self._default_correction_path)
+                if rules:
+                    self.set_correction_rules(rules)
 
-                # Save the configuration to disk
-                self._config.save()
+                    # Show status message
+                    self._show_status_message(
+                        f"Loaded {len(rules)} correction rules from {file_path}"
+                    )
 
-                # Parse the file
-                correction_rules = self._file_parser.parse_correction_file(file_path)
-
-                # Update rules
-                self.set_correction_rules(correction_rules)
-
-                # Show success message
-                self._show_status_message(
-                    f"Loaded {len(correction_rules)} correction rules from {Path(file_path).name}",
-                    "success",
-                )
-            except Exception as e:
-                # Show error in status label
-                self._corrections_status_label.setText("Error loading corrections")
-                self._corrections_status_label.setStyleSheet("color: #CC0000;")
-
-                # Show detailed error message
-                self._show_status_message(f"Error loading corrections: {str(e)}", "error")
-
-                # Show error dialog for serious errors
-                QMessageBox.critical(
-                    self,
-                    "Import Error",
-                    f"An error occurred while importing correction rules:\n\n{str(e)}",
-                )
+                    # Apply corrections if enabled
+                    if self._corrections_enabled and self._entries:
+                        self._apply_corrections()
+                else:
+                    self._show_status_message("No correction rules found in the file", "warning")
+        except Exception as e:
+            self._show_status_message(f"Error importing correction rules: {str(e)}", "error")
 
     @Slot()
     def _on_corrections_toggled(self, enabled: bool):
@@ -481,7 +513,7 @@ class FileImportWidget(QWidget):
             enabled: Whether corrections are enabled
         """
         self._corrections_enabled = enabled
-        self._config.set("Corrections", "auto_apply", enabled)
+        self._config.set("Correction", "auto_apply_corrections", enabled)
 
         # Apply corrections if enabled and we have entries and rules
         if enabled and self._entries and self._correction_rules:

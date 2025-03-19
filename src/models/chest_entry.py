@@ -410,6 +410,33 @@ class ChestEntry:
         """
         return self.field_validation.get(field, {}).get("confidence", 0.0)
 
+    def is_player_valid(self) -> Optional[bool]:
+        """
+        Check if the player field is valid.
+
+        Returns:
+            Optional[bool]: True if valid, False if invalid, None if not validated
+        """
+        return self.is_field_valid("player")
+
+    def is_chest_type_valid(self) -> Optional[bool]:
+        """
+        Check if the chest_type field is valid.
+
+        Returns:
+            Optional[bool]: True if valid, False if invalid, None if not validated
+        """
+        return self.is_field_valid("chest_type")
+
+    def is_source_valid(self) -> Optional[bool]:
+        """
+        Check if the source field is valid.
+
+        Returns:
+            Optional[bool]: True if valid, False if invalid, None if not validated
+        """
+        return self.is_field_valid("source")
+
     def get_fuzzy_match(self, field: str) -> Optional[str]:
         """
         Get the fuzzy match value for a field.

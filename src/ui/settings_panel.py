@@ -516,190 +516,123 @@ class SettingsPanel(QWidget):
         self.settings_changed.emit("settings")
 
     def _load_settings(self) -> None:
-        """Load settings from config."""
-        # Load application settings
-        auto_save = self._config.get_bool("App", "auto_save_settings", fallback=True)
-        self._auto_save_checkbox.setChecked(auto_save)
+        """
+        Load settings from config.
+        """
+        import logging
 
-        theme = self._config.get("UI", "theme", fallback="dark")
-        theme_index = self._theme_combo.findData(theme)
-        if theme_index >= 0:
-            self._theme_combo.setCurrentIndex(theme_index)
+        logger = logging.getLogger(__name__)
+        logger.info("Loading settings from config")
 
-        remember_size = self._config.get_bool("UI", "remember_window_size", fallback=True)
-        self._remember_size_checkbox.setChecked(remember_size)
+        # Get directories using the new path API
+        input_dir = self._config.get_path("input_dir", "")
+        self._input_dir_edit.setText(str(input_dir))
 
-        # Load file paths
-        input_dir = self._config.get("Files", "default_input_dir", fallback="")
-        self._input_dir_edit.setText(input_dir)
+        output_dir = self._config.get_path("output_dir", "")
+        self._output_dir_edit.setText(str(output_dir))
 
-        output_dir = self._config.get("Files", "default_output_dir", fallback="")
-        self._output_dir_edit.setText(output_dir)
+        corrections_dir = self._config.get_path("corrections_dir", "")
+        self._corrections_dir_edit.setText(str(corrections_dir))
 
-        corrections_dir = self._config.get("Files", "default_corrections_dir", fallback="")
-        self._corrections_dir_edit.setText(corrections_dir)
+        validation_dir = self._config.get_path("validation_dir", "")
+        self._validation_dir_edit.setText(str(validation_dir))
 
-        validation_dir = self._config.get("Files", "default_validation_dir", fallback="")
-        self._validation_dir_edit.setText(validation_dir)
-
+        # Get file extensions
         input_ext = self._config.get("Files", "default_input_extension", fallback="csv")
-        input_ext_index = self._input_ext_combo.findData(input_ext)
-        if input_ext_index >= 0:
-            self._input_ext_combo.setCurrentIndex(input_ext_index)
+        self._input_ext_combo.setCurrentText(input_ext)
 
+        # Get correction extensions
         correction_ext = self._config.get("Files", "default_correction_extension", fallback="csv")
-        correction_ext_index = self._correction_ext_combo.findData(correction_ext)
-        if correction_ext_index >= 0:
-            self._correction_ext_combo.setCurrentIndex(correction_ext_index)
+        self._correction_ext_combo.setCurrentText(correction_ext)
 
-        # Load validation settings
-        auto_validate = self._config.get_bool("Validation", "auto_validate", fallback=True)
-        self._auto_validate_checkbox.setChecked(auto_validate)
+        # Get validation settings
+        fuzzy_match_threshold = self._config.get_float(
+            "Features", "fuzzy_match_threshold", fallback=0.85
+        )
+        self._fuzzy_threshold_slider.setValue(int(fuzzy_match_threshold * 100))
 
         strictness = self._config.get("Validation", "strictness", fallback="normal")
-        strictness_index = self._validation_strictness_combo.findData(strictness)
-        if strictness_index >= 0:
-            self._validation_strictness_combo.setCurrentIndex(strictness_index)
+        index = self._validation_strictness_combo.findText(strictness.capitalize())
+        if index >= 0:
+            self._validation_strictness_combo.setCurrentIndex(index)
 
-        validate_players = self._config.get_bool("Validation", "validate_players", fallback=True)
-        self._use_player_list_checkbox.setChecked(validate_players)
-
-        validate_chest_types = self._config.get_bool(
-            "Validation", "validate_chest_types", fallback=True
+        # Log settings
+        logger.info(f"Loaded settings - Input Dir: {input_dir}, Output Dir: {output_dir}")
+        logger.info(
+            f"Loaded settings - Corrections Dir: {corrections_dir}, Validation Dir: {validation_dir}"
         )
-        self._use_chest_list_checkbox.setChecked(validate_chest_types)
-
-        validate_sources = self._config.get_bool("Validation", "validate_sources", fallback=True)
-        self._use_source_list_checkbox.setChecked(validate_sources)
-
-        # Load fuzzy matching settings
-        enable_fuzzy = self._config.get_bool("Validation", "enable_fuzzy_matching", fallback=False)
-        self._enable_fuzzy_checkbox.setChecked(enable_fuzzy)
-
-        fuzzy_threshold = self._config.get_int("Validation", "fuzzy_threshold", fallback=75)
-        self._fuzzy_threshold_slider.setValue(fuzzy_threshold)
-        self._fuzzy_threshold_label.setText(f"{fuzzy_threshold}%")
-
-        # Load UI settings
-        dark_mode = self._config.get_bool("UI", "dark_mode", fallback=True)
-        self._dark_mode_checkbox.setChecked(dark_mode)
-
-        accent_color = self._config.get("UI", "accent_color", fallback="blue")
-        accent_color_index = self._accent_color_combo.findData(accent_color)
-        if accent_color_index >= 0:
-            self._accent_color_combo.setCurrentIndex(accent_color_index)
-
-        # Load table settings
-        show_ids = self._config.get_bool("Table", "show_ids", fallback=True)
-        self._show_ids_checkbox.setChecked(show_ids)
-
-        font_size = self._config.get_int("Table", "font_size", fallback=10)
-        font_size_index = self._font_size_combo.findData(font_size)
-        if font_size_index >= 0:
-            self._font_size_combo.setCurrentIndex(font_size_index)
-
-        row_height = self._config.get_int("Table", "row_height", fallback=30)
-        self._row_height_slider.setValue(row_height)
-        self._row_height_label.setText(f"{row_height}px")
-
-        # Load layout settings
-        left_panel_ratio = self._config.get_int("Layout", "left_panel_ratio", fallback=50)
-        self._left_panel_slider.setValue(left_panel_ratio)
-        self._left_panel_label.setText(f"{left_panel_ratio}%")
-
-        # Reset changed flags
-        self._reset_changed_settings()
+        logger.info(f"Loaded settings - Input Ext: {input_ext}, Correction Ext: {correction_ext}")
+        logger.info(
+            f"Loaded settings - Fuzzy Match Threshold: {fuzzy_match_threshold}, Strictness: {strictness}"
+        )
 
     def _save_settings(self) -> None:
-        """Save settings to config."""
-        # Only save if there are changes
-        if not self._changed_settings:
-            return
+        """
+        Save settings to config.
+        """
+        import logging
+        from pathlib import Path
 
-        # Save application settings
-        auto_save = self._auto_save_checkbox.isChecked()
-        self._config.set("App", "auto_save_settings", auto_save)
+        logger = logging.getLogger(__name__)
+        logger.info("Saving settings to config")
 
-        theme = self._theme_combo.currentData()
-        self._config.set("UI", "theme", theme)
-
-        remember_size = self._remember_size_checkbox.isChecked()
-        self._config.set("UI", "remember_window_size", remember_size)
-
-        # Save file paths
+        # Save directories using the new path API
         input_dir = self._input_dir_edit.text()
-        self._config.set("Files", "default_input_dir", input_dir)
+        self._config.set_path("input_dir", input_dir)
 
         output_dir = self._output_dir_edit.text()
-        self._config.set("Files", "default_output_dir", output_dir)
+        self._config.set_path("output_dir", output_dir)
 
         corrections_dir = self._corrections_dir_edit.text()
-        self._config.set("Files", "default_corrections_dir", corrections_dir)
+        self._config.set_path("corrections_dir", corrections_dir)
 
         validation_dir = self._validation_dir_edit.text()
+        self._config.set_path("validation_dir", validation_dir)
+
+        # For backward compatibility, also update the old config entries
+        self._config.set("Files", "default_input_dir", input_dir)
+        self._config.set("Files", "default_output_dir", output_dir)
+        self._config.set("Files", "default_corrections_dir", corrections_dir)
         self._config.set("Files", "default_validation_dir", validation_dir)
 
-        input_ext = self._input_ext_combo.currentData()
+        # Save file extensions
+        input_ext = self._input_ext_combo.currentText()
         self._config.set("Files", "default_input_extension", input_ext)
 
-        correction_ext = self._correction_ext_combo.currentData()
+        correction_ext = self._correction_ext_combo.currentText()
         self._config.set("Files", "default_correction_extension", correction_ext)
 
         # Save validation settings
-        auto_validate = self._auto_validate_checkbox.isChecked()
-        self._config.set("Validation", "auto_validate", auto_validate)
+        fuzzy_match_threshold = self._fuzzy_threshold_slider.value() / 100.0
+        self._config.set("Features", "fuzzy_match_threshold", str(fuzzy_match_threshold))
 
-        strictness = self._validation_strictness_combo.currentData()
+        strictness = self._validation_strictness_combo.currentText().lower()
         self._config.set("Validation", "strictness", strictness)
 
-        validate_players = self._use_player_list_checkbox.isChecked()
-        self._config.set("Validation", "validate_players", validate_players)
-
-        validate_chest_types = self._use_chest_list_checkbox.isChecked()
-        self._config.set("Validation", "validate_chest_types", validate_chest_types)
-
-        validate_sources = self._use_source_list_checkbox.isChecked()
-        self._config.set("Validation", "validate_sources", validate_sources)
-
-        # Save fuzzy matching settings
-        enable_fuzzy = self._enable_fuzzy_checkbox.isChecked()
-        self._config.set("Validation", "enable_fuzzy_matching", enable_fuzzy)
-
-        fuzzy_threshold = self._fuzzy_threshold_slider.value()
-        self._config.set("Validation", "fuzzy_threshold", fuzzy_threshold)
-
-        # Emit signal to notify that fuzzy settings have changed
-        self.settings_changed.emit("fuzzy_settings")
-
-        # Save UI settings
-        dark_mode = self._dark_mode_checkbox.isChecked()
-        self._config.set("UI", "dark_mode", dark_mode)
-
-        accent_color = self._accent_color_combo.currentData()
-        self._config.set("UI", "accent_color", accent_color)
-
-        # Save table settings
-        show_ids = self._show_ids_checkbox.isChecked()
-        self._config.set("Table", "show_ids", show_ids)
-
-        font_size = self._font_size_combo.currentData()
-        self._config.set("Table", "font_size", font_size)
-
-        row_height = self._row_height_slider.value()
-        self._config.set("Table", "row_height", row_height)
-
-        # Save layout settings
-        left_panel_ratio = self._left_panel_slider.value()
-        self._config.set("Layout", "left_panel_ratio", left_panel_ratio)
-
-        # Save to file
+        # Save config
         self._config.save()
 
-        # Reset changed flags
-        self._reset_changed_settings()
+        # Create directories if they don't exist
+        for dir_path in [input_dir, output_dir, corrections_dir, validation_dir]:
+            if dir_path and not Path(dir_path).exists():
+                try:
+                    Path(dir_path).mkdir(parents=True, exist_ok=True)
+                    logger.info(f"Created directory: {dir_path}")
+                except Exception as e:
+                    logger.error(f"Error creating directory {dir_path}: {e}")
 
-        # Emit settings changed signal
-        self.settings_changed.emit("settings")
+        # Log settings
+        logger.info(f"Saved settings - Input Dir: {input_dir}, Output Dir: {output_dir}")
+        logger.info(
+            f"Saved settings - Corrections Dir: {corrections_dir}, Validation Dir: {validation_dir}"
+        )
+        logger.info(f"Saved settings - Input Ext: {input_ext}, Correction Ext: {correction_ext}")
+        logger.info(
+            f"Saved settings - Fuzzy Match Threshold: {fuzzy_match_threshold}, Strictness: {strictness}"
+        )
+
+        # Show confirmation message
+        self._show_message("Settings saved successfully.")
 
     def _reset_changed_settings(self) -> None:
         """Reset the changed settings tracking."""
@@ -719,3 +652,10 @@ class SettingsPanel(QWidget):
         self._changed_settings[section].add(key)
 
         # No need to enable apply button as settings are applied immediately
+
+    def _show_message(self, message: str) -> None:
+        """Show a message to the user."""
+        # This method is called when settings are saved successfully
+        # You can implement this method to show a message to the user
+        # For example, using a QMessageBox or a status bar
+        print(message)

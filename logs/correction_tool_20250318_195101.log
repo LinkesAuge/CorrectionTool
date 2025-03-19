@@ -1,0 +1,196 @@
+2025-03-18 19:51:01.291 - INFO - root - Logging initialized with level: DEBUG
+2025-03-18 19:51:01.291 - INFO - root - Logging to file: logs\correction_tool_20250318_195101.log
+2025-03-18 19:51:01.291 - INFO - root - ================================================================================
+2025-03-18 19:51:01.291 - INFO - root - APPLICATION STARTING
+2025-03-18 19:51:01.291 - INFO - root - Python version: 3.12.9 (main, Feb 12 2025, 14:52:31) [MSC v.1942 64 bit (AMD64)]
+2025-03-18 19:51:01.291 - INFO - root - Working directory: D:\Projekte\CorrectionTool
+2025-03-18 19:51:01.291 - INFO - root - Command line: main.py
+2025-03-18 19:51:01.291 - INFO - root - ================================================================================
+2025-03-18 19:51:01.291 - INFO - root - Ensured directory exists: data
+2025-03-18 19:51:01.292 - INFO - root - Ensured directory exists: data/input
+2025-03-18 19:51:01.292 - INFO - root - Ensured directory exists: data/output
+2025-03-18 19:51:01.292 - INFO - root - Ensured directory exists: data/corrections
+2025-03-18 19:51:01.292 - INFO - root - Ensured directory exists: data/validation
+2025-03-18 19:51:01.292 - INFO - src.services.config_manager - Initializing ConfigManager
+2025-03-18 19:51:01.292 - INFO - src.services.config_manager - Using config path: C:\Users\schrd\.correction_tool\config.ini
+2025-03-18 19:51:01.293 - INFO - src.services.config_manager - Loading configuration from C:\Users\schrd\.correction_tool\config.ini
+2025-03-18 19:51:01.300 - INFO - src.services.config_manager - Configuration loaded successfully
+2025-03-18 19:51:01.300 - INFO - src.services.config_manager - Migrating configuration to consolidated structure
+2025-03-18 19:51:01.301 - INFO - src.services.config_manager - Migrating Correction.default_correction_rules to Paths.correction_rules_file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:51:01.301 - INFO - src.services.config_manager - Migrating General.last_correction_file to Paths.last_correction_file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:51:01.301 - INFO - src.services.config_manager - Migrating Files.default_correction_list to Paths.correction_rules_file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:51:01.301 - INFO - src.services.config_manager - Migrating Paths.default_correction_rules to Paths.correction_rules_file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 19:51:01.302 - INFO - src.services.config_manager - Configuration migration completed
+2025-03-18 19:51:01.302 - INFO - src.services.config_manager - ConfigManager initialized successfully
+2025-03-18 19:51:01.302 - INFO - root - Configuration initialized
+2025-03-18 19:51:01.317 - INFO - root - Setting up MainWindow
+2025-03-18 19:51:01.318 - INFO - src.services.data_manager - DataManager initialized
+2025-03-18 19:51:01.548 - INFO - src.ui.dashboard - Initializing Dashboard
+2025-03-18 19:51:01.548 - INFO - src.services.corrector - Using 0 rules from DataManager
+2025-03-18 19:51:01.571 - INFO - src.ui.dashboard - Connecting Dashboard signals
+2025-03-18 19:51:01.571 - WARNING - src.ui.dashboard - Correction manager not available for signal connection
+2025-03-18 19:51:01.572 - INFO - src.ui.dashboard - Dashboard signals connected successfully
+2025-03-18 19:51:01.572 - INFO - src.ui.dashboard - Dashboard initialized
+2025-03-18 19:51:01.578 - CRITICAL - root - Error creating or showing MainWindow: name 'time' is not defined
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 82, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 223, in _setup_content
+    self._setup_correction_manager_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 248, in _setup_correction_manager_page
+    self._correction_manager = CorrectionManagerPanel(self)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 89, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 109, in _setup_ui
+    self._setup_correction_tools_panel()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 176, in _setup_correction_tools_panel
+    self._setup_correction_rules_tab()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 233, in _setup_correction_rules_tab
+    self._correction_rules_table = CorrectionRulesTable()
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_rules_table.py", line 721, in __init__
+    self._last_update_time = time.time()  # Track last update time for throttling
+                             ^^^^
+NameError: name 'time' is not defined. Did you forget to import 'time'
+2025-03-18 19:51:01.580 - CRITICAL - root - Fatal error starting application: name 'time' is not defined
+2025-03-18 19:51:01.581 - CRITICAL - root - Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 82, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 223, in _setup_content
+    self._setup_correction_manager_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 248, in _setup_correction_manager_page
+    self._correction_manager = CorrectionManagerPanel(self)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 89, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 109, in _setup_ui
+    self._setup_correction_tools_panel()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 176, in _setup_correction_tools_panel
+    self._setup_correction_rules_tab()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 233, in _setup_correction_rules_tab
+    self._correction_rules_table = CorrectionRulesTable()
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_rules_table.py", line 721, in __init__
+    self._last_update_time = time.time()  # Track last update time for throttling
+                             ^^^^
+NameError: name 'time' is not defined. Did you forget to import 'time'
+
+2025-03-18 19:51:02.060 - INFO - src.ui.dashboard - Dashboard: Loading saved correction rules
+2025-03-18 19:51:02.060 - CRITICAL - root - Unhandled exception
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 82, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 223, in _setup_content
+    self._setup_correction_manager_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 248, in _setup_correction_manager_page
+    self._correction_manager = CorrectionManagerPanel(self)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 89, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 109, in _setup_ui
+    self._setup_correction_tools_panel()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 176, in _setup_correction_tools_panel
+    self._setup_correction_rules_tab()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 233, in _setup_correction_rules_tab
+    self._correction_rules_table = CorrectionRulesTable()
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_rules_table.py", line 721, in __init__
+    self._last_update_time = time.time()  # Track last update time for throttling
+                             ^^^^
+NameError: name 'time' is not defined. Did you forget to import 'time'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 295, in _load_saved_correction_rules
+    last_file = self._config.get_path("correction_rules_file")
+                ^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_config'
+2025-03-18 19:51:02.560 - INFO - src.ui.dashboard - Dashboard: Loading saved validation lists
+2025-03-18 19:51:02.560 - ERROR - src.ui.dashboard - Error loading validation lists from config: 'Dashboard' object has no attribute '_config'
+2025-03-18 19:51:02.562 - DEBUG - src.ui.dashboard - Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 82, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 223, in _setup_content
+    self._setup_correction_manager_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 248, in _setup_correction_manager_page
+    self._correction_manager = CorrectionManagerPanel(self)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 89, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 109, in _setup_ui
+    self._setup_correction_tools_panel()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 176, in _setup_correction_tools_panel
+    self._setup_correction_rules_tab()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 233, in _setup_correction_rules_tab
+    self._correction_rules_table = CorrectionRulesTable()
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_rules_table.py", line 721, in __init__
+    self._last_update_time = time.time()  # Track last update time for throttling
+                             ^^^^
+NameError: name 'time' is not defined. Did you forget to import 'time'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 439, in _load_saved_validation_lists
+    player_path_str = self._config.get_path("player_list_file")
+                      ^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_config'
+
+2025-03-18 19:51:02.563 - INFO - src.ui.dashboard - Dashboard: Loading default validation lists
+2025-03-18 19:51:02.564 - ERROR - src.ui.dashboard - Error loading default validation lists: 'Dashboard' object has no attribute '_config'
+2025-03-18 19:51:02.567 - DEBUG - src.ui.dashboard - Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 82, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 223, in _setup_content
+    self._setup_correction_manager_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 248, in _setup_correction_manager_page
+    self._correction_manager = CorrectionManagerPanel(self)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 89, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 109, in _setup_ui
+    self._setup_correction_tools_panel()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 176, in _setup_correction_tools_panel
+    self._setup_correction_rules_tab()
+  File "D:\Projekte\CorrectionTool\src\ui\correction_manager_panel.py", line 233, in _setup_correction_rules_tab
+    self._correction_rules_table = CorrectionRulesTable()
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\correction_rules_table.py", line 721, in __init__
+    self._last_update_time = time.time()  # Track last update time for throttling
+                             ^^^^
+NameError: name 'time' is not defined. Did you forget to import 'time'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 439, in _load_saved_validation_lists
+    player_path_str = self._config.get_path("player_list_file")
+                      ^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_config'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 1334, in _load_default_validation_lists
+    validation_dir = self._config.get_path("validation_dir", "data/validation")
+                     ^^^^^^^^^^^^
+AttributeError: 'Dashboard' object has no attribute '_config'
+

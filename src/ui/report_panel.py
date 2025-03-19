@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QTableWidget,
     QTableWidgetItem,
+    QMessageBox,
 )
 from PySide6.QtCore import QDate
 from PySide6.QtGui import QFont, QTextDocument, QTextCursor
@@ -782,48 +783,51 @@ class ReportPanel(QWidget):
 
     @Slot()
     def _export_report(self) -> None:
-        """Export the current report to a file."""
-        # Get export format
-        export_format = self._export_format_combo.currentData()
+        """
+        Export the report to a file.
+        """
+        logger = logging.getLogger(__name__)
+        logger.info("Exporting report")
 
-        # Get default output directory
-        default_dir = self._config.get("Files", "default_output_dir", fallback="data/output")
+        # Get the default directory
+        default_dir = self._config.get_path("output_dir", "data/output")
 
-        # Get report type
-        report_type = self._report_type_combo.currentData()
+        # Get the report content
+        report_text = self._text_report.toPlainText()
+        if not report_text:
+            logger.warning("No report content to export")
+            return
 
-        # Create default filename based on report type and date
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        default_filename = f"{report_type}_report_{date_str}.{export_format}"
-
-        # Get file path
+        # Open file dialog
         file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Export Report",
-            str(Path(default_dir) / default_filename),
-            f"Text Files (*.{export_format})",
+            self, "Export Report", default_dir, "Text Files (*.txt);;All Files (*)"
         )
 
         if not file_path:
+            logger.info("Export cancelled")
             return
 
-        try:
-            # Export based on format
-            if export_format == "txt":
-                with open(file_path, "w") as f:
-                    f.write(self._text_report.toPlainText())
-            elif export_format == "csv":
-                self._export_as_csv(file_path)
-            elif export_format == "html":
-                with open(file_path, "w") as f:
-                    f.write(self._text_report.toHtml())
+        # Ensure the file has a .txt extension
+        if not file_path.endswith(".txt"):
+            file_path += ".txt"
 
-            # Save the directory
-            self._config.set("Files", "default_output_dir", str(Path(file_path).parent))
-            self._config.save()
+        try:
+            # Write the report to the file
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(report_text)
+
+            # Update the config with the output directory
+            output_dir = str(Path(file_path).parent)
+            self._config.set_path("output_dir", output_dir)
+
+            logger.info(f"Report exported to: {file_path}")
+
+            # Show a success message
+            QMessageBox.information(self, "Export Successful", f"Report exported to:\n{file_path}")
+
         except Exception as e:
-            # Show error message
-            print(f"Error exporting report: {e}")
+            logger.error(f"Error exporting report: {e}")
+            QMessageBox.critical(self, "Export Error", f"Error exporting report:\n{str(e)}")
 
     def _export_as_csv(self, file_path: str) -> None:
         """

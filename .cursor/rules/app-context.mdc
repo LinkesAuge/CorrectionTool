@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# App-context
+
+To understand the content and the context of the app and our codebase you can look [app-report.md](mdc:docs/app-report.md) and [component-breakdown.md](mdc:docs/component-breakdown.md).
+For current tasks you can study [todo.mdc](mdc:docs/todo.mdc)
+For bugfixing and similar issue reference [bugfixing.mdc](mdc:docs/bugfixing.mdc)
+
+Make sure to keep these updated if you make changes.
+

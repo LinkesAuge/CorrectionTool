@@ -33,9 +33,9 @@ def test_csv_import():
 
         # Test standard corrections CSV file
         corrections_file = "data/corrections/standard_corrections.csv"
-        if not Path(corrections_file).exists():
-            print(f"ERROR: Corrections file {corrections_file} not found")
-            return False
+        assert Path(corrections_file).exists(), (
+            f"ERROR: Corrections file {corrections_file} not found"
+        )
 
         print(f"Importing corrections list from {corrections_file}")
         corrections_list = ValidationList.load_from_file(corrections_file, list_type="corrections")
@@ -51,11 +51,10 @@ def test_csv_import():
         assert len(corrections_list.entries) > 0, "Corrections list should have entries"
 
         print("CSV import test PASSED")
-        return True
     except Exception as e:
         print(f"Test failed: {str(e)}")
         print(traceback.format_exc())
-        return False
+        assert False, f"Test failed: {str(e)}"
 
 
 def test_text_import():
@@ -72,9 +71,7 @@ def test_text_import():
         ]
 
         for list_type, file_path in test_types:
-            if not Path(file_path).exists():
-                print(f"ERROR: Test file {file_path} not found")
-                return False
+            assert Path(file_path).exists(), f"ERROR: Test file {file_path} not found"
 
             print(f"\nCase: Importing {list_type} from {file_path}")
             validation_list = ValidationList.load_from_file(file_path, list_type=list_type)
@@ -96,11 +93,10 @@ def test_text_import():
             assert len(validation_list.entries) > 0, f"List should have entries"
 
         print("\nText import test PASSED")
-        return True
     except Exception as e:
         print(f"Test failed: {str(e)}")
         print(traceback.format_exc())
-        return False
+        assert False, f"Test failed: {str(e)}"
 
 
 def test_input_data():
@@ -108,9 +104,7 @@ def test_input_data():
     temp_file = Path("data/input/chests_test.txt")
     try:
         print("\n===== Testing input data loading =====")
-        if not temp_file.exists():
-            print(f"ERROR: Input file {temp_file} not found")
-            return False
+        assert temp_file.exists(), f"ERROR: Input file {temp_file} not found"
 
         # Read the input file to verify it exists and can be read
         with open(temp_file, "r") as f:
@@ -119,9 +113,7 @@ def test_input_data():
             print(f"Input file has {len(lines)} lines")
 
             # Check if the file has content
-            if len(lines) == 0:
-                print("ERROR: Input file is empty")
-                return False
+            assert len(lines) > 0, "ERROR: Input file is empty"
 
             # Display a sample of the content
             print("Sample content:")
@@ -129,21 +121,33 @@ def test_input_data():
                 print(f"  Line {i + 1}: {lines[i]}")
 
         print("Input data test PASSED")
-        return True
     except Exception as e:
         print(f"Test failed: {str(e)}")
         print(traceback.format_exc())
-        return False
+        assert False, f"Test failed: {str(e)}"
 
 
 def main():
     """Run all tests and report results."""
-    success = True
+    csv_success = True
+    text_success = True
+    input_success = True
 
-    # Run each test
-    csv_success = test_csv_import()
-    text_success = test_text_import()
-    input_success = test_input_data()
+    try:
+        # Run each test
+        test_csv_import()
+    except AssertionError:
+        csv_success = False
+
+    try:
+        test_text_import()
+    except AssertionError:
+        text_success = False
+
+    try:
+        test_input_data()
+    except AssertionError:
+        input_success = False
 
     success = csv_success and text_success and input_success
 

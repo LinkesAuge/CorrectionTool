@@ -1,0 +1,85 @@
+2025-03-18 21:19:43.815 - INFO - root - Logging initialized with level: DEBUG
+2025-03-18 21:19:43.815 - INFO - root - Logging to file: logs\correction_tool_20250318_211943.log
+2025-03-18 21:19:43.815 - INFO - root - ================================================================================
+2025-03-18 21:19:43.815 - INFO - root - APPLICATION STARTING
+2025-03-18 21:19:43.815 - INFO - root - Python version: 3.12.9 (main, Feb 12 2025, 14:52:31) [MSC v.1942 64 bit (AMD64)]
+2025-03-18 21:19:43.816 - INFO - root - Working directory: D:\Projekte\CorrectionTool
+2025-03-18 21:19:43.816 - INFO - root - Command line: main.py
+2025-03-18 21:19:43.816 - INFO - root - ================================================================================
+2025-03-18 21:19:43.816 - INFO - root - Initializing ConfigManager...
+2025-03-18 21:19:43.816 - INFO - src.services.config_manager - Initializing ConfigManager
+2025-03-18 21:19:43.816 - INFO - src.services.config_manager - Using config path: D:\Projekte\CorrectionTool\config.ini
+2025-03-18 21:19:43.817 - INFO - src.services.config_manager - ConfigManager initialized successfully
+2025-03-18 21:19:43.817 - INFO - root - ConfigManager initialized successfully
+2025-03-18 21:19:43.817 - INFO - root - Configuration sections: ['Paths', 'Validation', 'General', 'Files']
+2025-03-18 21:19:43.817 - INFO - root - Paths section found in configuration
+2025-03-18 21:19:43.817 - INFO - root - Data directory: . (absolute: D:\Projekte\CorrectionTool)
+2025-03-18 21:19:43.817 - INFO - root - Correction rules file: . (absolute: D:\Projekte\CorrectionTool)
+2025-03-18 21:19:43.833 - INFO - root - Setting up MainWindow
+2025-03-18 21:19:43.834 - INFO - src.services.data_manager - DataManager initialized
+2025-03-18 21:19:44.067 - INFO - src.ui.dashboard - Initializing Dashboard
+2025-03-18 21:19:44.070 - INFO - src.ui.file_import_widget - Auto-loading correction rules from D:\Projekte\CorrectionTool
+2025-03-18 21:19:44.071 - ERROR - src.ui.file_import_widget - Error auto-loading correction rules: 'FileParser' object has no attribute 'load_correction_rules'
+2025-03-18 21:19:44.071 - CRITICAL - root - Error creating or showing MainWindow: 'FileImportWidget' object has no attribute '_correction_status_label'
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 114, in _auto_load_corrections
+    rules = self._file_parser.load_correction_rules(str(correction_path))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'FileParser' object has no attribute 'load_correction_rules'. Did you mean: 'parse_correction_rules'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 105, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 222, in _setup_content
+    self._setup_dashboard_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 240, in _setup_dashboard_page
+    self._dashboard = Dashboard(self)
+                      ^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 107, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 172, in _setup_ui
+    self._file_import_widget = FileImportWidget()
+                               ^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 103, in __init__
+    self._auto_load_corrections()
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 130, in _auto_load_corrections
+    self._correction_status_label.setText("Error loading correction rules")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'FileImportWidget' object has no attribute '_correction_status_label'. Did you mean: '_corrections_status_label'?
+2025-03-18 21:19:44.074 - CRITICAL - root - Fatal error starting application: 'FileImportWidget' object has no attribute '_correction_status_label'
+2025-03-18 21:19:44.076 - CRITICAL - root - Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 114, in _auto_load_corrections
+    rules = self._file_parser.load_correction_rules(str(correction_path))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'FileParser' object has no attribute 'load_correction_rules'. Did you mean: 'parse_correction_rules'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 105, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 222, in _setup_content
+    self._setup_dashboard_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 240, in _setup_dashboard_page
+    self._dashboard = Dashboard(self)
+                      ^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 107, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 172, in _setup_ui
+    self._file_import_widget = FileImportWidget()
+                               ^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 103, in __init__
+    self._auto_load_corrections()
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 130, in _auto_load_corrections
+    self._correction_status_label.setText("Error loading correction rules")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'FileImportWidget' object has no attribute '_correction_status_label'. Did you mean: '_corrections_status_label'?
+

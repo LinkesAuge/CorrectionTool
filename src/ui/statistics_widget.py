@@ -197,8 +197,18 @@ class StatisticsWidget(QWidget):
                 "QProgressBar::chunk { background-color: #00CC00; }"
             )
 
-    def _update_statistics(self):
-        """Update all statistics displays with current values."""
+    def _update_statistics(self, entries=None):
+        """
+        Update all statistics displays with current values.
+
+        Args:
+            entries (List[ChestEntry], optional): List of entries to update statistics with.
+                If provided, will update the internal entries list. Defaults to None.
+        """
+        # Update entries if provided
+        if entries is not None:
+            self._entries = entries
+
         # Update entry count
         entry_count = len(self._entries)
         self._entries_label.setText(str(entry_count))

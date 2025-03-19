@@ -70,6 +70,9 @@ class DataManager(QObject):
         self._entries: List[ChestEntry] = []
         self._correction_file_path: Optional[Path] = None
 
+        # Signal loop prevention
+        self._processing_signal = False
+
         # Get config manager
         self._config = ConfigManager()
 
@@ -85,28 +88,42 @@ class DataManager(QObject):
             rules: List of correction rules
             file_path: Path to the file from which rules were loaded (optional)
         """
+        # Prevent signal loops
+        if self._processing_signal:
+            self._logger.warning("Signal loop detected in set_correction_rules, skipping")
+            return
+
+        # If rules are the same, don't process
+        if self._correction_rules == rules:
+            self._logger.debug("Rules are unchanged, skipping")
+            return
+
         self._logger.info(f"Setting {len(rules)} correction rules in DataManager")
 
-        # Store the rules
-        self._correction_rules = rules.copy()
+        try:
+            self._processing_signal = True
 
-        # Store the file path if provided
-        if file_path:
-            self._correction_file_path = Path(file_path)
+            # Store the rules
+            self._correction_rules = rules.copy()
 
-            # Update config
-            file_path_str = str(file_path)
-            folder_path = str(Path(file_path_str).parent)
+            # Store the file path if provided
+            if file_path:
+                self._correction_file_path = Path(file_path)
 
-            self._config.set("General", "last_correction_file", file_path_str)
-            self._config.set("General", "last_folder", folder_path)
-            self._config.set("Files", "last_correction_directory", folder_path)
-            self._config.set("Correction", "default_correction_rules", file_path_str)
-            self._config.save()
+                # Update config using the new consolidated path structure
+                file_path_str = str(file_path)
+                folder_path = str(Path(file_path_str).parent)
 
-        # Emit signal to notify components
-        self._logger.info(f"Emitting correction_rules_changed signal with {len(rules)} rules")
-        self.correction_rules_changed.emit(self._correction_rules)
+                # Use the new path API for saving configs
+                self._config.set_path("correction_rules_file", file_path_str)
+                self._config.set_path("last_folder", folder_path)
+                self._config.set_path("corrections_dir", folder_path)
+
+            # Emit signal to notify components
+            self._logger.info(f"Emitting correction_rules_changed signal with {len(rules)} rules")
+            self.correction_rules_changed.emit(self._correction_rules)
+        finally:
+            self._processing_signal = False
 
     def get_correction_rules(self) -> List[CorrectionRule]:
         """
@@ -124,31 +141,46 @@ class DataManager(QObject):
         Args:
             lists: Dictionary of validation lists
         """
+        # Prevent signal loops
+        if self._processing_signal:
+            self._logger.warning("Signal loop detected in set_validation_lists, skipping")
+            return
+
+        # If lists are the same, don't process
+        if self._validation_lists == lists:
+            self._logger.debug("Validation lists are unchanged, skipping")
+            return
+
         self._logger.info(f"Setting {len(lists)} validation lists in DataManager")
 
-        # Store the lists
-        self._validation_lists = lists.copy()
+        try:
+            self._processing_signal = True
 
-        # Save list paths to config
-        for list_type, validation_list in lists.items():
-            if hasattr(validation_list, "file_path") and validation_list.file_path:
-                file_path_str = str(validation_list.file_path)
-                self._config.set("General", f"{list_type}_list_path", file_path_str)
+            # Store the lists
+            self._validation_lists = lists.copy()
 
-                # Also save in other config locations for consistency
-                if list_type == "player":
-                    self._config.set("Validation", "player_list", file_path_str)
-                elif list_type == "chest_type":
-                    self._config.set("Validation", "chest_type_list", file_path_str)
-                elif list_type == "source":
-                    self._config.set("Validation", "source_list", file_path_str)
+            # Save list paths to config
+            for list_type, validation_list in lists.items():
+                if hasattr(validation_list, "file_path") and validation_list.file_path:
+                    file_path_str = str(validation_list.file_path)
+                    self._config.set("General", f"{list_type}_list_path", file_path_str)
 
-        # Save config changes
-        self._config.save()
+                    # Also save in other config locations for consistency
+                    if list_type == "player":
+                        self._config.set("Validation", "player_list", file_path_str)
+                    elif list_type == "chest_type":
+                        self._config.set("Validation", "chest_type_list", file_path_str)
+                    elif list_type == "source":
+                        self._config.set("Validation", "source_list", file_path_str)
 
-        # Emit signal to notify components
-        self._logger.info(f"Emitting validation_lists_changed signal with {len(lists)} lists")
-        self.validation_lists_changed.emit(self._validation_lists)
+            # Save config changes
+            self._config.save()
+
+            # Emit signal to notify components
+            self._logger.info(f"Emitting validation_lists_changed signal with {len(lists)} lists")
+            self.validation_lists_changed.emit(self._validation_lists)
+        finally:
+            self._processing_signal = False
 
     def get_validation_lists(self) -> Dict[str, ValidationList]:
         """
@@ -166,14 +198,29 @@ class DataManager(QObject):
         Args:
             entries: List of chest entries
         """
+        # Prevent signal loops
+        if self._processing_signal:
+            self._logger.warning("Signal loop detected in set_entries, skipping")
+            return
+
+        # If entries are the same, don't process
+        if self._entries == entries:
+            self._logger.debug("Entries are unchanged, skipping")
+            return
+
         self._logger.info(f"Setting {len(entries)} entries in DataManager")
 
-        # Store the entries
-        self._entries = entries.copy()
+        try:
+            self._processing_signal = True
 
-        # Emit signal to notify components
-        self._logger.info(f"Emitting entries_changed signal with {len(entries)} entries")
-        self.entries_changed.emit(self._entries)
+            # Store the entries
+            self._entries = entries.copy()
+
+            # Emit signal to notify components
+            self._logger.info(f"Emitting entries_changed signal with {len(entries)} entries")
+            self.entries_changed.emit(self._entries)
+        finally:
+            self._processing_signal = False
 
     def get_entries(self) -> List[ChestEntry]:
         """
@@ -204,68 +251,46 @@ class DataManager(QObject):
 
         self._logger.info("DataManager: Loading saved correction rules")
 
-        # Check several possible config keys and sections for the correction rules file path
-        possible_paths = []
+        # Use the new consolidated path structure
+        rule_file = self._config.get_path("correction_rules_file")
 
-        # Try multiple locations in config in order of preference
-        config_locations = [
-            ("Correction", "default_correction_rules"),
-            ("General", "last_correction_file"),
-            ("Paths", "default_correction_rules"),
-            ("Files", "default_correction_list"),
-            ("paths", "default_correction_rules"),
-        ]
+        if not rule_file:
+            self._logger.warning("No correction rules file found in config")
+            return []
 
-        for section, key in config_locations:
-            rule_file = self._config.get(section, key, "")
-            if rule_file:
-                self._logger.info(f"Found possible rule file path in {section}.{key}: {rule_file}")
-                possible_paths.append(rule_file)
+        self._logger.info(f"Attempting to load correction rules from: {rule_file}")
+        rule_path = Path(rule_file)
 
-        # Try each path until we find one that works
-        for rule_file in possible_paths:
-            if not rule_file:
-                continue
+        if not rule_path.exists():
+            self._logger.warning(f"Correction rules file not found: {rule_path}")
+            return []
 
-            self._logger.info(f"Attempting to load correction rules from: {rule_file}")
-            rule_path = Path(rule_file)
+        try:
+            # Parse the correction file using FileParser
+            parser = FileParser()
+            rules = parser.parse_correction_file(rule_path)
 
-            if not rule_path.exists():
-                self._logger.warning(f"Correction rules file not found: {rule_path}")
-                continue
+            if not rules:
+                self._logger.warning(f"No rules loaded from file: {rule_path}")
+                return []
 
-            try:
-                # Parse the correction file using FileParser
-                parser = FileParser()
-                rules = parser.parse_correction_file(rule_path)
+            self._logger.info(f"Successfully loaded {len(rules)} correction rules from {rule_path}")
 
-                if not rules:
-                    self._logger.warning(f"No rules loaded from file: {rule_path}")
-                    continue
+            # Store the file path
+            self._correction_file_path = rule_path
 
-                self._logger.info(
-                    f"Successfully loaded {len(rules)} correction rules from {rule_path}"
-                )
+            # Store the rules and return them (but don't emit signal yet)
+            self._correction_rules = rules
 
-                # Store the file path
-                self._correction_file_path = rule_path
+            # Update the config to make this the default path in all locations
+            self._config.set_path("correction_rules_file", str(rule_path))
 
-                # Store the rules and return them (but don't emit signal yet)
-                self._correction_rules = rules
+            return rules
 
-                # Update the config to make this the default path in all locations
-                self._update_correction_file_path(str(rule_path))
-
-                return rules
-
-            except Exception as e:
-                self._logger.error(f"Error loading correction rules from {rule_path}: {str(e)}")
-                self._logger.error(traceback.format_exc())
-                # Continue to try the next path
-
-        # If we got here, no rules were loaded
-        self._logger.warning("No correction rules were successfully loaded from any path")
-        return []
+        except Exception as e:
+            self._logger.error(f"Error loading correction rules from {rule_path}: {str(e)}")
+            self._logger.error(traceback.format_exc())
+            return []
 
     def _update_correction_file_path(self, file_path: str):
         """
@@ -274,244 +299,117 @@ class DataManager(QObject):
         Args:
             file_path: Path to the correction file
         """
-        config_locations = [
-            ("Correction", "default_correction_rules"),
-            ("General", "last_correction_file"),
-            ("Paths", "default_correction_rules"),
-            ("Files", "default_correction_list"),
-        ]
+        # Use the new consolidated path structure
+        self._config.set_path("correction_rules_file", file_path)
 
-        for section, key in config_locations:
-            self._config.set(section, key, file_path)
-
-        # Save the folder path too
+        # Also update the folder path
         folder_path = str(Path(file_path).parent)
-        self._config.set("General", "last_folder", folder_path)
-        self._config.set("Files", "last_correction_directory", folder_path)
+        self._config.set_path("last_folder", folder_path)
+        self._config.set_path("corrections_dir", folder_path)
 
-        # Save the config
-        self._config.save()
-
-    def load_saved_validation_lists(self) -> Dict[str, ValidationList]:
+    def _load_saved_validation_lists(self):
         """
-        Load validation lists from the default paths in the config.
+        Load validation lists from paths saved in config.
 
-        Returns:
-            Dictionary of loaded validation lists, or empty dict if loading failed
+        Loads player, chest type, and source validation lists from the paths
+        configured in the ConfigManager.
         """
-        import traceback
-
         self._logger.info("DataManager: Loading saved validation lists")
 
-        lists = {}
-        try:
-            # Load player list
-            for key in ["player_list", "player_list_path"]:
-                for section in ["Validation", "General"]:
-                    player_list_path = self._config.get(section, key, "")
-                    if player_list_path:
-                        player_path = Path(player_list_path)
-                        self._logger.info(f"Loading player list from: {player_path}")
+        # Get configured paths
+        player_path = self._config.get_path("player_list_file", fallback=None)
+        if player_path and Path(player_path).exists():
+            self._logger.info(f"Loading player list from: {player_path}")
+            try:
+                player_list = ValidationList.load_from_file(player_path, "player")
+                self._validation_lists["player"] = player_list
+                self._logger.info(
+                    f"Loaded player list with {len(player_list.get_entries())} entries"
+                )
+            except Exception as e:
+                self._logger.warning(f"Error loading player list: {str(e)}")
 
-                        if player_path.exists():
-                            try:
-                                player_list = ValidationList.load_from_file(player_path)
-                                if player_list is not None:
-                                    lists["player"] = player_list
-                                    self._logger.info(
-                                        f"Loaded player list with {len(player_list.items)} items"
-                                    )
-                                    break
-                            except Exception as e:
-                                self._logger.warning(f"Error loading player list: {str(e)}")
-                                # Try alternate loading approach
-                                with open(player_path, "r", encoding="utf-8") as f:
-                                    items = [line.strip() for line in f if line.strip()]
-                                    if items:
-                                        player_list = ValidationList(
-                                            list_type="player", entries=items
-                                        )
-                                        player_list.file_path = player_path
-                                        lists["player"] = player_list
-                                        self._logger.info(
-                                            f"Loaded player list with {len(items)} items (alternate method)"
-                                        )
-                                        break
-                if "player" in lists:
-                    break
+        chest_path = self._config.get_path("chest_type_list_file", fallback=None)
+        if chest_path and Path(chest_path).exists():
+            self._logger.info(f"Loading chest type list from: {chest_path}")
+            try:
+                chest_list = ValidationList.load_from_file(chest_path, "chest_type")
+                self._validation_lists["chest_type"] = chest_list
+                self._logger.info(
+                    f"Loaded chest type list with {len(chest_list.get_entries())} entries"
+                )
+            except Exception as e:
+                self._logger.warning(f"Error loading chest type list: {str(e)}")
 
-            # Load chest type list
-            for key in ["chest_type_list", "chest_type_list_path"]:
-                for section in ["Validation", "General"]:
-                    chest_type_list_path = self._config.get(section, key, "")
-                    if chest_type_list_path:
-                        chest_path = Path(chest_type_list_path)
-                        self._logger.info(f"Loading chest type list from: {chest_path}")
+        source_path = self._config.get_path("source_list_file", fallback=None)
+        if source_path and Path(source_path).exists():
+            self._logger.info(f"Loading source list from: {source_path}")
+            try:
+                source_list = ValidationList.load_from_file(source_path, "source")
+                self._validation_lists["source"] = source_list
+                self._logger.info(
+                    f"Loaded source list with {len(source_list.get_entries())} entries"
+                )
+            except Exception as e:
+                self._logger.warning(f"Error loading source list: {str(e)}")
 
-                        if chest_path.exists():
-                            try:
-                                chest_list = ValidationList.load_from_file(chest_path)
-                                if chest_list is not None:
-                                    lists["chest_type"] = chest_list
-                                    self._logger.info(
-                                        f"Loaded chest type list with {len(chest_list.items)} items"
-                                    )
-                                    break
-                            except Exception as e:
-                                self._logger.warning(f"Error loading chest type list: {str(e)}")
-                                # Try alternate loading approach
-                                with open(chest_path, "r", encoding="utf-8") as f:
-                                    items = [line.strip() for line in f if line.strip()]
-                                    if items:
-                                        chest_list = ValidationList(
-                                            list_type="chest_type", entries=items
-                                        )
-                                        chest_list.file_path = chest_path
-                                        lists["chest_type"] = chest_list
-                                        self._logger.info(
-                                            f"Loaded chest type list with {len(items)} items (alternate method)"
-                                        )
-                                        break
-                if "chest_type" in lists:
-                    break
+        # Emit signal with updated validation lists
+        self._logger.info(
+            f"Emitting validation_lists_changed signal with {len(self._validation_lists)} lists"
+        )
+        self.validation_lists_changed.emit(self._validation_lists)
 
-            # Load source list
-            for key in ["source_list", "source_list_path"]:
-                for section in ["Validation", "General"]:
-                    source_list_path = self._config.get(section, key, "")
-                    if source_list_path:
-                        source_path = Path(source_list_path)
-                        self._logger.info(f"Loading source list from: {source_path}")
+        return len(self._validation_lists) > 0
 
-                        if source_path.exists():
-                            try:
-                                source_list = ValidationList.load_from_file(source_path)
-                                if source_list is not None:
-                                    lists["source"] = source_list
-                                    self._logger.info(
-                                        f"Loaded source list with {len(source_list.items)} items"
-                                    )
-                                    break
-                            except Exception as e:
-                                self._logger.warning(f"Error loading source list: {str(e)}")
-                                # Try alternate loading approach
-                                with open(source_path, "r", encoding="utf-8") as f:
-                                    items = [line.strip() for line in f if line.strip()]
-                                    if items:
-                                        source_list = ValidationList(
-                                            list_type="source", entries=items
-                                        )
-                                        source_list.file_path = source_path
-                                        lists["source"] = source_list
-                                        self._logger.info(
-                                            f"Loaded source list with {len(items)} items (alternate method)"
-                                        )
-                                        break
-                if "source" in lists:
-                    break
-
-            # If we don't have all lists, try to load default lists
-            if len(lists) < 3:
-                self._logger.info("Some validation lists not found, trying to load default lists")
-                default_lists = self.load_default_validation_lists()
-
-                # Merge default lists with loaded lists
-                for list_type, validation_list in default_lists.items():
-                    if list_type not in lists:  # Only add if not already loaded
-                        lists[list_type] = validation_list
-                        self._logger.info(
-                            f"Added default {list_type} list with {len(validation_list.items)} items"
-                        )
-
-            # Store the lists (but don't emit signal yet)
-            self._validation_lists = lists
-            return lists
-
-        except Exception as e:
-            self._logger.error(f"Error loading validation lists: {str(e)}")
-            self._logger.error(traceback.format_exc())
-
-            # If there was an error, try to load default lists as a fallback
-            self._logger.info("Trying to load default validation lists as fallback")
-            fallback_lists = self.load_default_validation_lists()
-            if fallback_lists:
-                self._validation_lists = fallback_lists
-                return fallback_lists
-
-            return {}
-
-    def load_default_validation_lists(self) -> Dict[str, ValidationList]:
+    def _load_default_validation_lists(self):
         """
-        Load default validation lists from the sample data location.
-
-        Returns:
-            Dictionary of loaded validation lists, or empty dict if loading failed
+        Load default validation lists from the default paths.
         """
-        import traceback
+        self._logger.info("DataManager: Loading default validation lists")
 
-        self._logger.info("Loading default validation lists from sample data")
+        # Player list
+        player_file = "data/validation/players.txt"
+        if Path(player_file).exists():
+            self._logger.info(f"Loading player list from: {player_file}")
+            try:
+                player_list = ValidationList.load_from_file(player_file, "player")
+                self._validation_lists["player"] = player_list
+                self._logger.info(
+                    f"Loaded player list with {len(player_list.get_entries())} entries"
+                )
+            except Exception as e:
+                self._logger.warning(f"Error loading player list: {str(e)}")
 
-        lists = {}
-        default_dir = Path("tests/sample_data/validation_samples")
+        # Chest type list
+        chest_file = "data/validation/chest_types.txt"
+        if Path(chest_file).exists():
+            self._logger.info(f"Loading chest type list from: {chest_file}")
+            try:
+                chest_list = ValidationList.load_from_file(chest_file, "chest_type")
+                self._validation_lists["chest_type"] = chest_list
+                self._logger.info(
+                    f"Loaded chest type list with {len(chest_list.get_entries())} entries"
+                )
+            except Exception as e:
+                self._logger.warning(f"Error loading chest type list: {str(e)}")
 
-        try:
-            # Try to load player list
-            player_path = default_dir / "player_list.csv"
-            if player_path.exists():
-                try:
-                    player_list = ValidationList.load_from_file(player_path)
-                    if player_list is not None:
-                        lists["player"] = player_list
-                        self._logger.info(
-                            f"Loaded default player list with {len(player_list.items)} items"
-                        )
+        # Source list
+        source_file = "data/validation/sources.txt"
+        if Path(source_file).exists():
+            self._logger.info(f"Loading source list from: {source_file}")
+            try:
+                source_list = ValidationList.load_from_file(source_file, "source")
+                self._validation_lists["source"] = source_list
+                self._logger.info(
+                    f"Loaded source list with {len(source_list.get_entries())} entries"
+                )
+            except Exception as e:
+                self._logger.warning(f"Error loading source list: {str(e)}")
 
-                        # Save the path to config for future use
-                        self._config.set("Validation", "player_list", str(player_path))
-                        self._config.set("General", "player_list_path", str(player_path))
-                except Exception as e:
-                    self._logger.warning(f"Error loading default player list: {str(e)}")
+        # Emit signal with updated validation lists
+        self._logger.info(
+            f"Emitting validation_lists_changed signal with {len(self._validation_lists)} lists"
+        )
+        self.validation_lists_changed.emit(self._validation_lists)
 
-            # Try to load chest type list
-            chest_path = default_dir / "chest_type_list.csv"
-            if chest_path.exists():
-                try:
-                    chest_list = ValidationList.load_from_file(chest_path)
-                    if chest_list is not None:
-                        lists["chest_type"] = chest_list
-                        self._logger.info(
-                            f"Loaded default chest type list with {len(chest_list.items)} items"
-                        )
-
-                        # Save the path to config for future use
-                        self._config.set("Validation", "chest_type_list", str(chest_path))
-                        self._config.set("General", "chest_type_list_path", str(chest_path))
-                except Exception as e:
-                    self._logger.warning(f"Error loading default chest type list: {str(e)}")
-
-            # Try to load source list
-            source_path = default_dir / "source_list.csv"
-            if source_path.exists():
-                try:
-                    source_list = ValidationList.load_from_file(source_path)
-                    if source_list is not None:
-                        lists["source"] = source_list
-                        self._logger.info(
-                            f"Loaded default source list with {len(source_list.items)} items"
-                        )
-
-                        # Save the path to config for future use
-                        self._config.set("Validation", "source_list", str(source_path))
-                        self._config.set("General", "source_list_path", str(source_path))
-                except Exception as e:
-                    self._logger.warning(f"Error loading default source list: {str(e)}")
-
-            # Save config changes
-            self._config.save()
-
-            return lists
-
-        except Exception as e:
-            self._logger.error(f"Error loading default validation lists: {str(e)}")
-            self._logger.error(traceback.format_exc())
-            return {}
+        return len(self._validation_lists) > 0

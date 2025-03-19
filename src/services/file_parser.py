@@ -335,14 +335,19 @@ class FileParser:
             # Create a ChestEntry
             try:
                 entry_text = f"{chest_type}\n{player_line}\n{source_line}"
-                self.logger.debug(f"Creating entry from text: {entry_text}")
+                # Only log occasionally (first entry, every 100th entry)
+                if current_id == 1 or current_id % 100 == 0:
+                    self.logger.debug(f"Creating entry #{current_id} from text: {entry_text}")
 
                 # IDs are now auto-generated in the ChestEntry class
                 entry = ChestEntry.from_text(entry_text)
                 entries.append(entry)
-                self.logger.debug(
-                    f"Created entry: {entry.chest_type}, {entry.player}, {entry.source}"
-                )
+
+                # Only log occasionally (first entry, every 100th entry)
+                if current_id == 1 or current_id % 100 == 0:
+                    self.logger.debug(
+                        f"Created entry #{current_id}: {entry.chest_type}, {entry.player}, {entry.source}"
+                    )
 
                 current_id += 1
             except ValueError as e:
@@ -587,6 +592,62 @@ class FileParser:
             self.logger.error(f"Error saving rules to CSV file: {e}")
             self.logger.error(traceback.format_exc())
             raise
+
+    def parse_entry_file_debug(self, file_path: Union[str, Path]) -> List[ChestEntry]:
+        """
+        Parse a file containing chest entries with detailed debugging.
+        This wraps parse_entry_file with additional logging.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            List of parsed chest entries
+        """
+        logger = logging.getLogger(__name__)
+        logger.info(f"DEBUG: Starting entry file parsing with detailed logging: {file_path}")
+
+        try:
+            # Check if file exists
+            file_path_obj = Path(file_path)
+            if not file_path_obj.exists():
+                logger.error(f"DEBUG: File not found: {file_path}")
+                return []
+
+            # Get file info
+            file_size = file_path_obj.stat().st_size
+            logger.info(f"DEBUG: File size: {file_size} bytes")
+
+            # Parse the file
+            entries = self.parse_entry_file(file_path)
+
+            # Log details about entries
+            logger.info(f"DEBUG: Successfully parsed {len(entries)} entries")
+            if entries:
+                # Log the first entry as an example
+                first_entry = entries[0]
+                logger.info(
+                    f"DEBUG: First entry: {first_entry.chest_type} | {first_entry.player} | {first_entry.source}"
+                )
+
+                # Log the last entry as an example
+                last_entry = entries[-1]
+                logger.info(
+                    f"DEBUG: Last entry: {last_entry.chest_type} | {last_entry.player} | {last_entry.source}"
+                )
+
+                # Check if entries have ID values
+                has_ids = all(entry.id is not None for entry in entries)
+                logger.info(f"DEBUG: All entries have IDs: {has_ids}")
+
+            return entries
+
+        except Exception as e:
+            logger.error(f"DEBUG: Error in parse_entry_file_debug: {str(e)}")
+            import traceback
+
+            logger.error(f"DEBUG: Traceback: {traceback.format_exc()}")
+            return []
 
 
 # For backward compatibility

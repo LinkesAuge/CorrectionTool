@@ -1,0 +1,83 @@
+2025-03-18 21:19:19.146 - INFO - root - Logging initialized with level: DEBUG
+2025-03-18 21:19:19.146 - INFO - root - Logging to file: logs\correction_tool_20250318_211919.log
+2025-03-18 21:19:19.146 - INFO - root - ================================================================================
+2025-03-18 21:19:19.147 - INFO - root - APPLICATION STARTING
+2025-03-18 21:19:19.147 - INFO - root - Python version: 3.12.9 (main, Feb 12 2025, 14:52:31) [MSC v.1942 64 bit (AMD64)]
+2025-03-18 21:19:19.147 - INFO - root - Working directory: D:\Projekte\CorrectionTool
+2025-03-18 21:19:19.147 - INFO - root - Command line: main.py
+2025-03-18 21:19:19.147 - INFO - root - ================================================================================
+2025-03-18 21:19:19.147 - INFO - root - Initializing ConfigManager...
+2025-03-18 21:19:19.148 - INFO - src.services.config_manager - Initializing ConfigManager
+2025-03-18 21:19:19.148 - INFO - src.services.config_manager - Using config path: D:\Projekte\CorrectionTool\config.ini
+2025-03-18 21:19:19.148 - INFO - src.services.config_manager - ConfigManager initialized successfully
+2025-03-18 21:19:19.148 - INFO - root - ConfigManager initialized successfully
+2025-03-18 21:19:19.148 - INFO - root - Configuration sections: ['Paths', 'Validation', 'General', 'Files']
+2025-03-18 21:19:19.149 - INFO - root - Paths section found in configuration
+2025-03-18 21:19:19.149 - INFO - root - Data directory: . (absolute: D:\Projekte\CorrectionTool)
+2025-03-18 21:19:19.149 - INFO - root - Correction rules file: . (absolute: D:\Projekte\CorrectionTool)
+2025-03-18 21:19:19.164 - INFO - root - Setting up MainWindow
+2025-03-18 21:19:19.165 - INFO - src.services.data_manager - DataManager initialized
+2025-03-18 21:19:19.386 - INFO - src.ui.dashboard - Initializing Dashboard
+2025-03-18 21:19:19.389 - CRITICAL - root - Error creating or showing MainWindow: 'FileImportWidget' object has no attribute 'logger'
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 108, in _auto_load_corrections
+    self.logger.info(f"Auto-loading correction rules from {correction_path}")
+    ^^^^^^^^^^^
+AttributeError: 'FileImportWidget' object has no attribute 'logger'. Did you mean: 'lower'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 105, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 222, in _setup_content
+    self._setup_dashboard_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 240, in _setup_dashboard_page
+    self._dashboard = Dashboard(self)
+                      ^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 107, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 172, in _setup_ui
+    self._file_import_widget = FileImportWidget()
+                               ^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 98, in __init__
+    self._auto_load_corrections()
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 124, in _auto_load_corrections
+    self.logger.error(f"Error auto-loading correction rules: {e}")
+    ^^^^^^^^^^^
+AttributeError: 'FileImportWidget' object has no attribute 'logger'. Did you mean: 'lower'?
+2025-03-18 21:19:19.392 - CRITICAL - root - Fatal error starting application: 'FileImportWidget' object has no attribute 'logger'
+2025-03-18 21:19:19.394 - CRITICAL - root - Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 108, in _auto_load_corrections
+    self.logger.info(f"Auto-loading correction rules from {correction_path}")
+    ^^^^^^^^^^^
+AttributeError: 'FileImportWidget' object has no attribute 'logger'. Did you mean: 'lower'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projekte\CorrectionTool\main.py", line 105, in main
+    main_window = MainWindow()
+                  ^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 88, in __init__
+    self._setup_content()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 222, in _setup_content
+    self._setup_dashboard_page()
+  File "D:\Projekte\CorrectionTool\src\ui\main_window.py", line 240, in _setup_dashboard_page
+    self._dashboard = Dashboard(self)
+                      ^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 107, in __init__
+    self._setup_ui()
+  File "D:\Projekte\CorrectionTool\src\ui\dashboard.py", line 172, in _setup_ui
+    self._file_import_widget = FileImportWidget()
+                               ^^^^^^^^^^^^^^^^^^
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 98, in __init__
+    self._auto_load_corrections()
+  File "D:\Projekte\CorrectionTool\src\ui\file_import_widget.py", line 124, in _auto_load_corrections
+    self.logger.error(f"Error auto-loading correction rules: {e}")
+    ^^^^^^^^^^^
+AttributeError: 'FileImportWidget' object has no attribute 'logger'. Did you mean: 'lower'?
+

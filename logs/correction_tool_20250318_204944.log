@@ -1,0 +1,498 @@
+2025-03-18 20:49:44.441 - INFO - root - Logging initialized with level: DEBUG
+2025-03-18 20:49:44.441 - INFO - root - Logging to file: logs\correction_tool_20250318_204944.log
+2025-03-18 20:49:44.441 - INFO - root - ================================================================================
+2025-03-18 20:49:44.441 - INFO - root - APPLICATION STARTING
+2025-03-18 20:49:44.441 - INFO - root - Python version: 3.12.9 (main, Feb 12 2025, 14:52:31) [MSC v.1942 64 bit (AMD64)]
+2025-03-18 20:49:44.441 - INFO - root - Working directory: D:\Projekte\CorrectionTool
+2025-03-18 20:49:44.441 - INFO - root - Command line: d:/Projekte/CorrectionTool/main.py
+2025-03-18 20:49:44.442 - INFO - root - ================================================================================
+2025-03-18 20:49:44.442 - INFO - root - Ensured directory exists: data
+2025-03-18 20:49:44.442 - INFO - root - Ensured directory exists: data/input
+2025-03-18 20:49:44.442 - INFO - root - Ensured directory exists: data/output
+2025-03-18 20:49:44.443 - INFO - root - Ensured directory exists: data/corrections
+2025-03-18 20:49:44.443 - INFO - root - Ensured directory exists: data/validation
+2025-03-18 20:49:44.443 - INFO - src.services.config_manager - Initializing ConfigManager
+2025-03-18 20:49:44.443 - INFO - src.services.config_manager - Using config path: d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.443 - INFO - src.services.config_manager - Loading configuration from d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.444 - INFO - src.services.config_manager - Configuration loaded successfully
+2025-03-18 20:49:44.444 - INFO - src.services.config_manager - ConfigManager initialized successfully
+2025-03-18 20:49:44.444 - INFO - root - Configuration initialized
+2025-03-18 20:49:44.460 - INFO - root - Setting up MainWindow
+2025-03-18 20:49:44.461 - INFO - src.services.data_manager - DataManager initialized
+2025-03-18 20:49:44.676 - INFO - src.ui.dashboard - Initializing Dashboard
+2025-03-18 20:49:44.680 - INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 20:49:44.680 - INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 20:49:44.680 - INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+2025-03-18 20:49:44.680 - DEBUG - src.services.file_parser - Delimiter ';' gives 1 columns
+2025-03-18 20:49:44.681 - DEBUG - src.services.file_parser - Delimiter ',' gives 3 columns
+2025-03-18 20:49:44.681 - DEBUG - src.services.file_parser - Delimiter '	' gives 1 columns
+2025-03-18 20:49:44.681 - INFO - src.services.file_parser - Using delimiter: ',' with 3 columns
+2025-03-18 20:49:44.681 - INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category']
+2025-03-18 20:49:44.681 - INFO - src.services.file_parser - Found required headers (case-insensitive)
+2025-03-18 20:49:44.681 - DEBUG - src.services.file_parser - Processing row 2: {'From': 'Маһоп12', 'To': 'D4rkBlizZ4rD', 'Category': 'player'}
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Created rule: Маһоп12 -> D4rkBlizZ4rD (category: player)
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Processing row 3: {'From': 'АЙ', 'To': 'D4rkBlizZ4rD', 'Category': 'player'}
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Created rule: АЙ -> D4rkBlizZ4rD (category: player)
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Processing row 4: {'From': 'Fenrir"s Chest', 'To': "Fenrir's Chest", 'Category': 'chest'}
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Created rule: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Processing row 5: {'From': 'Hermes" Store', 'To': "Hermes' Store", 'Category': 'source'}
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Created rule: Hermes" Store -> Hermes' Store (category: source)
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Processing row 6: {'From': 'VVarrior"s Chest"', 'To': "Warrior's Chest", 'Category': 'chest'}
+2025-03-18 20:49:44.682 - DEBUG - src.services.file_parser - Created rule: VVarrior"s Chest" -> Warrior's Chest (category: chest)
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Processing row 7: {'From': 'Clan vvealth', 'To': 'Clan wealth', 'Category': 'source'}
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Created rule: Clan vvealth -> Clan wealth (category: source)
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Processing row 8: {'From': 'OsmanliTorunu', 'To': 'OsmanlıTorunu', 'Category': 'player'}
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Created rule: OsmanliTorunu -> OsmanlıTorunu (category: player)
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Processing row 9: {'From': 'Epic Ancient sguad', 'To': 'Epic Ancient squad', 'Category': 'source'}
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Created rule: Epic Ancient sguad -> Epic Ancient squad (category: source)
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Processing row 10: {'From': 'Snovvvveaver', 'To': 'Snowweaver', 'Category': 'player'}
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Created rule: Snovvvveaver -> Snowweaver (category: player)
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Processing row 11: {'From': 'Krimelmonster', 'To': 'Krümelmonster', 'Category': 'player'}
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Created rule: Krimelmonster -> Krümelmonster (category: player)
+2025-03-18 20:49:44.683 - DEBUG - src.services.file_parser - Processing row 12: {'From': 'GUARDIENOfTHUNDER', 'To': 'GUARDIENofTHUNDER', 'Category': 'player'}
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Created rule: GUARDIENOfTHUNDER -> GUARDIENofTHUNDER (category: player)
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Processing row 13: {'From': 'Rare Chest of VVealth', 'To': 'Rare Chest of Wealth', 'Category': 'chest'}
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Created rule: Rare Chest of VVealth -> Rare Chest of Wealth (category: chest)
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Processing row 14: {'From': 'Epic Chest of Vvealth', 'To': 'Epic Chest of Wealth', 'Category': 'chest'}
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Created rule: Epic Chest of Vvealth -> Epic Chest of Wealth (category: chest)
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Processing row 15: {'From': 'Sir Nightvvoolf', 'To': 'Sir Nightwoolf', 'Category': 'player'}
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Created rule: Sir Nightvvoolf -> Sir Nightwoolf (category: player)
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Processing row 16: {'From': 'Hammerschlagi', 'To': 'Hammerschlag1', 'Category': 'player'}
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Created rule: Hammerschlagi -> Hammerschlag1 (category: player)
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Processing row 17: {'From': 'Feldjager', 'To': 'Feldjäger', 'Category': 'player'}
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Created rule: Feldjager -> Feldjäger (category: player)
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Processing row 18: {'From': 'Feldj䧥r', 'To': 'Feldjäger', 'Category': 'player'}
+2025-03-18 20:49:44.684 - DEBUG - src.services.file_parser - Created rule: Feldj䧥r -> Feldjäger (category: player)
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Processing row 19: {'From': 'Lord Ore', 'To': 'Lord Öre', 'Category': 'player'}
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Created rule: Lord Ore -> Lord Öre (category: player)
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Processing row 20: {'From': 'Lord ֲe', 'To': 'Lord Öre', 'Category': 'player'}
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Created rule: Lord ֲe -> Lord Öre (category: player)
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Processing row 21: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source'}
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Processing row 22: {'From': 'Ouick March Chest', 'To': 'Quick March Chest', 'Category': 'chest'}
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Created rule: Ouick March Chest -> Quick March Chest (category: chest)
+2025-03-18 20:49:44.685 - DEBUG - src.services.file_parser - Processing row 23: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source'}
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Processing row 24: {'From': 'Union of Triumph personal revvard', 'To': 'Union of Triumph personal reward', 'Category': 'source'}
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Created rule: Union of Triumph personal revvard -> Union of Triumph personal reward (category: source)
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Processing row 25: {'From': 'revvard', 'To': 'reward', 'Category': 'general'}
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Created rule: revvard -> reward (category: general)
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Processing row 26: {'From': 'sguad', 'To': 'squad', 'Category': 'general'}
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Created rule: sguad -> squad (category: general)
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Processing row 27: {'From': 'Vvealth', 'To': 'Wealth', 'Category': 'general'}
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Created rule: Vvealth -> Wealth (category: general)
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Processing row 28: {'From': 'VVealth', 'To': 'Wealth', 'Category': 'general'}
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Created rule: VVealth -> Wealth (category: general)
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Processing row 29: {'From': 'Julius Casar', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 20:49:44.686 - DEBUG - src.services.file_parser - Created rule: Julius Casar -> Julius Cäsar (category: player)
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Processing row 30: {'From': 'Juslius C䳡r', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Created rule: Juslius C䳡r -> Julius Cäsar (category: player)
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Processing row 31: {'From': 'Juslius Cäsar', 'To': 'Julius Cäsar', 'Category': 'player'}
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Created rule: Juslius Cäsar -> Julius Cäsar (category: player)
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Processing row 32: {'From': 'Ancients"', 'To': "Ancients'", 'Category': 'general'}
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Created rule: Ancients" -> Ancients' (category: general)
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Processing row 33: {'From': 'Quick March Chest Chest', 'To': 'Quick March Chest', 'Category': 'chest'}
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Created rule: Quick March Chest Chest -> Quick March Chest (category: chest)
+2025-03-18 20:49:44.687 - DEBUG - src.services.file_parser - Processing row 34: {'From': 'Union of Triumf personal reward', 'To': 'Union of Triumph personal reward', 'Category': 'general'}
+2025-03-18 20:49:44.688 - DEBUG - src.services.file_parser - Created rule: Union of Triumf personal reward -> Union of Triumph personal reward (category: general)
+2025-03-18 20:49:44.688 - DEBUG - src.services.file_parser - Processing row 35: {'From': 'Triumf', 'To': 'Triumph', 'Category': 'general'}
+2025-03-18 20:49:44.688 - DEBUG - src.services.file_parser - Created rule: Triumf -> Triumph (category: general)
+2025-03-18 20:49:44.688 - DEBUG - src.services.file_parser - Processing row 36: {'From': 'Triumfp', 'To': 'Triumph', 'Category': 'general'}
+2025-03-18 20:49:44.688 - DEBUG - src.services.file_parser - Created rule: Triumfp -> Triumph (category: general)
+2025-03-18 20:49:44.688 - DEBUG - src.services.file_parser - Processing row 37: {'From': 'JÃªrmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 20:49:44.688 - DEBUG - src.services.file_parser - Created rule: JÃªrmungandr -> Jormungandr (category: general)
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Processing row 38: {'From': 'Jêrmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Created rule: Jêrmungandr -> Jormungandr (category: general)
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Processing row 39: {'From': 'J㪲mungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Created rule: J㪲mungandr -> Jormungandr (category: general)
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Processing row 40: {'From': 'JÃ²rmungandr', 'To': 'Jormungandr', 'Category': 'general'}
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr -> Jormungandr (category: general)
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Processing row 41: {'From': "Jòrmungandr's", 'To': "Jormungandr's", 'Category': 'general'}
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's -> Jormungandr's (category: general)
+2025-03-18 20:49:44.689 - DEBUG - src.services.file_parser - Processing row 42: {'From': "JÃ²rmungandr's", 'To': "Jormungandr's", 'Category': 'general'}
+2025-03-18 20:49:44.690 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr's -> Jormungandr's (category: general)
+2025-03-18 20:49:44.690 - DEBUG - src.services.file_parser - Processing row 43: {'From': 'JÃ²rmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source'}
+2025-03-18 20:49:44.690 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-18 20:49:44.690 - DEBUG - src.services.file_parser - Processing row 44: {'From': 'Jòrmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source'}
+2025-03-18 20:49:44.690 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-18 20:49:44.690 - DEBUG - src.services.file_parser - Processing row 45: {'From': "Jòrmungandr's Chest", 'To': "Jormungandr's Chest", 'Category': 'chest'}
+2025-03-18 20:49:44.690 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's Chest -> Jormungandr's Chest (category: chest)
+2025-03-18 20:49:44.690 - DEBUG - src.services.file_parser - Processing row 46: {'From': 'Epic Jêrmungandr sguad', 'To': 'Epic Jormungandr squad', 'Category': 'source'}
+2025-03-18 20:49:44.691 - DEBUG - src.services.file_parser - Created rule: Epic Jêrmungandr sguad -> Epic Jormungandr squad (category: source)
+2025-03-18 20:49:44.691 - INFO - src.services.file_parser - Successfully parsed 45 rules from CSV
+2025-03-18 20:49:44.691 - INFO - src.services.file_parser - Successfully parsed 45 rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-18 20:49:44.712 - INFO - src.ui.dashboard - Connecting Dashboard signals
+2025-03-18 20:49:44.712 - WARNING - src.ui.dashboard - Correction manager not available for signal connection
+2025-03-18 20:49:44.712 - INFO - src.ui.dashboard - Dashboard signals connected successfully
+2025-03-18 20:49:44.712 - INFO - src.ui.dashboard - Status bar initialized from parent
+2025-03-18 20:49:44.713 - INFO - src.ui.dashboard - Dashboard: Loading saved correction rules
+2025-03-18 20:49:44.713 - INFO - src.ui.dashboard - No correction rules file found in config
+2025-03-18 20:49:44.713 - INFO - src.ui.dashboard - Dashboard: Loading saved validation lists
+2025-03-18 20:49:44.713 - DEBUG - src.services.config_manager - Converted relative path to absolute: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.713 - DEBUG - src.services.config_manager - Converted relative path to absolute: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.713 - DEBUG - src.services.config_manager - Converted relative path to absolute: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.713 - INFO - src.ui.dashboard - Loading validation lists from config: player=d:\Projekte\CorrectionTool\data\validation\players.txt, chest=d:\Projekte\CorrectionTool\data\validation\chest_types.txt, source=d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.713 - INFO - src.ui.dashboard - Loading player list from: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.714 - INFO - src.models.validation_list - Loading validation list from: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.714 - INFO - src.models.validation_list - Loaded 94 entries from text file. First few entries: ['Alarich', 'Alexa Elly', 'Alf', 'Alisea', 'Anararad']
+2025-03-18 20:49:44.714 - INFO - src.ui.dashboard - Loaded player list with 94 items
+2025-03-18 20:49:44.714 - INFO - src.ui.dashboard - Loading chest type list from: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.714 - INFO - src.models.validation_list - Loading validation list from: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.714 - INFO - src.models.validation_list - Loaded 72 entries from text file. First few entries: ['Abandoned Chest', "Ancient Warrior's Chest", 'Ancient Bastion Chest', "Ancients' Chest", 'Arachne Chest']
+2025-03-18 20:49:44.714 - INFO - src.ui.dashboard - Loaded chest type list with 72 items
+2025-03-18 20:49:44.714 - INFO - src.ui.dashboard - Loading source list from: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.714 - INFO - src.models.validation_list - Loading validation list from: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.715 - INFO - src.models.validation_list - Loaded 82 entries from text file. First few entries: ['Level 5 Crypt', 'Level 10 Crypt', 'Level 15 Crypt', 'Level 20 Crypt', 'Level 25 Crypt']
+2025-03-18 20:49:44.715 - INFO - src.ui.dashboard - Loaded source list with 82 items
+2025-03-18 20:49:44.715 - INFO - src.services.data_manager - Setting 3 validation lists in DataManager
+2025-03-18 20:49:44.715 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.715 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:44.716 - INFO - src.services.data_manager - Emitting validation_lists_changed signal with 3 lists
+2025-03-18 20:49:44.716 - INFO - src.ui.dashboard - Re-emitting 3 validation lists
+2025-03-18 20:49:44.716 - INFO - src.ui.dashboard - Dashboard widget is visible: False
+2025-03-18 20:49:44.716 - WARNING - src.ui.dashboard - Correction manager not available for delayed emit
+2025-03-18 20:49:44.716 - INFO - src.ui.dashboard - Loaded 3 validation lists from config
+2025-03-18 20:49:44.716 - INFO - src.ui.dashboard - Dashboard initialized
+2025-03-18 20:49:44.721 - INFO - src.ui.correction_rules_table - Initializing CorrectionRulesModel
+2025-03-18 20:49:44.722 - INFO - src.ui.correction_manager_panel - Connecting rules_updated signal from table to correction_rules_updated signal
+2025-03-18 20:49:44.774 - INFO - src.ui.settings_panel - Loading settings from config
+2025-03-18 20:49:44.774 - INFO - src.ui.settings_panel - Loaded settings - Input Dir: , Output Dir: 
+2025-03-18 20:49:44.774 - INFO - src.ui.settings_panel - Loaded settings - Corrections Dir: , Validation Dir: 
+2025-03-18 20:49:44.774 - INFO - src.ui.settings_panel - Loaded settings - Input Ext: csv, Correction Ext: csv
+2025-03-18 20:49:44.774 - INFO - src.ui.settings_panel - Loaded settings - Fuzzy Match Threshold: 0.85, Strictness: normal
+2025-03-18 20:49:44.779 - INFO - src.ui.main_window - Connecting MainWindow signals
+2025-03-18 20:49:44.779 - INFO - src.ui.main_window - Connecting dashboard signals
+2025-03-18 20:49:44.779 - INFO - src.ui.main_window - Dashboard signals connected successfully
+2025-03-18 20:49:44.779 - INFO - src.ui.main_window - All signals connected successfully
+2025-03-18 20:49:44.779 - INFO - src.ui.main_window - Restoring application state
+2025-03-18 20:49:44.780 - INFO - src.ui.main_window - Loading initial data
+2025-03-18 20:49:44.780 - INFO - src.services.data_manager - DataManager: Loading saved correction rules
+2025-03-18 20:49:44.780 - WARNING - src.services.data_manager - No correction rules file found in config
+2025-03-18 20:49:44.780 - INFO - src.services.data_manager - DataManager: Loading saved validation lists
+2025-03-18 20:49:44.780 - DEBUG - src.services.config_manager - Converted relative path to absolute: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.780 - INFO - src.services.data_manager - Loading player list from: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.780 - INFO - src.models.validation_list - Loading validation list from: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.780 - INFO - src.models.validation_list - Loaded 94 entries from text file. First few entries: ['Alarich', 'Alexa Elly', 'Alf', 'Alisea', 'Anararad']
+2025-03-18 20:49:44.781 - INFO - src.services.data_manager - Loaded player list with 94 entries
+2025-03-18 20:49:44.781 - DEBUG - src.services.config_manager - Converted relative path to absolute: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.781 - INFO - src.services.data_manager - Loading chest type list from: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.781 - INFO - src.models.validation_list - Loading validation list from: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.781 - INFO - src.models.validation_list - Loaded 72 entries from text file. First few entries: ['Abandoned Chest', "Ancient Warrior's Chest", 'Ancient Bastion Chest', "Ancients' Chest", 'Arachne Chest']
+2025-03-18 20:49:44.781 - INFO - src.services.data_manager - Loaded chest type list with 72 entries
+2025-03-18 20:49:44.782 - DEBUG - src.services.config_manager - Converted relative path to absolute: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.782 - INFO - src.services.data_manager - Loading source list from: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.782 - INFO - src.models.validation_list - Loading validation list from: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.782 - INFO - src.models.validation_list - Loaded 82 entries from text file. First few entries: ['Level 5 Crypt', 'Level 10 Crypt', 'Level 15 Crypt', 'Level 20 Crypt', 'Level 25 Crypt']
+2025-03-18 20:49:44.782 - INFO - src.services.data_manager - Loaded source list with 82 entries
+2025-03-18 20:49:44.782 - INFO - src.services.data_manager - Emitting validation_lists_changed signal with 3 lists
+2025-03-18 20:49:44.783 - INFO - src.ui.correction_manager_panel - CorrectionManagerPanel.set_validation_lists called with 0 lists
+2025-03-18 20:49:44.783 - WARNING - src.ui.correction_manager_panel - Empty validation lists passed
+2025-03-18 20:49:44.783 - INFO - src.ui.correction_manager_panel - CorrectionManagerPanel.set_validation_lists called with 3 lists
+2025-03-18 20:49:44.783 - INFO - src.ui.correction_manager_panel - Setting chest_type validation list with 72 items
+2025-03-18 20:49:44.783 - INFO - src.ui.correction_manager_panel - Setting player validation list with 94 items
+2025-03-18 20:49:44.783 - INFO - src.ui.correction_manager_panel - Setting source validation list with 82 items
+2025-03-18 20:49:44.783 - INFO - src.ui.correction_manager_panel - Switching to validation lists tab
+2025-03-18 20:49:44.783 - INFO - src.ui.correction_manager_panel - Setting player list in widget
+2025-03-18 20:49:44.783 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Players with 94 items
+2025-03-18 20:49:44.783 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:44.784 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.784 - INFO - src.ui.validation_list_widget - Setting validation list in model for Players
+2025-03-18 20:49:44.784 - INFO - src.ui.validation_list_widget - Model now has 94 rows
+2025-03-18 20:49:44.784 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.784 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.785 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:44.785 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\players.txt, Validation: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.789 - INFO - src.ui.correction_manager_panel - Setting chest type list in widget
+2025-03-18 20:49:44.789 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Chest Types with 72 items
+2025-03-18 20:49:44.789 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:44.789 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.789 - INFO - src.ui.validation_list_widget - Setting validation list in model for Chest Types
+2025-03-18 20:49:44.790 - INFO - src.ui.validation_list_widget - Model now has 72 rows
+2025-03-18 20:49:44.790 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.790 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.790 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:44.790 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\chest_types.txt, Validation: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.791 - INFO - src.ui.correction_manager_panel - Setting source list in widget
+2025-03-18 20:49:44.791 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Sources with 82 items
+2025-03-18 20:49:44.791 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:44.792 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.792 - INFO - src.ui.validation_list_widget - Setting validation list in model for Sources
+2025-03-18 20:49:44.792 - INFO - src.ui.validation_list_widget - Model now has 82 rows
+2025-03-18 20:49:44.792 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.792 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.793 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:44.793 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\sources.txt, Validation: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.794 - INFO - src.ui.correction_manager_panel - Updating validation lists tab text: Validation Lists (Players: 94, Chests: 72, Sources: 82)
+2025-03-18 20:49:44.794 - INFO - src.ui.correction_manager_panel - Emitting validation_lists_updated signal with 3 lists
+2025-03-18 20:49:44.794 - DEBUG - src.services.data_manager - Validation lists are unchanged, skipping
+2025-03-18 20:49:44.794 - INFO - src.ui.correction_manager_panel - CorrectionManagerPanel.set_validation_lists called with 0 lists
+2025-03-18 20:49:44.794 - WARNING - src.ui.correction_manager_panel - Skipping due to signal loop prevention
+2025-03-18 20:49:44.794 - INFO - root - ReportsPanel: Received 3 validation lists
+2025-03-18 20:49:44.795 - INFO - root - ReportsPanel: Validation lists updated
+2025-03-18 20:49:44.795 - INFO - src.ui.main_window - Loaded 3 validation lists
+2025-03-18 20:49:44.795 - INFO - src.ui.correction_manager_panel - CorrectionManagerPanel.set_validation_lists called with 0 lists
+2025-03-18 20:49:44.795 - WARNING - src.ui.correction_manager_panel - Empty validation lists passed
+2025-03-18 20:49:44.795 - INFO - src.ui.correction_manager_panel - CorrectionManagerPanel.set_validation_lists called with 3 lists
+2025-03-18 20:49:44.795 - INFO - src.ui.correction_manager_panel - Setting chest_type validation list with 72 items
+2025-03-18 20:49:44.795 - INFO - src.ui.correction_manager_panel - Setting player validation list with 94 items
+2025-03-18 20:49:44.795 - INFO - src.ui.correction_manager_panel - Setting source validation list with 82 items
+2025-03-18 20:49:44.796 - INFO - src.ui.correction_manager_panel - Switching to validation lists tab
+2025-03-18 20:49:44.796 - INFO - src.ui.correction_manager_panel - Setting player list in widget
+2025-03-18 20:49:44.796 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Players with 94 items
+2025-03-18 20:49:44.796 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:44.796 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.796 - INFO - src.ui.validation_list_widget - Setting validation list in model for Players
+2025-03-18 20:49:44.797 - INFO - src.ui.validation_list_widget - Model now has 94 rows
+2025-03-18 20:49:44.797 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.797 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.797 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:44.797 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\players.txt, Validation: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:44.798 - INFO - src.ui.correction_manager_panel - Setting chest type list in widget
+2025-03-18 20:49:44.798 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Chest Types with 72 items
+2025-03-18 20:49:44.798 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:44.798 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.798 - INFO - src.ui.validation_list_widget - Setting validation list in model for Chest Types
+2025-03-18 20:49:44.798 - INFO - src.ui.validation_list_widget - Model now has 72 rows
+2025-03-18 20:49:44.799 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.799 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.799 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:44.799 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\chest_types.txt, Validation: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:44.800 - INFO - src.ui.correction_manager_panel - Setting source list in widget
+2025-03-18 20:49:44.800 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Sources with 82 items
+2025-03-18 20:49:44.800 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:44.801 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.801 - INFO - src.ui.validation_list_widget - Setting validation list in model for Sources
+2025-03-18 20:49:44.801 - INFO - src.ui.validation_list_widget - Model now has 82 rows
+2025-03-18 20:49:44.801 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.802 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:44.802 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:44.802 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\sources.txt, Validation: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:44.802 - INFO - src.ui.correction_manager_panel - Updating validation lists tab text: Validation Lists (Players: 94, Chests: 72, Sources: 82)
+2025-03-18 20:49:44.804 - INFO - src.ui.correction_manager_panel - Emitting validation_lists_updated signal with 3 lists
+2025-03-18 20:49:44.804 - DEBUG - src.services.data_manager - Validation lists are unchanged, skipping
+2025-03-18 20:49:44.804 - INFO - src.ui.correction_manager_panel - CorrectionManagerPanel.set_validation_lists called with 0 lists
+2025-03-18 20:49:44.804 - WARNING - src.ui.correction_manager_panel - Skipping due to signal loop prevention
+2025-03-18 20:49:44.804 - INFO - root - ReportsPanel: Received 3 validation lists
+2025-03-18 20:49:44.804 - INFO - root - ReportsPanel: Validation lists updated
+2025-03-18 20:49:44.804 - INFO - src.ui.main_window - Application state restored successfully
+2025-03-18 20:49:44.805 - INFO - root - MainWindow created successfully
+2025-03-18 20:49:44.865 - INFO - root - MainWindow shown successfully
+2025-03-18 20:49:44.865 - INFO - root - Application started successfully
+2025-03-18 20:49:45.278 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Chest Types
+2025-03-18 20:49:45.279 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.279 - WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+2025-03-18 20:49:45.279 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Players
+2025-03-18 20:49:45.279 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.279 - WARNING - src.ui.validation_list_widget - Players widget not visible during refresh
+2025-03-18 20:49:45.295 - INFO - src.ui.correction_manager_panel - Performing delayed refresh with 3 lists
+2025-03-18 20:49:45.296 - INFO - src.ui.correction_manager_panel - Widget is now visible: False
+2025-03-18 20:49:45.296 - INFO - src.ui.correction_manager_panel - Current widget stack index: -1
+2025-03-18 20:49:45.296 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Players with 94 items
+2025-03-18 20:49:45.296 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.296 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:45.296 - INFO - src.ui.validation_list_widget - Setting validation list in model for Players
+2025-03-18 20:49:45.297 - INFO - src.ui.validation_list_widget - Model now has 94 rows
+2025-03-18 20:49:45.297 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:45.297 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:45.297 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:45.298 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\players.txt, Validation: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:45.299 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Chest Types with 72 items
+2025-03-18 20:49:45.299 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.299 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:45.299 - INFO - src.ui.validation_list_widget - Setting validation list in model for Chest Types
+2025-03-18 20:49:45.299 - INFO - src.ui.validation_list_widget - Model now has 72 rows
+2025-03-18 20:49:45.299 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:45.300 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:45.300 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:45.300 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\chest_types.txt, Validation: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:45.301 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Sources with 82 items
+2025-03-18 20:49:45.301 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.301 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:45.301 - INFO - src.ui.validation_list_widget - Setting validation list in model for Sources
+2025-03-18 20:49:45.302 - INFO - src.ui.validation_list_widget - Model now has 82 rows
+2025-03-18 20:49:45.302 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:45.302 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:45.302 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:45.302 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\sources.txt, Validation: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:45.304 - INFO - src.ui.correction_manager_panel - Ensuring validation lists tab is active
+2025-03-18 20:49:45.304 - INFO - src.ui.correction_manager_panel - Forcing viewport update
+2025-03-18 20:49:45.304 - INFO - src.ui.correction_manager_panel - Model now shows 94 rows
+2025-03-18 20:49:45.304 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Sources
+2025-03-18 20:49:45.305 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.305 - WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+2025-03-18 20:49:45.305 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Chest Types
+2025-03-18 20:49:45.305 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.305 - WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+2025-03-18 20:49:45.305 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Players
+2025-03-18 20:49:45.306 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.306 - WARNING - src.ui.validation_list_widget - Players widget not visible during refresh
+2025-03-18 20:49:45.306 - INFO - src.ui.correction_manager_panel - Performing delayed refresh with 3 lists
+2025-03-18 20:49:45.306 - INFO - src.ui.correction_manager_panel - Widget is now visible: False
+2025-03-18 20:49:45.306 - INFO - src.ui.correction_manager_panel - Current widget stack index: -1
+2025-03-18 20:49:45.306 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Players with 94 items
+2025-03-18 20:49:45.306 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.306 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:45.306 - INFO - src.ui.validation_list_widget - Setting validation list in model for Players
+2025-03-18 20:49:45.307 - INFO - src.ui.validation_list_widget - Model now has 94 rows
+2025-03-18 20:49:45.307 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:45.307 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:45.308 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:45.308 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\players.txt, Validation: d:\Projekte\CorrectionTool\data\validation\players.txt
+2025-03-18 20:49:45.309 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Chest Types with 72 items
+2025-03-18 20:49:45.309 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.309 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:45.309 - INFO - src.ui.validation_list_widget - Setting validation list in model for Chest Types
+2025-03-18 20:49:45.309 - INFO - src.ui.validation_list_widget - Model now has 72 rows
+2025-03-18 20:49:45.310 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:45.310 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:45.310 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:45.310 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\chest_types.txt, Validation: d:\Projekte\CorrectionTool\data\validation\chest_types.txt
+2025-03-18 20:49:45.311 - INFO - src.ui.validation_list_widget - ValidationListWidget.set_list called for Sources with 82 items
+2025-03-18 20:49:45.311 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.311 - INFO - src.ui.validation_list_widget - Validation list has file path: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:45.311 - INFO - src.ui.validation_list_widget - Setting validation list in model for Sources
+2025-03-18 20:49:45.312 - INFO - src.ui.validation_list_widget - Model now has 82 rows
+2025-03-18 20:49:45.312 - INFO - src.ui.validation_list_widget - Saving file path to config: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:45.312 - INFO - src.services.config_manager - Saving configuration to d:\Projekte\CorrectionTool\config.ini
+2025-03-18 20:49:45.312 - INFO - src.services.config_manager - Configuration saved successfully
+2025-03-18 20:49:45.312 - INFO - src.ui.validation_list_widget - Saved paths in config - General: d:\Projekte\CorrectionTool\data\validation\sources.txt, Validation: d:\Projekte\CorrectionTool\data\validation\sources.txt
+2025-03-18 20:49:45.313 - INFO - src.ui.correction_manager_panel - Ensuring validation lists tab is active
+2025-03-18 20:49:45.313 - INFO - src.ui.correction_manager_panel - Forcing viewport update
+2025-03-18 20:49:45.314 - INFO - src.ui.correction_manager_panel - Model now shows 94 rows
+2025-03-18 20:49:45.314 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Sources
+2025-03-18 20:49:45.314 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.314 - WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+2025-03-18 20:49:45.808 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Sources
+2025-03-18 20:49:45.809 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.809 - WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+2025-03-18 20:49:45.809 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Chest Types
+2025-03-18 20:49:45.809 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.809 - WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+2025-03-18 20:49:45.809 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Players
+2025-03-18 20:49:45.810 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.810 - WARNING - src.ui.validation_list_widget - Players widget not visible during refresh
+2025-03-18 20:49:45.810 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Sources
+2025-03-18 20:49:45.810 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.810 - WARNING - src.ui.validation_list_widget - Sources widget not visible during refresh
+2025-03-18 20:49:45.810 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Chest Types
+2025-03-18 20:49:45.810 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.810 - WARNING - src.ui.validation_list_widget - Chest Types widget not visible during refresh
+2025-03-18 20:49:45.810 - INFO - src.ui.validation_list_widget - Performing delayed refresh for Players
+2025-03-18 20:49:45.810 - INFO - src.ui.validation_list_widget - Widget is visible: False
+2025-03-18 20:49:45.811 - WARNING - src.ui.validation_list_widget - Players widget not visible during refresh
+2025-03-18 20:49:57.553 - INFO - src.ui.file_import_widget - FileImportWidget: Importing entries from file: D:/Projekte/CorrectionTool/data/input/chests_2025-03-17.txt
+2025-03-18 20:49:57.554 - INFO - src.ui.file_import_widget - Starting parse_entry_file_debug...
+2025-03-18 20:49:57.554 - INFO - src.services.file_parser - DEBUG: Starting entry file parsing with detailed logging: D:/Projekte/CorrectionTool/data/input/chests_2025-03-17.txt
+2025-03-18 20:49:57.554 - INFO - src.services.file_parser - DEBUG: File size: 113778 bytes
+2025-03-18 20:49:57.554 - INFO - src.services.file_parser - Parsing entry file: D:\Projekte\CorrectionTool\data\input\chests_2025-03-17.txt
+2025-03-18 20:49:57.554 - INFO - src.services.file_parser - Attempting to parse text file with encoding: utf-8
+2025-03-18 20:49:57.554 - INFO - src.services.file_parser - Parsing text content with 5832 lines
+2025-03-18 20:49:57.554 - DEBUG - src.services.file_parser - Creating entry #1 from text: House of Horrors Chest
+From: Koriander
+Source: Level 20 epic Crypt
+2025-03-18 20:49:57.555 - DEBUG - src.services.file_parser - Created entry #1: House of Horrors Chest, Koriander, Level 20 epic Crypt
+2025-03-18 20:49:57.555 - DEBUG - src.services.file_parser - Creating entry #100 from text: Bone Chest
+From: Sir Met
+Source: Level 25 Crypt
+2025-03-18 20:49:57.555 - DEBUG - src.services.file_parser - Created entry #100: Bone Chest, Sir Met, Level 25 Crypt
+2025-03-18 20:49:57.556 - DEBUG - src.services.file_parser - Creating entry #200 from text: Stone Chest
+From: GOT
+Source: Level 25 Crypt
+2025-03-18 20:49:57.556 - DEBUG - src.services.file_parser - Created entry #200: Stone Chest, GOT, Level 25 Crypt
+2025-03-18 20:49:57.557 - DEBUG - src.services.file_parser - Creating entry #300 from text: Mayan Chest
+From: Dagdarim
+Source: Level 25 Crypt
+2025-03-18 20:49:57.557 - DEBUG - src.services.file_parser - Created entry #300: Mayan Chest, Dagdarim, Level 25 Crypt
+2025-03-18 20:49:57.557 - DEBUG - src.services.file_parser - Creating entry #400 from text: Bone Chest
+From: Simply Mani
+Source: Level 25 Crypt
+2025-03-18 20:49:57.557 - DEBUG - src.services.file_parser - Created entry #400: Bone Chest, Simply Mani, Level 25 Crypt
+2025-03-18 20:49:57.557 - DEBUG - src.services.file_parser - Creating entry #500 from text: Elven Citadel Chest
+From: Cordaginn
+Source: Level 30 Citadel
+2025-03-18 20:49:57.558 - DEBUG - src.services.file_parser - Created entry #500: Elven Citadel Chest, Cordaginn, Level 30 Citadel
+2025-03-18 20:49:57.558 - DEBUG - src.services.file_parser - Creating entry #600 from text: Fenrir's Chest
+From: KAC29
+Source: Epic Fenrir squad
+2025-03-18 20:49:57.559 - DEBUG - src.services.file_parser - Created entry #600: Fenrir's Chest, KAC29, Epic Fenrir squad
+2025-03-18 20:49:57.559 - DEBUG - src.services.file_parser - Creating entry #700 from text: Orc Chest
+From: Moraron
+Source: Level 25 Crypt
+2025-03-18 20:49:57.559 - DEBUG - src.services.file_parser - Created entry #700: Orc Chest, Moraron, Level 25 Crypt
+2025-03-18 20:49:57.560 - DEBUG - src.services.file_parser - Creating entry #800 from text: Infernal Chest
+From: Kajurus
+Source: Level 25 Crypt
+2025-03-18 20:49:57.560 - DEBUG - src.services.file_parser - Created entry #800: Infernal Chest, Kajurus, Level 25 Crypt
+2025-03-18 20:49:57.560 - DEBUG - src.services.file_parser - Creating entry #900 from text: Cobalt Chest
+From: Triple X
+Source: Level 30 epic Crypt
+2025-03-18 20:49:57.560 - DEBUG - src.services.file_parser - Created entry #900: Cobalt Chest, Triple X, Level 30 epic Crypt
+2025-03-18 20:49:57.561 - DEBUG - src.services.file_parser - Creating entry #1000 from text: Barbarian Chest
+From: Bruno
+Source: Level 25 Crypt
+2025-03-18 20:49:57.561 - DEBUG - src.services.file_parser - Created entry #1000: Barbarian Chest, Bruno, Level 25 Crypt
+2025-03-18 20:49:57.561 - DEBUG - src.services.file_parser - Creating entry #1100 from text: Bone Chest
+From: GOT
+Source: Level 25 Crypt
+2025-03-18 20:49:57.562 - DEBUG - src.services.file_parser - Created entry #1100: Bone Chest, GOT, Level 25 Crypt
+2025-03-18 20:49:57.562 - DEBUG - src.services.file_parser - Creating entry #1200 from text: Orc Chest
+From: Drachen 2
+Source: Level 25 Crypt
+2025-03-18 20:49:57.562 - DEBUG - src.services.file_parser - Created entry #1200: Orc Chest, Drachen 2, Level 25 Crypt
+2025-03-18 20:49:57.562 - DEBUG - src.services.file_parser - Creating entry #1300 from text: JÃ²rmungandr's Chest
+From: Aragorn
+Source: Epic Jormungandr squad
+2025-03-18 20:49:57.562 - DEBUG - src.services.file_parser - Created entry #1300: JÃ²rmungandr's Chest, Aragorn, Epic Jormungandr squad
+2025-03-18 20:49:57.564 - DEBUG - src.services.file_parser - Creating entry #1400 from text: Infernal Chest
+From: Herzog Ropp
+Source: Level 25 Crypt
+2025-03-18 20:49:57.564 - DEBUG - src.services.file_parser - Created entry #1400: Infernal Chest, Herzog Ropp, Level 25 Crypt
+2025-03-18 20:49:57.564 - DEBUG - src.services.file_parser - Creating entry #1500 from text: Mayan Chest
+From: Tugo
+Source: Level 20 Crypt
+2025-03-18 20:49:57.565 - DEBUG - src.services.file_parser - Created entry #1500: Mayan Chest, Tugo, Level 20 Crypt
+2025-03-18 20:49:57.565 - DEBUG - src.services.file_parser - Creating entry #1600 from text: Orc Chest
+From: Angus
+Source: Level 25 Crypt
+2025-03-18 20:49:57.565 - DEBUG - src.services.file_parser - Created entry #1600: Orc Chest, Angus, Level 25 Crypt
+2025-03-18 20:49:57.566 - DEBUG - src.services.file_parser - Creating entry #1700 from text: Infernal Chest
+From: Alisea
+Source: Level 20 Crypt
+2025-03-18 20:49:57.566 - DEBUG - src.services.file_parser - Created entry #1700: Infernal Chest, Alisea, Level 20 Crypt
+2025-03-18 20:49:57.566 - DEBUG - src.services.file_parser - Creating entry #1800 from text: Orc Chest
+From: Kajurus
+Source: Level 25 Crypt
+2025-03-18 20:49:57.566 - DEBUG - src.services.file_parser - Created entry #1800: Orc Chest, Kajurus, Level 25 Crypt
+2025-03-18 20:49:57.567 - DEBUG - src.services.file_parser - Creating entry #1900 from text: Barbarian Chest
+From: nobby
+Source: Level 20 Crypt
+2025-03-18 20:49:57.567 - DEBUG - src.services.file_parser - Created entry #1900: Barbarian Chest, nobby, Level 20 Crypt
+2025-03-18 20:49:57.567 - INFO - src.services.file_parser - Parsed 1944 entries from text content
+2025-03-18 20:49:57.567 - INFO - src.services.file_parser - Successfully parsed text file with encoding: utf-8
+2025-03-18 20:49:57.567 - INFO - src.services.file_parser - Successfully parsed 1944 entries from D:\Projekte\CorrectionTool\data\input\chests_2025-03-17.txt
+2025-03-18 20:49:57.567 - INFO - src.services.file_parser - DEBUG: Successfully parsed 1944 entries
+2025-03-18 20:49:57.567 - INFO - src.services.file_parser - DEBUG: First entry: House of Horrors Chest | Koriander | Level 20 epic Crypt
+2025-03-18 20:49:57.568 - INFO - src.services.file_parser - DEBUG: Last entry: Sand Chest | Bumblebee | Level 25 Crypt
+2025-03-18 20:49:57.568 - INFO - src.services.file_parser - DEBUG: All entries have IDs: True
+2025-03-18 20:49:57.568 - INFO - src.ui.file_import_widget - Parsed 1944 entries
+2025-03-18 20:49:57.568 - INFO - src.ui.file_import_widget - First entry: House of Horrors Chest, Koriander, Level 20 epic Crypt
+2025-03-18 20:49:57.568 - INFO - src.ui.file_import_widget - Setting entries and emitting signal...
+2025-03-18 20:49:57.569 - INFO - src.ui.dashboard - Dashboard: _on_entries_loaded called with 1944 entries
+2025-03-18 20:49:57.569 - INFO - src.ui.dashboard - First entry: House of Horrors Chest | Koriander | Level 20 epic Crypt
+2025-03-18 20:49:57.569 - INFO - src.ui.dashboard - Dashboard: Processing 1944 loaded entries
+2025-03-18 20:49:57.569 - INFO - src.ui.dashboard - Dashboard: Stored 1944 entries in self._entries
+2025-03-18 20:49:57.569 - INFO - src.ui.dashboard - Auto-apply is enabled, applying corrections
+2025-03-18 20:49:57.569 - INFO - src.ui.dashboard - Applying corrections to entries
+2025-03-18 20:49:57.569 - INFO - src.ui.dashboard - No correction rules to apply
+2025-03-18 20:49:57.570 - INFO - src.ui.dashboard - _on_entries_loaded processing completed
+2025-03-18 20:49:57.570 - DEBUG - src.ui.dashboard - Handling corrections applied signal
+2025-03-18 20:49:57.571 - INFO - src.ui.dashboard - Dashboard: Received 1944 applied corrections from DataManager
+2025-03-18 20:49:57.571 - INFO - src.ui.dashboard - Updating entries with 1944 corrections
+2025-03-18 20:49:57.571 - INFO - src.ui.dashboard - Received list of ChestEntry objects, replacing entries
+2025-03-18 20:49:57.571 - INFO - src.ui.dashboard - Updating statistics after corrections
+2025-03-18 20:49:57.572 - INFO - src.ui.dashboard - Updating table view with corrected entries
+2025-03-18 20:49:57.572 - DEBUG - src.ui.enhanced_table_view - Setting 1944 entries in EnhancedTableView
+2025-03-18 20:49:59.102 - DEBUG - src.ui.enhanced_table_view - Successfully set 1944 entries in EnhancedTableView
+2025-03-18 20:49:59.102 - INFO - src.ui.dashboard - Setting status bar message: 1944 corrections applied
+2025-03-18 20:49:59.103 - INFO - src.ui.file_import_widget - Checking if _entries was updated...
+2025-03-18 20:49:59.103 - INFO - src.ui.file_import_widget - _entries has 1944 items

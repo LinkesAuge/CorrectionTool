@@ -5,10 +5,15 @@ Description: Table for displaying and managing correction rules
 Usage:
     from src.ui.correction_rules_table import CorrectionRulesTable
     table = CorrectionRulesTable()
+    table.set_rules(rules)
 """
 
+import csv
+import logging
+import os
+import time
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Any
 
 from PySide6.QtCore import Qt, Signal, Slot, QSortFilterProxyModel, QModelIndex, QTimer
 from PySide6.QtGui import QIntValidator, QStandardItemModel
@@ -106,13 +111,22 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         Returns:
             Number of rows
         """
-        count = len(self._rules)
-        self.logger.debug(f"rowCount called, returning {count}")
-
         # Important: this is needed for QSortFilterProxyModel
         # We must override the source model's rowCount
         if parent.isValid():
             return 0
+
+        count = len(self._rules)
+        # Only log once per 100 calls to avoid excessive logging
+        if hasattr(self, "_rowcount_call_count"):
+            self._rowcount_call_count += 1
+            if self._rowcount_call_count % 100 == 0:
+                self.logger.debug(
+                    f"rowCount called {self._rowcount_call_count} times, current count: {count}"
+                )
+        else:
+            self._rowcount_call_count = 1
+            self.logger.debug(f"rowCount first call, returning {count}")
 
         return count
 
@@ -431,8 +445,49 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         Args:
             text: Filter text
         """
-        self._filter_text = text
-        self.invalidateFilter()
+        import logging
+        import time
+
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Filtering rules with text: '{text}'")
+
+        # Throttle filter operations to avoid excessive processing
+        current_time = time.time()
+        if self._processing_signal:
+            logger.debug("Filtering skipped due to signal loop prevention")
+            return
+
+        if current_time - self._last_update_time < 0.2:
+            # For filtering, we use a slightly longer throttle time
+            # since users may be typing quickly
+            logger.debug("Filtering throttled (too frequent), skipping")
+            return
+
+        try:
+            self._processing_signal = True
+            self._last_update_time = current_time
+
+            # Check that model exists and has the filterAcceptsRow method
+            if isinstance(self.model(), QSortFilterProxyModel):
+                # Get the model and set its filter
+                proxy_model = self.model()
+
+                # Set the filter text in the model if it has that attribute
+                if hasattr(proxy_model, "_filter_text"):
+                    proxy_model._filter_text = text
+
+                # Use the built-in filter method if available
+                if hasattr(proxy_model, "setFilterFixedString"):
+                    proxy_model.setFilterFixedString(text)
+
+                # Invalidate the filter to force re-filtering
+                proxy_model.invalidateFilter()
+
+                logger.debug(f"Filter applied with text: '{text}'")
+            else:
+                logger.warning("Model is not a QSortFilterProxyModel, cannot filter")
+        finally:
+            self._processing_signal = False
 
     def remove_rule(self, index: int):
         """
@@ -651,28 +706,32 @@ class CorrectionRulesTable(QTableView):
         _config: ConfigManager instance
     """
 
-    def __init__(self, parent=None):
+    # Add signals
+    rules_updated = Signal(list)  # List[CorrectionRule]
+    file_path_changed = Signal(str)  # Signal to notify when a file path has been loaded/imported
+
+    def __init__(self, parent=None) -> None:
         """
-        Initialize the table.
+        Initialize the correction rules table.
 
         Args:
             parent: Parent widget
         """
-        import logging
-
-        self.logger = logging.getLogger(__name__)
-        self.logger.info("Initializing CorrectionRulesTable")
-
         super().__init__(parent)
 
-        self._model = CorrectionRulesModel()
-        self.setModel(self._model)
+        # Initialize data
+        self._filter_text = ""
+        self._rules = []
+        self._processing_signal = False  # Flag to prevent signal loops
+        self._last_update_time = time.time()  # Track last update time for throttling
 
+        # Create config manager
         self._config = ConfigManager()
 
-        # Track the current file path
-        self._current_file_path = None
+        # Create the model
+        self._model = CorrectionRulesModel(self)
 
+        # Set up UI
         self._setup_ui()
 
     def _setup_ui(self):
@@ -708,56 +767,136 @@ class CorrectionRulesTable(QTableView):
         self._model.layoutChanged.connect(self._on_layout_changed)
 
     def _on_data_changed(self, topLeft, bottomRight, roles=None):
-        """Handle model data changed."""
-        self.logger.debug(
-            f"Data changed from {topLeft.row()},{topLeft.column()} to {bottomRight.row()},{bottomRight.column()}"
-        )
-        self.viewport().update()
+        """
+        Handle data changed in model.
+
+        Args:
+            topLeft: Top left index
+            bottomRight: Bottom right index
+            roles: Data roles
+        """
+        import logging
+        import time
+
+        logger = logging.getLogger(__name__)
+
+        # Throttle updates to avoid excessive processing
+        current_time = time.time()
+        if self._processing_signal or current_time - self._last_update_time < 0.1:
+            return
+
+        try:
+            self._processing_signal = True
+            self._last_update_time = current_time
+            logger.debug(
+                f"Data changed from {topLeft.row()},{topLeft.column()} to {bottomRight.row()},{bottomRight.column()}"
+            )
+
+            # Emit the rules_updated signal to notify other components
+            if hasattr(self, "rules_updated"):
+                logger.info(
+                    f"Emitting rules_updated signal with {len(self._model.get_rules())} rules"
+                )
+                self.rules_updated.emit(self._model.get_rules())
+            else:
+                logger.warning("rules_updated signal not available")
+        finally:
+            self._processing_signal = False
 
     def _on_model_reset(self):
         """Handle model reset."""
-        self.logger.debug("Model reset")
-        self.viewport().update()
+        import logging
+        import time
+
+        logger = logging.getLogger(__name__)
+
+        # Throttle updates to avoid excessive processing
+        current_time = time.time()
+        if self._processing_signal or current_time - self._last_update_time < 0.1:
+            return
+
+        try:
+            self._processing_signal = True
+            self._last_update_time = current_time
+            logger.debug("Model reset")
+
+            # Emit the rules_updated signal to notify other components
+            if hasattr(self, "rules_updated"):
+                logger.info(
+                    f"Emitting rules_updated signal with {len(self._model.get_rules())} rules"
+                )
+                self.rules_updated.emit(self._model.get_rules())
+            else:
+                logger.warning("rules_updated signal not available")
+        finally:
+            self._processing_signal = False
 
     def _on_layout_changed(self):
-        """Handle model layout changed."""
-        self.logger.debug("Layout changed")
-        self.viewport().update()
+        """Handle layout changed in model."""
+        import logging
+        import time
+
+        logger = logging.getLogger(__name__)
+
+        # Throttle updates to avoid excessive processing
+        current_time = time.time()
+        if self._processing_signal or current_time - self._last_update_time < 0.1:
+            return
+
+        try:
+            self._processing_signal = True
+            self._last_update_time = current_time
+            logger.debug("Layout changed")
+        finally:
+            self._processing_signal = False
 
     def set_rules(self, rules: List[CorrectionRule]):
         """
-        Set the rules in the table.
+        Set the rules to display in the table.
 
         Args:
             rules: List of correction rules
         """
         import logging
+        import time
 
         logger = logging.getLogger(__name__)
-        logger.info(f"CorrectionRulesTable.set_rules called with {len(rules)} rules")
+        logger.info(f"Setting {len(rules)} rules in CorrectionRulesTable")
 
-        # Get the data manager for persistence
-        data_manager = DataManager.get_instance()
+        # Reset processing state
+        self._processing_signal = False
+        self._last_update_time = time.time()
 
-        # Set the rules in the model
+        # Set rules in the model
         self._model.set_rules(rules)
 
-        # Update the view
-        self.reset()
+        # Clear selection
+        self.clearSelection()
+
+        # Resize columns to content
         self.resizeColumnsToContents()
+
+        # Resize rows to content
         self.resizeRowsToContents()
 
-        # Force visual update
-        self.viewport().update()
+        # Reset sorting
+        self.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
 
-        # Emit signal for file path changes if we have it
-        if (
-            hasattr(data_manager, "get_correction_file_path")
-            and data_manager.get_correction_file_path()
-        ):
-            self.file_path_changed.emit(str(data_manager.get_correction_file_path()))
+        # Reset filter
+        self._filter_text = ""
 
-        logger.info(f"Successfully set {len(rules)} rules in table")
+        # Update UI
+        self.update()
+
+        # Force a refresh of the view
+        self._delayed_refresh()
+
+        # Emit signal
+        self.rules_updated.emit(rules)
+
+        logger.info(
+            f"Set {len(rules)} rules in CorrectionRulesTable and emitted rules_updated signal"
+        )
 
     def get_rules(self) -> List[CorrectionRule]:
         """
@@ -775,52 +914,63 @@ class CorrectionRulesTable(QTableView):
         if dialog.exec():
             rule = dialog.rule
             self.logger.info(f"Adding new rule: {rule.from_text} -> {rule.to_text}")
+
+            # Add rule through model
             self._model.add_rule(rule)
-            # Update the display
-            self.viewport().update()
+
+            # No need to call viewport().update() here,
+            # model change will trigger appropriate signals
 
     def edit_rule(self, row: int):
         """
         Edit a rule.
 
         Args:
-            row: Index of rule to edit
+            row: Row index to edit
         """
-        if row < 0 or row >= len(self._model.get_rules()):
+        # Get the rule from the model
+        rule = self._model.get_rule(row)
+        if not rule:
             return
 
-        rule = self._model.get_rules()[row]
-        dialog = RuleEditDialog(rule, parent=self)
+        dialog = RuleEditDialog(rule=rule, parent=self)
         if dialog.exec():
-            self.logger.info(f"Edited rule: {rule.from_text} -> {rule.to_text}")
-            self._model.update_rule(rule)
-            # Update the display
-            self.viewport().update()
+            # Get updated rule
+            updated_rule = dialog.rule
+            self.logger.info(f"Updating rule {row}: {rule.from_text} -> {updated_rule.from_text}")
+
+            # Update rule in model
+            self._model.update_rule(updated_rule)
+
+            # No need to call viewport().update() here,
+            # model change will trigger appropriate signals
 
     def delete_rule(self, row: int):
         """
         Delete a rule.
 
         Args:
-            row: Index of rule to delete
+            row: Row index to delete
         """
+        # Get the rule from the model
         if row < 0 or row >= len(self._model.get_rules()):
             return
 
-        # Confirm deletion
-        response = QMessageBox.question(
+        rule = self._model.get_rules()[row]
+        confirm = QMessageBox.question(
             self,
             "Confirm Deletion",
-            "Are you sure you want to delete this rule?",
+            f"Are you sure you want to delete this rule?\n\nFrom: {rule.from_text}\nTo: {rule.to_text}",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
 
-        if response == QMessageBox.Yes:
-            self.logger.info(f"Deleting rule at row {row}")
+        if confirm == QMessageBox.Yes:
+            self.logger.info(f"Deleting rule: {rule.from_text} -> {rule.to_text}")
             self._model.delete_rule(row)
-            # Update the display
-            self.viewport().update()
+
+            # Model changes will trigger appropriate signals
+            # No need to call viewport().update() here
 
     def import_rules(self, file_path=None, skip_confirmation=False):
         """
@@ -1034,15 +1184,6 @@ class CorrectionRulesTable(QTableView):
                 f"Please try a different location or file format.",
             )
 
-    def filter_rules(self, text: str):
-        """
-        Filter rules by text.
-
-        Args:
-            text: Filter text
-        """
-        self._model.filter_rules(text)
-
     def set_all_rules_enabled(self, enabled: bool):
         """
         Set whether all rules are enabled.
@@ -1086,27 +1227,62 @@ class CorrectionRulesTable(QTableView):
 
     def update(self):
         """Override update to ensure viewport is updated properly."""
-        self.viewport().update()
+        import time
+
+        # Throttle viewport updates
+        current_time = time.time()
+        if self._processing_signal:
+            return
+
+        if current_time - self._last_update_time < 0.1:
+            return
+
+        try:
+            self._processing_signal = True
+            self._last_update_time = current_time
+            self.viewport().update()
+        finally:
+            self._processing_signal = False
         # Don't call QTableView.update(self) as it requires arguments
 
-    def reset(self):
-        """Override reset to ensure the table is properly reset."""
+    def reset(self) -> None:
+        """
+        Reset the table view.
+        """
         import logging
+        import time
 
         logger = logging.getLogger(__name__)
-        logger.debug("Resetting table view")
-        super().reset()
+        logger.info("Resetting CorrectionRulesTable")
 
-        # Force a data refresh
-        self.model().layoutChanged.emit()
+        # Prevent signal loops
+        if self._processing_signal:
+            logger.warning("Signal loop detected in reset, skipping")
+            return
 
-        self.viewport().update()
-        # Make sure headers are visible
-        self.horizontalHeader().setVisible(True)
-        self.verticalHeader().setVisible(True)
+        # Throttle updates
+        current_time = time.time()
+        if hasattr(self, "_last_update_time") and current_time - self._last_update_time < 0.5:
+            logger.debug("Reset throttled (too frequent), skipping")
+            return
 
-    # Add this signal definition to the class (under the existing signals at around line 648)
-    file_path_changed = Signal(str)  # Signal to notify when a file path has been loaded/imported
+        try:
+            self._processing_signal = True
+            self._last_update_time = current_time
+
+            # Call superclass reset
+            super().reset()
+
+            # Resize columns to content
+            self.resizeColumnsToContents()
+
+            # Resize rows to content
+            self.resizeRowsToContents()
+
+            # Log the reset
+            logger.info("CorrectionRulesTable reset complete")
+        finally:
+            self._processing_signal = False
 
     def _delayed_refresh(self):
         """Handle delayed refresh to ensure UI updates properly."""
@@ -1123,3 +1299,134 @@ class CorrectionRulesTable(QTableView):
         # Log current table state
         rules = self._model.get_rules()
         logger.info(f"After delayed refresh, table shows {len(rules)} rules")
+
+    def _save_rules_to_file(self, file_path=None):
+        """
+        Save rules to a file.
+
+        Args:
+            file_path (str, optional): Path to the file. If None, open a file dialog
+        """
+        import logging
+        from pathlib import Path
+
+        logger = logging.getLogger(__name__)
+
+        if file_path is None:
+            # Open a file dialog
+            from PySide6.QtWidgets import QFileDialog
+
+            # Get config
+            config = ConfigManager()
+
+            # Get last directory from config
+            last_dir = config.get_path("corrections_dir", "data/corrections")
+
+            # Open file dialog
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Correction Rules",
+                last_dir,
+                "CSV Files (*.csv);;Text Files (*.txt);;All Files (*)",
+            )
+
+        if not file_path:
+            logger.info("No file path selected for saving rules")
+            return False
+
+        try:
+            # Save the file
+            result = self._rules_model.save_to_file(file_path)
+
+            if result:
+                # Update config
+                path = Path(file_path)
+                config = ConfigManager()
+                config.set_path("correction_rules_file", str(path))
+                config.set_path("corrections_dir", str(path.parent))
+
+                # Emit signal
+                self.file_path_changed.emit(file_path)
+
+                logger.info(f"Saved rules to file: {file_path}")
+                return True
+            else:
+                logger.warning(f"Failed to save rules to file: {file_path}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error saving rules to file: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())
+            return False
+
+    def _load_rules_from_file(self, file_path=None):
+        """
+        Load rules from a file.
+
+        Args:
+            file_path (str, optional): Path to the file. If None, open a file dialog
+        """
+        import logging
+        from pathlib import Path
+        from src.services.file_parser import FileParser
+
+        logger = logging.getLogger(__name__)
+
+        if file_path is None:
+            # Open a file dialog
+            from PySide6.QtWidgets import QFileDialog
+
+            # Get config
+            config = ConfigManager()
+
+            # Get last directory from config using the new path API
+            last_dir = config.get_path("corrections_dir", "data/corrections")
+
+            # Open file dialog
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Load Correction Rules", last_dir, "All Files (*)"
+            )
+
+        if not file_path:
+            logger.info("No file path selected for loading rules")
+            return False
+
+        try:
+            logger.info(f"Loading rules from file: {file_path}")
+
+            # Parse the file
+            file_parser = FileParser()
+            rules = file_parser.parse_correction_file(file_path)
+
+            if rules:
+                # Set rules and update UI
+                self._processing_signal = True
+                try:
+                    self._rules_model.set_rules(rules, False)
+                    self.reset()
+
+                    # Update config with the file path
+                    path = Path(file_path)
+                    config = ConfigManager()
+                    config.set_path("correction_rules_file", str(path))
+                    config.set_path("corrections_dir", str(path.parent))
+
+                    # Emit signal
+                    self.file_path_changed.emit(file_path)
+
+                    logger.info(f"Loaded {len(rules)} rules from file: {file_path}")
+                    return True
+                finally:
+                    self._processing_signal = False
+            else:
+                logger.warning(f"No rules found in file: {file_path}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error loading rules from file: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())
+            return False

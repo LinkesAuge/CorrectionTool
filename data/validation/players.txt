@@ -1,6 +1,3 @@
-Type,player
-Name,Default Player List
-Entry
 Alarich
 Alexa Elly
 Alf
@@ -23,7 +20,6 @@ Corda 1004
 Cordaginn
 Court Jester Herzi
 D4rkBlizZ4rD
-DR STRANGE
 Dacage
 Dacage2
 Dagdarim
@@ -35,21 +31,25 @@ DerBremer SK
 DerBremer2
 Dexter
 Django
+DR STRANGE
 Drachen 2
 Engelchen
 Enneen
+Entry
 Feldjäger
 Fluxs
 Fluxsfire
 Frau Blume
-GUARDIENofTHUNDER
-GoT SiSu
 GoldRush
+GoT
+GoT SiSu
+GUARDIENofTHUNDER
 Gärtnerei
 Hammerschlag1
 Hammerschlag2
 Hammerschlag3
 Hausarzt
+Hebamme
 Herzog Ropp
 Iron Loyalty
 Julius Cäsar
@@ -64,21 +64,27 @@ Lord Öre
 Mahoni
 Mahoni2
 Metaur
+mimin
 Montrius
 Moony
 Moraron
 Mork vom Ork
 Muggeseggele
+Name,Default Player List
+nobby
+nobe
 Noch ein Cenn
 OsmanlıTorunu
 Pink Rektalforscher
 Ragnar Ansgar
 RagnarAnsgar3
+rainstream
 Reckless
 Rocky
 Roin
 Runebinder
 Schmerztherapeut
+Shoppingqueen49x2
 Simply Mani
 Sir Met
 Sir Nightwoolf
@@ -88,10 +94,8 @@ Thommy
 Treibhaus
 Triple X
 Tugo
+Type,player
 Tyroler Bua
 Volkspark
 Weinkeller
 Zeus
-nobby
-nobe
-rainstream

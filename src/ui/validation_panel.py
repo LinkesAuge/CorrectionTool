@@ -207,7 +207,7 @@ class ValidationPanel(QWidget):
 
         # Import button
         import_button = QPushButton("Import from CSV...")
-        import_button.clicked.connect(lambda: self._import_list(list_type, list_widget))
+        import_button.clicked.connect(lambda: self._on_import_list(list_type))
 
         # Export button
         export_button = QPushButton("Export to CSV...")
@@ -358,84 +358,53 @@ class ValidationPanel(QWidget):
         # Emit signal
         self._emit_validation_lists_updated()
 
-    def _import_list(self, list_type: str, list_widget: QListWidget) -> None:
+    def _on_import_list(self, list_type: str):
         """
         Import a validation list from a file.
 
         Args:
-            list_type (str): The validation list type
-            list_widget (QListWidget): The list widget
+            list_type (str): Type of list to import
         """
-        # Get default directory
-        default_dir = self._config.get(
-            "Files", "default_validation_dir", fallback="data/validation"
-        )
-
-        file_filter = "All Files (*.*)"
-        if list_type == "player":
-            file_filter = "Text Files (*.txt);;CSV Files (*.csv);;All Files (*.*)"
-        else:
-            file_filter = "CSV Files (*.csv);;Text Files (*.txt);;All Files (*.*)"
-
-        # Get file path
-        file_path, selected_filter = QFileDialog.getOpenFileName(
+        # Get file path from dialog
+        file_path, _ = QFileDialog.getOpenFileName(
             self,
             f"Import {list_type.capitalize()} List",
-            default_dir,
-            file_filter,
+            "",
+            "Text Files (*.txt);;CSV Files (*.csv);;All Files (*)",
         )
 
         if not file_path:
             return
 
+        # Load validation list from file
         try:
-            # Save the directory
-            self._config.set("Files", "default_validation_dir", str(Path(file_path).parent))
-            self._config.save()
+            validation_list = ValidationList.load_from_file(file_path, list_type)
 
-            # Log import attempt
-            logging.info(f"Importing {list_type} list from: {file_path}")
-
-            # Check file extension
-            file_ext = Path(file_path).suffix.lower()
-            if file_ext == ".txt" and list_type == "player":
-                logging.info(f"Detected text file for player list: {file_path}")
-
-            # Load validation list - explicitly passing list_type for text files
-            validation_list = ValidationList.load_from_file(file_path, list_type=list_type)
-
-            logging.info(f"Loaded {list_type} list with {validation_list.count()} entries")
-
-            # Update list
+            # Update validation list
             self._validation_lists[list_type] = validation_list
+
+            # Update UI
+            list_widget = getattr(self, f"_{list_type}_list_widget")
+            list_widget.clear()
+            for entry in validation_list.get_entries():
+                list_widget.addItem(entry)
 
             # Update name edit
             name_edit = self.findChild(QLineEdit, f"{list_type}_name_edit")
             if name_edit:
                 name_edit.setText(validation_list.name)
 
-            # Update list widget
-            list_widget.clear()
-            for entry in validation_list.get_entries():
-                list_widget.addItem(entry)
-
-            # Save to config
-            self._save_validation_lists_to_config()
-
-            # Emit signal to notify corrector panels
+            # Emit signal
             self._emit_validation_lists_updated()
 
             # Show success message
             QMessageBox.information(
                 self,
                 "Import Successful",
-                f"{list_type.capitalize()} list successfully imported from {file_path} with {validation_list.count()} entries.",
+                f"Successfully imported {validation_list.count()} entries to {list_type} list.",
             )
-
         except Exception as e:
-            # Show error message
-            QMessageBox.critical(self, "Import Error", f"Error importing {list_type} list: {e}")
-            logging.error(f"Error importing {list_type} list: {str(e)}", exc_info=True)
+            QMessageBox.critical(self, "Import Error", f"Error importing list: {str(e)}")
 
     def _export_list(self, list_type: str) -> None:
         """
@@ -445,9 +414,7 @@ class ValidationPanel(QWidget):
             list_type (str): The validation list type
         """
         # Get default directory
-        default_dir = self._config.get(
-            "Files", "default_validation_dir", fallback="data/validation"
-        )
+        default_dir = self._config.get_path("validation_dir", "data/validation")
 
         # Make sure the directory exists
         Path(default_dir).mkdir(parents=True, exist_ok=True)
@@ -468,7 +435,7 @@ class ValidationPanel(QWidget):
 
         try:
             # Save the directory
-            self._config.set("Files", "default_validation_dir", str(Path(file_path).parent))
+            self._config.set_path("validation_dir", str(Path(file_path).parent))
             self._config.save()
 
             # Save validation list - pass the string path directly
@@ -489,9 +456,7 @@ class ValidationPanel(QWidget):
     def _save_validation_lists_to_config(self) -> None:
         """Save validation lists to configuration."""
         # Get validation directory
-        validation_dir = Path(
-            self._config.get("Files", "default_validation_dir", fallback="data/validation")
-        )
+        validation_dir = self._config.get_path("validation_dir", "data/validation")
 
         # Make sure the directory exists
         validation_dir.mkdir(parents=True, exist_ok=True)
@@ -508,7 +473,7 @@ class ValidationPanel(QWidget):
                     validation_list.save_to_file(file_path)
 
                     # Update config
-                    self._config.set("Validation", f"validation_{list_type}_list", str(file_path))
+                    self._config.set_path(f"{list_type}_list_file", str(file_path))
                 except Exception as e:
                     print(f"Error saving validation list: {e}")
 
@@ -521,7 +486,7 @@ class ValidationPanel(QWidget):
 
         for list_type in ["player", "chest_type", "source"]:
             # Get validation list path
-            list_path = self._config.get("Validation", f"validation_{list_type}_list", fallback="")
+            list_path = self._config.get_path(f"{list_type}_list_file", fallback="")
 
             if list_path and Path(list_path).exists():
                 try:
@@ -746,3 +711,58 @@ class ValidationPanel(QWidget):
             logging.error(f"ValidationPanel: Error emitting validation_lists_updated: {e}")
         finally:
             self._emitting_signal = False
+
+    def _load_validation_list(self, list_type):
+        """
+        Load a validation list from a file.
+
+        Args:
+            list_type (str): Type of validation list to load
+        """
+        import logging
+        from pathlib import Path
+        from PySide6.QtWidgets import QFileDialog
+        from src.models.validation_list import ValidationList
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"Loading {list_type} validation list")
+
+        # Get default directory from the config - use the new path API
+        default_dir = self._config.get_path("validation_dir", "data/validation")
+
+        # Get file path
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            f"Load {list_type.capitalize()} List",
+            default_dir,
+            "Text Files (*.txt);;All Files (*)",
+        )
+
+        if not file_path:
+            logger.info(f"No file selected for {list_type} list")
+            return
+
+        try:
+            logger.info(f"Loading {list_type} list from: {file_path}")
+            validation_list = ValidationList.from_file(file_path, list_type)
+
+            if validation_list and validation_list.items:
+                # Update validation lists in dashboard
+                self._update_validation_list(list_type, validation_list)
+
+                # Update config using the new path API
+                self._config.set_path(f"{list_type}_list_file", file_path)
+                self._config.set_path("validation_dir", str(Path(file_path).parent))
+
+                logger.info(f"Loaded {list_type} list with {len(validation_list.items)} items")
+                return True
+            else:
+                logger.warning(f"No items found in {list_type} list file")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error loading {list_type} list: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())
+            return False

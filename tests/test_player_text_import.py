@@ -40,10 +40,7 @@ def test_player_text_import():
         # Use the real players.txt file
         player_file = Path("data/validation/players.txt")
 
-        if not player_file.exists():
-            logger.error(f"Player file {player_file} does not exist!")
-            handler.flush()
-            return False
+        assert player_file.exists(), f"Player file {player_file} does not exist!"
 
         logger.info(f"Attempting to load players from {player_file}")
         handler.flush()
@@ -62,37 +59,30 @@ def test_player_text_import():
         handler.flush()
 
         # Verify the list
-        if player_list.list_type != "player":
-            logger.error(f"Expected list_type 'player', got '{player_list.list_type}'")
-            handler.flush()
-            return False
-
-        if len(player_list.entries) <= 0:
-            logger.error("Player list should have entries")
-            handler.flush()
-            return False
+        assert player_list.list_type == "player", (
+            f"Expected list_type 'player', got '{player_list.list_type}'"
+        )
+        assert len(player_list.entries) > 0, "Player list should have entries"
 
         logger.info("Player text import test PASSED")
         handler.flush()
-        return True
 
     except Exception as e:
         logger.error(f"Test failed: {str(e)}")
         logger.error(traceback.format_exc())
         handler.flush()
-        return False
+        assert False, f"Test failed: {str(e)}"
 
 
 def main():
     """Run the tests and report results."""
-    success = test_player_text_import()
-
-    if success:
+    try:
+        test_player_text_import()
         logger.info("===== All tests PASSED =====")
         handler.flush()
         return 0
-    else:
-        logger.error("===== Tests FAILED =====")
+    except AssertionError as e:
+        logger.error(f"===== Tests FAILED: {str(e)} =====")
         handler.flush()
         return 1
 

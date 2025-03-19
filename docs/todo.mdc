@@ -16,6 +16,21 @@ We are planning a major rework of the application to address issues with:
 - Outdated visual design
 - Incomplete fuzzy matching implementation
 
+## Recent Completed Work
+
+### Configuration Management Improvements (COMPLETED)
+- [x] Implemented consolidated path structure in ConfigManager
+- [x] Added migration mechanism to convert old configs to new structure
+- [x] Created get_path and set_path methods for consistent path handling
+- [x] Updated all file loading/saving code to use the new path API
+- [x] Fixed multiple correction list processing issues by centralizing path handling
+- [x] Updated Dashboard and CorrectionRulesTable to use the consolidated paths
+- [x] Added proper migration on application startup
+- [x] Enhanced path redirection for backward compatibility
+- [x] Fixed redundant loading of configuration files
+- [x] Updated all file dialogs to use consistent directory handling
+- [x] Created standard directory structure for all file types
+
 ## Rework Implementation Plan
 
 ### Phase 1: Preliminary Cleanup
@@ -99,19 +114,43 @@ We are planning a major rework of the application to address issues with:
   - [x] Allow one-click application of suggestions
   - [x] Display confidence scores for suggestions
 
-### Phase 5: Drag-and-Drop Functionality
+### Phase 5: Configuration Management (COMPLETED)
+- [x] Create consolidated path structure in ConfigManager:
+  - [x] Implement a "Paths" section for all file paths
+  - [x] Add standard directories (data, input, output, etc.)
+  - [x] Define default files (correction_rules, validation lists, etc.)
+  - [x] Implement last used paths for user convenience
+- [x] Implement backward compatibility:
+  - [x] Create redirection mechanism for legacy config entries
+  - [x] Add migration functionality to update old configs
+  - [x] Ensure existing code still works with new structure
+- [x] Create path utility methods:
+  - [x] Implement get_path method with fallback support
+  - [x] Create set_path method that updates all related paths
+  - [x] Add support for legacy path retrieval
+- [x] Update all components to use new config API:
+  - [x] Modify Dashboard class to use consolidated paths
+  - [x] Update CorrectionRulesTable to use the path API
+  - [x] Update ValidationListWidget to use the path API
+  - [x] Fix file dialogs to use consistent directory handling
+- [x] Add automatic directory creation for missing paths
+- [x] Implement proper error handling for file operations
+- [x] Add default directory structure creation on first run
+- [x] Fix multiple correction list processing issues
+
+### Phase 6: Drag-and-Drop Functionality
 - [ ] Implement drag-and-drop from validation lists to correction rules
 - [ ] Enable drag-and-drop between validation lists
 - [ ] Add visual cues for drag operations
 - [ ] Implement confirmation dialog for creating new entries
 
-### Phase 6: Filter Improvements
+### Phase 7: Filter Improvements
 - [ ] Create dropdown filters populated from validation lists
 - [ ] Implement multi-select filtering
 - [ ] Add search functionality to filters
 - [ ] Ensure filter state persists between app restarts
 
-### Phase 7: Visual Design Updates
+### Phase 8: Visual Design Updates
 - [x] Define new color scheme with golden accents
 - [x] Create consistent button styling
 - [x] Redesign tables with modern aesthetics
@@ -122,23 +161,193 @@ We are planning a major rework of the application to address issues with:
 - [x] Design improved icons for actions
 - [x] Implement vertical sidebar menu on the left
 
-### Phase 8: State Management & Consistency
-- [ ] Refactor validation/correction workflow
-- [ ] Implement automatic validation on data load
-- [ ] Ensure consistent state sharing between components
-- [ ] Add clear user feedback for all operations
-- [ ] Implement proper error handling with user-friendly messages
-- [ ] Create consistent configuration saving/loading
-- [ ] Auto-save correction list state and preferences
+### Phase 9: State Management & Consistency
+- [x] Refactor validation/correction workflow
+- [x] Implement automatic validation on data load
+- [x] Ensure consistent state sharing between components
+- [x] Add clear user feedback for all operations
+- [x] Implement proper error handling with user-friendly messages
+- [x] Create consistent configuration saving/loading
+- [x] Auto-save correction list state and preferences
 
-### Phase 9: Testing & Polishing
+### Phase 10: Testing & Polishing
 - [ ] Test entire workflow with real data
 - [ ] Identify and fix edge cases
 - [ ] Optimize performance for large datasets
-- [ ] Add logging for troubleshooting
+- [x] Add logging for troubleshooting
 - [ ] Final UI adjustments
 
+### Phase 11: Data Management Rework
+
+## Prerequisites
+- [x] Analysis of current data management
+- [x] Planning new architecture
+- [x] Analysis of circular dependencies
+
+## Identified Circular Dependencies
+We have identified the following circular dependency chain:
+1. `src/models/validation_list.py` imports `src/services/config_manager.py`
+2. `src/services/__init__.py` imports `src/services/service_factory.py`
+3. `src/services/service_factory.py` imports UI adapters from `src/ui/adapters/dataframe_adapter.py`
+4. `src/ui/__init__.py` imports `src/ui/main_window.py`
+5. `src/ui/main_window.py` imports `src/models/validation_list.py`
+
+## Implementation Steps
+- [x] Create `DataFrameStore` class for centralized data management
+- [x] Implement event system for change notifications
+- [x] Implement transaction support for batch operations
+- [x] Add caching for performance optimization
+- [x] Create `FileService` for file operations
+  - [x] Add robust file format handling for entries
+  - [x] Implement flexible CSV parsing for correction rules
+- [x] Create `CorrectionService` for applying corrections
+- [x] Create `ValidationService` for validating entries
+- [x] Create UI adapters for connecting DataFrame to UI components
+- [x] Create standalone demo script
+- [x] Create integration test for real-world usage
+  - [x] Fix file loading to handle entries without empty line separators
+  - [x] Fix file saving to maintain the correct format
+  - [x] Enhance CSV parsing to handle various correction rule formats
+- [x] Refactor `MainWindow` to use new services
+  - [x] Connect UI components to adapters
+  - [x] Replace direct data manipulations with service calls
+  - [x] Subscribe to `DataFrameStore` events
+  - [x] Implement bridge methods for backward compatibility
+- [ ] Resolve circular dependencies
+  - [x] Create new `src/interfaces` package with interface classes
+    - [x] `IDataStore` - Interface for the data store
+    - [x] `IFileService` - Interface for file operations
+    - [x] `ICorrectionService` - Interface for correction operations
+    - [x] `IValidationService` - Interface for validation operations
+    - [x] `IConfigManager` - Interface for configuration management
+    - [x] Interface for UI adapters
+  - [x] Modify `ValidationList` class to use interfaces instead of concrete implementations
+  - [x] Update service factory to use interfaces
+    - [x] Implement IServiceFactory interface
+    - [x] Add dependency injection support with register_service/resolve_service methods
+    - [x] Return interface types from getter methods
+  - [x] Create `AppBootstrapper` class to handle initialization
+    - [x] Implement service initialization in correct order
+    - [x] Add registration of core services
+    - [x] Create interfaces for UI adapters
+  - [x] Create ValidationListComboAdapter that implements IComboBoxAdapter
+  - [x] Create EntryTableAdapter that implements ITableAdapter
+  - [x] Create CorrectionRuleTableAdapter that implements ITableAdapter
+  - [x] Restructure package __init__.py files to avoid creating circular references
+    - [x] Update src/models/__init__.py with lazy loading
+    - [x] Update src/ui/__init__.py with lazy loading 
+    - [x] Update src/services/__init__.py with lazy loading
+    - [x] Verify no circular dependencies remain
+  - [x] Create boostrapper test script to verify initialization works
+  - [x] Create run_interface_app.py script to run the application with new architecture
+  - [x] Update main UI components to use interface implementations
+  - [x] Create comprehensive test suite for interface architecture
+  - [x] Clean up interface duplication in the interfaces directory
+
+## Verification Checklist
+- [x] Core classes implemented
+- [x] Services functional
+- [x] Transaction support functional
+- [x] Standalone demo working
+- [x] Adapter pattern verified
+- [x] Integration test working with real data
+- [x] MainWindow refactored to use new services
+- [x] Circular dependencies resolved
+- [ ] All features integrated with UI
+- [ ] Tests passing
+- [ ] Performance benchmarks met
+- [ ] Documentation updated
+
+## Status
+- Started: 2025-03-18
+- Current Status: In Progress
+- Blocking Issues: Circular dependencies preventing direct usage of the refactored MainWindow
+- Next Steps:
+  - Implement interface-based architecture to resolve circular dependencies
+  - Complete integration with existing UI
+  - Add comprehensive tests
+  - Update documentation
+
+## Integration Strategy
+1. [x] Replace direct data access with service calls
+2. [x] Connect UI components to adapters
+3. [x] Refactor UI components to use the event system
+4. [ ] Resolve circular dependencies with interface-based architecture
+5. [ ] Add proper error handling
+6. [ ] Optimize performance
+
+## Next Tasks
+- [x] Create interfaces package to resolve circular dependencies
+  - [x] Define all necessary interfaces
+  - [x] Update existing imports to use interfaces where possible
+  - [x] Create proper interface documentation
+- [x] Complete ValidationList refactoring
+  - [x] Update ValidationList to accept IConfigManager
+  - [x] Test circular dependency resolution
+  - [x] Fix any remaining import issues
+- [x] Implement dependency injection for key components
+  - [x] Add dependency injection support to ServiceFactory
+  - [x] Create AppBootstrapper for initialization
+  - [x] Create new adapter implementations
+- [ ] Expand dependency injection to remaining components
+  - [ ] Modify UI components to use interface references
+  - [ ] Update entry point script to use AppBootstrapper
+  - [ ] Create Singleton access for AppBootstrapper
+- [ ] Create comprehensive test suite for new architecture
+  - [ ] Unit tests for core services
+  - [ ] Integration tests for data flow
+  - [ ] UI component tests
+- [ ] Implement error handling and user notifications
+  - [ ] Create central error handling system
+  - [ ] Add user-friendly error messages
+  - [ ] Implement logging for all errors
+- [ ] Optimize performance for large datasets
+  - [ ] Profile and identify bottlenecks
+  - [ ] Implement caching where appropriate
+  - [ ] Add batch processing for large operations
+- [ ] Update documentation with new architecture details
+  - [ ] Create architecture diagram
+  - [ ] Document interface contracts
+  - [ ] Update code documentation
+- [ ] Create user guide for the refactored application
+  - [ ] Update screenshots
+  - [ ] Document new features
+  - [ ] Create workflow examples
+
+## Notes
+- The integration test provides a good blueprint for separating components to avoid circular references
+- Circular dependencies can be resolved through a combination of interfaces, dependency injection, and lazy loading
+- The standalone test modules successfully avoid circular dependencies and provide a model for restructuring
+- A proper application bootstrapper would help with initializing services in the correct order
+
 ## Detailed Implementation Tasks
+
+### Configuration Management Tasks - Phase 5 (COMPLETED)
+1. [x] Create consolidated path structure in ConfigManager:
+   - [x] Design a "Paths" section to centralize all file paths
+   - [x] Define standard directories for application data
+   - [x] Add path mappings for backward compatibility
+   - [x] Implement default file paths for each file type
+2. [x] Create utility methods for path management:
+   - [x] Implement get_path method with fallback and redirection
+   - [x] Create set_path method that updates all related paths
+   - [x] Add migration functionality to convert old configs
+3. [x] Update all components to use new path API:
+   - [x] Modify Dashboard file loading/saving methods
+   - [x] Update CorrectionRulesTable path handling
+   - [x] Fix ValidationListWidget to use the new API
+   - [x] Update Settings panel to use the consolidated paths
+   - [x] Fix file dialogs to use consistent directories
+4. [x] Implement migration and defaults:
+   - [x] Add auto-migration on application startup
+   - [x] Create default directory structure for new installs
+   - [x] Implement fallbacks for missing configuration
+   - [x] Add better error handling for file operations
+5. [x] Test and validate changes:
+   - [x] Verify backward compatibility with existing configs
+   - [x] Test loading of correction and validation lists
+   - [x] Validate directory creation and path handling
+   - [x] Fix issues with multiple file loading
 
 ### Preliminary Cleanup Tasks - Phase 1 (COMPLETED)
 1. [x] Update navigation panel to remove redundant tabs
@@ -225,6 +434,48 @@ We are planning a major rework of the application to address issues with:
 6. [x] Design custom scrollbars and selection highlighting
 7. [x] Implement vertical sidebar menu on the left
 
+### Data Management Rework Tasks - Phase 11
+1. [x] Create a new `DataFrameStore` class:
+   - [x] Implement dataframes for entries, correction rules, and validation lists
+   - [x] Create accessor methods with proper typing
+   - [x] Add transaction support for batch operations
+   - [x] Implement change tracking with DataFrame operations
+   - [x] Add export/import functionality with DataFrames
+2. [x] Update existing services to use DataFrameStore:
+   - [x] Create dedicated services for file operations, validation, and corrections
+   - [x] Implement conversion methods for backward compatibility
+   - [x] Add DataFrame-specific methods for efficient updates
+   - [x] Create proper caching for expensive operations
+3. [x] Create clear service boundaries:
+   - [x] Implement FileService for handling all file operations
+   - [x] Create ValidationService for centralized validation logic
+   - [x] Implement CorrectionService for handling all correction operations
+   - [x] Add ServiceFactory for centralized service access
+4. [x] Update UI components to work with DataFrames:
+   - [x] Create adapters to bridge between DataFrameStore and UI components
+   - [x] Implement table models that work with DataFrames
+   - [x] Create combo adapters for validation lists
+   - [x] Add efficient data binding between UI and DataFrame
+5. [x] Standardize data access patterns:
+   - [x] Create consistent method names across components
+   - [x] Implement central getters/setters in DataFrameStore
+   - [x] Add proper access control with validation
+   - [x] Create batch update methods for efficiency
+6. [x] Simplify signal architecture:
+   - [x] Replace signal chaining with event system
+   - [x] Create selective update mechanism for UI components
+   - [x] Implement granular change notifications
+   - [x] Add proper event documentation
+7. [x] Optimize for performance:
+   - [x] Implement efficient filtering methods for DataFrames
+   - [x] Add indexing for frequent operations
+   - [x] Create caching for expensive operations
+   - [x] Implement batch processing for large datasets
+8. [ ] Add proper testing:
+   - [x] Create demo script to verify functionality
+   - [ ] Implement integration tests for data flow
+   - [ ] Add benchmarking for performance evaluation
+   - [ ] Create data consistency checks
 
 ## Possible Future Enhancements
 

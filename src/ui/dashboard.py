@@ -8,8 +8,11 @@ Usage:
 """
 
 import logging
+import traceback
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
+import os
+import csv
 
 from PySide6.QtCore import Qt, Signal, Slot, QTimer
 from PySide6.QtGui import QColor, QIcon, QAction
@@ -38,6 +41,7 @@ from src.ui.statistics_widget import StatisticsWidget
 from src.ui.validation_status_indicator import ValidationStatusIndicator
 from src.ui.correction_manager_panel import CorrectionManagerPanel
 from src.services.data_manager import DataManager
+from src.utils.constants import DEFAULT_VALIDATION_LISTS, DEFAULT_DIRECTORIES
 
 
 class Dashboard(QWidget):
@@ -71,48 +75,58 @@ class Dashboard(QWidget):
     correction_rules_updated = Signal(list)  # List of correction rules
 
     def __init__(self, parent=None):
-        """Initialize the dashboard widget."""
-        super().__init__(parent)
-        self._logger = logging.getLogger(__name__)
-        self._logger.info("Initializing Dashboard")
+        """
+        Initialize the dashboard.
 
-        # Prevent signal loops and cascading signals
+        Args:
+            parent: Parent widget
+        """
+        super().__init__(parent)
+
+        # Initialize logging
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Initializing Dashboard")
+
+        # Initialize data manager
+        self._data_manager = DataManager.get_instance()
+
+        # Initialize config manager
+        self._config = ConfigManager()
+
+        # Initialize file parser
+        self._file_parser = FileParser()
+
+        # Initialize signal processing flags
         self._processing_signal = False
         self._processing_entries_loaded = False
-        self._processing_corrections_loaded = False
         self._processing_corrections_applied = False
-
-        # Initialize data
         self._entries = []
         self._correction_rules = []
         self._validation_lists = {}
-        self._validation_errors = 0
+        self._validation_errors_count = 0
+        self._emitting_signal = False
 
-        # Initialize components
-        self._file_import_widget = None
-        self._statistics_widget = None
-        self._action_buttons = None
-        self._validation_status = None
-        self._table_view = None
-        self._splitter = None
-        self._sidebar = None
-        self._main_content = None
-        self._corrector = Corrector()
-
-        # Setup UI components
+        # Set up main widget
         self._setup_ui()
+
+        # Connect signals
         self._connect_signals()
 
-        # Load saved correction rules
-        QTimer.singleShot(500, self._load_saved_correction_rules)
+        # Initialize status bar reference - will be populated later
+        self._status_bar = None
+        if self.parent() and hasattr(self.parent(), "statusBar"):
+            self._status_bar = self.parent().statusBar()
+            self.logger.info("Status bar initialized from parent")
+        else:
+            self.logger.warning("No parent statusBar available, status_bar will be None")
+
+        # Load saved rules
+        self._load_saved_correction_rules()
 
         # Load saved validation lists
-        QTimer.singleShot(1000, self._load_saved_validation_lists)
+        self._load_saved_validation_lists()
 
-        # Status bar reference from parent (MainWindow)
-        self._status_bar = None
-
-        self._logger.info("Dashboard initialized")
+        self.logger.info("Dashboard initialized")
 
     def statusBar(self):
         """
@@ -121,10 +135,12 @@ class Dashboard(QWidget):
         Returns:
             QStatusBar: The status bar from the parent window
         """
-        # Try to get status bar from parent (MainWindow)
-        if self.parent() and hasattr(self.parent(), "statusBar"):
-            return self.parent().statusBar()
-        return None
+        # Try to get status bar from parent (MainWindow) if not already set
+        if self._status_bar is None and self.parent() and hasattr(self.parent(), "statusBar"):
+            self._status_bar = self.parent().statusBar()
+            self.logger.info("Status bar initialized from parent in statusBar method")
+
+        return self._status_bar
 
     @property
     def _correction_manager(self):
@@ -257,6 +273,7 @@ class Dashboard(QWidget):
         self._action_buttons.save_requested.connect(self._on_save_requested)
         self._action_buttons.export_requested.connect(self._on_export_requested)
         self._action_buttons.apply_corrections_requested.connect(self._apply_corrections)
+        self._action_buttons.validate_requested.connect(self._validate_entries)
         self._action_buttons.settings_requested.connect(self._on_settings_requested)
 
         # Connect table view signals
@@ -278,370 +295,237 @@ class Dashboard(QWidget):
         logger.info("Dashboard signals connected successfully")
 
     def _load_saved_correction_rules(self):
-        """
-        Load the previously saved correction rules using DataManager.
-        """
-        import logging
+        """Load saved correction rules from config."""
+        try:
+            # Get the correction rules path from config using the new path method
+            correction_rules_path = self._config.get_path("correction_rules_file")
 
-        logger = logging.getLogger(__name__)
-        logger.info("Dashboard: Using DataManager to load saved correction rules")
+            # Get the absolute path
+            absolute_path = self._config.get_absolute_path(correction_rules_path)
 
-        # Get the DataManager instance
-        data_manager = DataManager.get_instance()
+            if absolute_path.exists():
+                self.logger.info(f"Loading correction rules from {absolute_path}")
 
-        # Get config manager
-        if not hasattr(self, "_config"):
-            self._config = ConfigManager()
+                # Load correction rules using the file parser
+                correction_rules = self._file_parser.parse_correction_file(str(absolute_path))
 
-        # Load rules through the data manager
-        rules = data_manager.load_saved_correction_rules()
+                if correction_rules:
+                    # Update correction rules in data manager
+                    self._data_manager.set_correction_rules(correction_rules)
 
-        # If no rules were loaded but we have a last correction file path, try to load it directly
-        if not rules:
-            last_file = self._config.get("General", "last_correction_file", "")
-            if last_file:
-                logger.info(
-                    f"DataManager couldn't load rules, trying direct load from: {last_file}"
-                )
-                try:
-                    from pathlib import Path
-                    from src.services.file_parser import FileParser
+                    # Update the status for the user
+                    self.logger.info(f"Loaded {len(correction_rules)} correction rules")
+                    if hasattr(self, "_status_bar") and self._status_bar:
+                        self._status_bar.showMessage(
+                            f"Loaded {len(correction_rules)} correction rules", 3000
+                        )
 
-                    parser = FileParser()
-                    if Path(last_file).exists():
-                        rules = parser.parse_correction_file(last_file)
-                        if rules:
-                            logger.info(
-                                f"Successfully loaded {len(rules)} rules directly from file"
-                            )
-                            # Store them in DataManager as well
-                            data_manager.set_correction_rules(rules, last_file)
-                except Exception as e:
-                    logger.error(f"Failed to load correction file directly: {str(e)}")
+                    # Emit signal
+                    self.corrections_loaded.emit(correction_rules)
 
-        if rules:
-            logger.info(f"Successfully loaded {len(rules)} correction rules via DataManager")
+                    # Update last used path
+                    self._config.set_last_used_path("last_correction_file", str(absolute_path))
+                    self._config.set_last_used_path(
+                        "last_correction_directory", str(absolute_path.parent)
+                    )
 
-            # Store the rules locally (redundant but harmless)
-            self._correction_rules = rules
+                    return True
+                else:
+                    self.logger.warning("No correction rules loaded from file")
+            else:
+                self.logger.info(f"Correction rules file not found: {absolute_path}")
 
-            # Set them in the corrector
-            self._corrector.set_rules(rules)
+            return False
+        except Exception as e:
+            self.logger.error(f"Error loading correction rules: {e}")
+            import traceback
 
-            # Update UI elements
-            self._action_buttons.set_corrections_loaded(len(rules) > 0)
-            self._statistics_widget.set_correction_rules(rules)
-
-            # DataManager will emit the signal to update all components
-        else:
-            logger.warning("No correction rules were loaded")
+            self.logger.error(traceback.format_exc())
+            return False
 
     def _on_load_correction_file(self, file_path=None):
         """
-        Handle loading a correction file.
+        Load a correction file.
 
         Args:
-            file_path: Either a path to a correction file, a list of CorrectionRule objects, or None to show a file dialog
-        """
-        import logging
-        from pathlib import Path
-
-        logger = logging.getLogger(__name__)
-        logger.info("Dashboard: Loading correction file")
-
-        # Set processing flag to avoid signal loops
-        old_processing_signal = getattr(self, "_processing_signal", False)
-        self._processing_signal = True
-
-        try:
-            # Get the DataManager instance
-            data_manager = DataManager.get_instance()
-
-            # Make sure we have config manager
-            if not hasattr(self, "_config"):
-                self._config = ConfigManager()
-
-            # Check if file_path is actually a list of rules
-            if isinstance(file_path, list):
-                logger.info(f"Received {len(file_path)} correction rules directly")
-                correction_rules = file_path
-
-                # Store the rules in the DataManager
-                data_manager.set_correction_rules(correction_rules)
-
-            elif file_path is None:
-                # If no file path provided, show file dialog
-                from PySide6.QtWidgets import QFileDialog
-                from pathlib import Path
-
-                # Get last used folder
-                last_folder = self._config.get("General", "last_folder", str(Path.home()))
-
-                file_path, _ = QFileDialog.getOpenFileName(
-                    self,
-                    "Open Correction File",
-                    last_folder,
-                    "Correction Files (*.csv *.tsv *.txt);;All Files (*.*)",
-                )
-
-                if not file_path:
-                    logger.info("No correction file selected")
-                    return
-
-                # Parse the correction file
-                from src.services.file_parser import FileParser
-
-                logger.info(f"Parsing correction file: {file_path}")
-                parser = FileParser()
-                correction_rules = parser.parse_correction_file(file_path)
-
-                if not correction_rules:
-                    logger.warning(f"No correction rules found in {file_path}")
-                    return
-
-                # Store rules in the DataManager with file path
-                data_manager.set_correction_rules(correction_rules, file_path)
-
-            else:
-                # Parse the correction file
-                from src.services.file_parser import FileParser
-
-                logger.info(f"Parsing correction file: {file_path}")
-                parser = FileParser()
-                correction_rules = parser.parse_correction_file(file_path)
-
-                if not correction_rules:
-                    logger.warning(f"No correction rules found in {file_path}")
-                    return
-
-                # Store rules in the DataManager with file path
-                data_manager.set_correction_rules(correction_rules, file_path)
-
-            # Store locally as well for redundancy
-            self._correction_rules = correction_rules
-            self._current_correction_file = file_path if not isinstance(file_path, list) else None
-
-            # Save the current file path to config
-            if self._current_correction_file:
-                file_path_str = str(self._current_correction_file)
-                self._config.set("General", "last_correction_file", file_path_str)
-                self._config.set("Correction", "default_correction_rules", file_path_str)
-
-                # Save folder path for next time
-                folder_path = str(Path(file_path_str).parent)
-                self._config.set("General", "last_folder", folder_path)
-                self._config.set("Files", "last_correction_directory", folder_path)
-                self._config.save()
-
-            # Update UI
-            self._action_buttons.set_corrections_loaded(len(correction_rules) > 0)
-            self._statistics_widget.set_correction_rules(correction_rules)
-
-            # Show status message
-            if self.statusBar():
-                self.statusBar().showMessage(
-                    f"Loaded {len(correction_rules)} correction rules", 3000
-                )
-
-            # Emit our own signal (which will be connected to DataManager)
-            logger.info(f"Emitting corrections_loaded signal with {len(correction_rules)} rules")
-            self.corrections_loaded.emit(correction_rules)
-
-            # Apply correction rules to entries if available - wrap in try/except to prevent crashes
-            if hasattr(self, "_entries") and self._entries:
-                try:
-                    logger.info(f"Applying loaded correction rules to {len(self._entries)} entries")
-                    self._apply_corrections()
-                except Exception as e:
-                    logger.error(f"Error applying corrections: {str(e)}")
-                    from PySide6.QtWidgets import QMessageBox
-
-                    QMessageBox.warning(
-                        self,
-                        "Correction Warning",
-                        f"Loaded correction rules, but couldn't apply them automatically: {str(e)}",
-                    )
-
-            return correction_rules
-
-        except Exception as e:
-            logger.error(f"Error loading correction file: {str(e)}")
-            from PySide6.QtWidgets import QMessageBox
-
-            QMessageBox.critical(
-                self,
-                "Error Loading Correction File",
-                f"Failed to load correction file:\n\n{str(e)}",
-            )
-            return None
-        finally:
-            # Restore processing flag
-            self._processing_signal = old_processing_signal
-
-    def _load_saved_validation_lists(self):
-        """
-        Load the previously saved validation lists.
+            file_path (str or list, optional): Path to correction file or list of rules. Defaults to None.
         """
         import logging
         import traceback
         from pathlib import Path
+        from src.services.file_parser import FileParser
 
         logger = logging.getLogger(__name__)
-        logger.info("Dashboard: Loading saved validation lists")
 
-        # Check if we're visible
-        logger.info(f"Dashboard widget is visible: {self.isVisible()}")
+        # If file_path is a list of rules, treat it directly as rules
+        if isinstance(file_path, list):
+            logger.info(
+                f"Loading correction file: directly provided list of {len(file_path)} rules"
+            )
+            rules = file_path
+        else:
+            # Handle string file path
+            if not file_path:
+                # Get default directory
+                default_dir = self._config.get_path("corrections_dir", "data/corrections")
 
-        lists = {}
-        try:
-            # Get configuration
-            config = ConfigManager()
+                # Create it if it doesn't exist
+                os.makedirs(default_dir, exist_ok=True)
 
-            # Try multiple config locations for each list type
+                # Open file dialog
+                file_path, _ = QFileDialog.getOpenFileName(
+                    self,
+                    "Open Correction List",
+                    default_dir,
+                    "CSV Files (*.csv);;All Files (*)",
+                )
 
-            # Load player list
-            for key in ["player_list", "player_list_path"]:
-                for section in ["Validation", "General"]:
-                    player_list_path = config.get(section, key, "")
-                    if player_list_path:
-                        player_path = Path(player_list_path)
-                        logger.info(f"Loading player list from: {player_path}")
-
-                        if player_path.exists():
-                            logger.info(f"Player list file exists at: {player_path}")
-                            try:
-                                # Try direct loading method
-                                player_list = ValidationList.load_from_file(player_path)
-                                if player_list is not None:
-                                    lists["player"] = player_list
-                                    logger.info(
-                                        f"Loaded player list with {len(player_list.items)} items"
-                                    )
-                                    # Break out of both loops
-                                    break
-                            except Exception as e:
-                                logger.warning(f"Error loading player list: {str(e)}")
-                                # Try alternate loading approach
-                                with open(player_path, "r", encoding="utf-8") as f:
-                                    items = [line.strip() for line in f if line.strip()]
-                                    if items:
-                                        player_list = ValidationList(
-                                            list_type="player", entries=items
-                                        )
-                                        player_list.file_path = player_path
-                                        lists["player"] = player_list
-                                        logger.info(
-                                            f"Loaded player list with {len(items)} items (alternate method)"
-                                        )
-                                        break
-                if "player" in lists:
-                    break
-
-            # Load chest type list
-            for key in ["chest_type_list", "chest_type_list_path"]:
-                for section in ["Validation", "General"]:
-                    chest_type_list_path = config.get(section, key, "")
-                    if chest_type_list_path:
-                        chest_path = Path(chest_type_list_path)
-                        logger.info(f"Loading chest type list from: {chest_path}")
-
-                        if chest_path.exists():
-                            logger.info(f"Chest type list file exists at: {chest_path}")
-                            try:
-                                # Try direct loading method
-                                chest_list = ValidationList.load_from_file(chest_path)
-                                if chest_list is not None:
-                                    lists["chest_type"] = chest_list
-                                    logger.info(
-                                        f"Loaded chest type list with {len(chest_list.items)} items"
-                                    )
-                                    # Break out of both loops
-                                    break
-                            except Exception as e:
-                                logger.warning(f"Error loading chest type list: {str(e)}")
-                                # Try alternate loading approach
-                                with open(chest_path, "r", encoding="utf-8") as f:
-                                    items = [line.strip() for line in f if line.strip()]
-                                    if items:
-                                        chest_list = ValidationList(
-                                            list_type="chest_type", entries=items
-                                        )
-                                        chest_list.file_path = chest_path
-                                        lists["chest_type"] = chest_list
-                                        logger.info(
-                                            f"Loaded chest type list with {len(items)} items (alternate method)"
-                                        )
-                                        break
-                if "chest_type" in lists:
-                    break
-
-            # Load source list
-            for key in ["source_list", "source_list_path"]:
-                for section in ["Validation", "General"]:
-                    source_list_path = config.get(section, key, "")
-                    if source_list_path:
-                        source_path = Path(source_list_path)
-                        logger.info(f"Loading source list from: {source_path}")
-
-                        if source_path.exists():
-                            logger.info(f"Source list file exists at: {source_path}")
-                            try:
-                                # Try direct loading method
-                                source_list = ValidationList.load_from_file(source_path)
-                                if source_list is not None:
-                                    lists["source"] = source_list
-                                    logger.info(
-                                        f"Loaded source list with {len(source_list.items)} items"
-                                    )
-                                    # Break out of both loops
-                                    break
-                            except Exception as e:
-                                logger.warning(f"Error loading source list: {str(e)}")
-                                # Try alternate loading approach
-                                with open(source_path, "r", encoding="utf-8") as f:
-                                    items = [line.strip() for line in f if line.strip()]
-                                    if items:
-                                        source_list = ValidationList(
-                                            list_type="source", entries=items
-                                        )
-                                        source_list.file_path = source_path
-                                        lists["source"] = source_list
-                                        logger.info(
-                                            f"Loaded source list with {len(items)} items (alternate method)"
-                                        )
-                                        break
-                if "source" in lists:
-                    break
-
-            # Save loaded lists to config
-            if lists:
-                # Ensure paths are saved in all relevant config sections
-                for list_type, validation_list in lists.items():
-                    if hasattr(validation_list, "file_path") and validation_list.file_path:
-                        file_path_str = str(validation_list.file_path)
-                        logger.info(f"Saving {list_type} list path to config: {file_path_str}")
-                        config.set("General", f"{list_type}_list_path", file_path_str)
-                        config.set("Validation", f"{list_type}_list", file_path_str)
-
-                # Save config changes
-                config.save()
-                logger.info("Saved validation list paths to config")
-
-                # Store lists locally
-                self._validation_lists = lists
-
-                # Emit signal
-                logger.info(f"Emitting validation_lists_updated signal with {len(lists)} lists")
-                self.validation_lists_updated.emit(lists)
-
-                # Also schedule a delayed re-emit to ensure all components are initialized
-                QTimer.singleShot(1000, lambda: self._delayed_emit_validation_lists(lists))
+            if file_path:
+                logger.info(f"Loading correction file: {file_path}")
+                try:
+                    # Parse the correction file
+                    parser = FileParser()
+                    rules = parser.parse_correction_file(file_path)
+                except Exception as e:
+                    logger.error(f"Error loading correction file: {str(e)}")
+                    logger.debug(traceback.format_exc())
+                    if self._status_bar:
+                        self._status_bar.showMessage(f"Error loading correction file: {str(e)}")
+                    return False
             else:
-                logger.warning("No validation lists were loaded")
+                return False
+
+        # Process the rules
+        if rules:
+            logger.info(f"Loaded {len(rules)} correction rules")
+
+            # Set the rules in DataManager to prevent signal loops
+            if isinstance(file_path, str):
+                self._data_manager.set_correction_rules(rules, file_path)
+            else:
+                self._data_manager.set_correction_rules(rules)
+
+            # Set rules in the correction manager panel
+            if self._correction_manager:
+                logger.info("Setting rules in correction manager panel")
+                self._correction_manager.set_rules(rules)
+
+            # Update file import widget if we have a file path
+            if isinstance(file_path, str):
+                self._file_import_widget.set_correction_file_path(file_path)
+
+                # Store file path in config using consolidated paths
+                self._config.set_path("correction_rules_file", file_path)
+                self._config.set_path("last_folder", str(Path(file_path).parent))
+
+            # Update status bar
+            if self._status_bar:
+                self._status_bar.showMessage(
+                    f"Loaded {len(rules)} correction rules"
+                    + (f" from {file_path}" if isinstance(file_path, str) else "")
+                )
+
+            # Emit signal
+            logger.info(f"Emitting corrections_loaded signal with {len(rules)} rules")
+            self.corrections_loaded.emit(rules)
+
+            # Also emit correction_rules_updated signal for other components
+            logger.info(f"Emitting correction_rules_updated signal with {len(rules)} rules")
+            self.correction_rules_updated.emit(rules)
+
+            return True
+        else:
+            logger.warning(
+                f"No correction rules found"
+                + (f" in file: {file_path}" if isinstance(file_path, str) else "")
+            )
+            if self._status_bar:
+                self._status_bar.showMessage("No correction rules found")
+            return False
+
+    def _load_saved_validation_lists(self):
+        """Load saved validation lists from config."""
+        try:
+            # Initialize validation lists dictionary
+            validation_lists = {}
+            lists_loaded = False
+
+            # List of validation types and their corresponding path keys
+            validation_types = [
+                ("player", "player_list_file"),
+                ("chest_type", "chest_type_list_file"),
+                ("source", "source_list_file"),
+            ]
+
+            # Load each validation list
+            for list_type, path_key in validation_types:
+                try:
+                    # Get the path from config using the new path method
+                    list_path = self._config.get_path(path_key)
+
+                    # Get the absolute path
+                    absolute_path = self._config.get_absolute_path(list_path)
+
+                    if absolute_path.exists():
+                        self.logger.info(f"Loading {list_type} list from {absolute_path}")
+
+                        # Load validation list using appropriate method
+                        try:
+                            # First try using the data manager
+                            if hasattr(self._data_manager, "load_validation_list"):
+                                validation_list = self._data_manager.load_validation_list(
+                                    list_type, str(absolute_path)
+                                )
+                            else:
+                                # If not available, try direct loading
+                                from src.models.validation_list import ValidationList
+
+                                validation_list = ValidationList(list_type)
+                                validation_list.load_from_file(str(absolute_path))
+
+                            if validation_list and len(validation_list.entries) > 0:
+                                validation_lists[list_type] = validation_list
+                                self.logger.info(
+                                    f"Loaded {len(validation_list.entries)} {list_type} entries"
+                                )
+                                lists_loaded = True
+                            else:
+                                self.logger.warning(f"No {list_type} entries loaded from file")
+                        except Exception as list_error:
+                            self.logger.error(f"Error loading {list_type} list: {list_error}")
+                    else:
+                        self.logger.info(
+                            f"{list_type.capitalize()} list file not found: {absolute_path}"
+                        )
+                except Exception as e:
+                    self.logger.error(f"Error processing {list_type} list: {e}")
+
+            # If any lists were loaded, update validation lists in data manager
+            if lists_loaded:
+                if validation_lists:
+                    self._data_manager.set_validation_lists(validation_lists)
+
+                    # Emit signal with delayed execution
+                    self._delayed_emit_validation_lists(validation_lists)
+
+                    return True
+
+            # If no lists were loaded, try loading default lists
+            self.logger.info("No validation lists loaded from config, trying defaults...")
+            return self._load_default_validation_lists()
 
         except Exception as e:
-            logger.error(f"Error loading validation lists: {str(e)}")
-            logger.error(traceback.format_exc())
+            self.logger.error(f"Error loading validation lists: {e}")
+            import traceback
+
+            self.logger.error(traceback.format_exc())
+
+            # Try loading default lists as fallback
+            try:
+                return self._load_default_validation_lists()
+            except Exception as default_error:
+                self.logger.error(f"Error loading default validation lists: {default_error}")
+                return False
 
     def _delayed_emit_validation_lists(self, lists):
         """
@@ -694,18 +578,18 @@ class Dashboard(QWidget):
         """
         # Prevent signal loops
         if self._processing_signal:
+            self.logger.warning("Skipping due to signal loop prevention")
             return
 
         try:
             self._processing_signal = True
-            logger = logging.getLogger(__name__)
-            logger.info(
-                f"Dashboard received correction_rules_updated signal with {len(rules)} rules"
+            self.logger.info(
+                f"Dashboard: _on_correction_rules_updated called with {len(rules)} rules"
             )
 
             # Check if rules are already set and unchanged
             if self._correction_rules == rules:
-                logger.info("Rules are unchanged, no need to update")
+                self.logger.info("Rules are unchanged, no need to update")
                 return
 
             # Store the rules for use in correction process
@@ -733,27 +617,34 @@ class Dashboard(QWidget):
             # Update statistics widget
             self._statistics_widget.set_correction_rules(rules)
 
-            # Make sure the correction manager has the updated rules
-            if self._correction_manager is not None:
-                logger.info(f"Updating correction manager with {len(rules)} rules")
-                self._correction_manager.set_correction_rules(rules)
-
-            # Make sure the file import widget is updated
+            # Update the file import widget without triggering signals - direct update
             if hasattr(self, "_file_import_widget"):
-                logger.info(f"Updating file import widget with {len(rules)} rules")
-                self._file_import_widget.set_correction_rules(rules)
+                self.logger.info(f"Updating file import widget with correction rules")
+                # Update widget UI state without emitting signal
+                self._file_import_widget._correction_rules = rules
+                self._file_import_widget._corrections_status_label.setText(
+                    f"{len(rules)} correction rules loaded"
+                )
+                self._file_import_widget._corrections_status_label.setStyleSheet("color: #007700;")
 
-            # Emit the signal to notify other components
-            self.corrections_loaded.emit(rules)
+            # Emit a targeted signal only for UI components that need to display the rules
+            # NOT components that will re-process or re-emit them
+            self.logger.info(f"Emitting correction_rules_updated signal with {len(rules)} rules")
+            self.correction_rules_updated.emit(rules)
 
-            # Trigger correction if we have entries
-            if hasattr(self, "_entries") and self._entries:
-                self._apply_corrections()
+            # We no longer emit corrections_loaded signal here to prevent loops
+            # self.corrections_loaded.emit(rules)
+
+            # Trigger correction if we have entries - only when directly
+            # requested, not triggered automatically on rule updates
+            if self._config.get_boolean("Correction", "auto_apply_corrections", fallback=True):
+                if hasattr(self, "_entries") and self._entries:
+                    self._apply_corrections()
         except Exception as e:
-            logger.error(f"Error in _on_correction_rules_updated: {str(e)}")
+            self.logger.error(f"Error in _on_correction_rules_updated: {str(e)}")
             import traceback
 
-            logger.error(traceback.format_exc())
+            self.logger.error(traceback.format_exc())
         finally:
             self._processing_signal = False
 
@@ -845,151 +736,188 @@ class Dashboard(QWidget):
         Args:
             entries: List of loaded chest entries
         """
+        # Add more detailed logging
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"Dashboard: _on_entries_loaded called with {len(entries)} entries")
+
+        # Log an example entry
+        if entries:
+            first_entry = entries[0]
+            logger.info(
+                f"First entry: {first_entry.chest_type} | {first_entry.player} | {first_entry.source}"
+            )
+        else:
+            logger.warning("No entries received in _on_entries_loaded!")
+            return
+
         # Prevent signal loops
         if self._processing_entries_loaded:
-            self._logger.debug("Skipping _on_entries_loaded due to signal loop prevention")
+            logger.warning("Skipping _on_entries_loaded due to signal loop prevention")
             return
 
         try:
             self._processing_entries_loaded = True
-            self._logger.info(f"Dashboard: Processing {len(entries)} loaded entries")
+            logger.info(f"Dashboard: Processing {len(entries)} loaded entries")
 
             # Store the entries
             self._entries = entries
+            logger.info(f"Dashboard: Stored {len(self._entries)} entries in self._entries")
 
             # Apply corrections if auto-apply is enabled
             config_manager = ConfigManager()
             if config_manager.get_bool("Correction", "auto_apply", fallback=True):
+                logger.info("Auto-apply is enabled, applying corrections")
                 self._apply_corrections()
             else:
+                logger.info("Auto-apply is disabled, updating UI directly")
+
                 # Emit entry loaded signal
+                logger.info("Emitting entries_loaded signal")
                 self.entries_loaded.emit(entries)
 
                 # Update table view with new entries
-                self._table_view.set_entries(entries)
+                logger.info("Updating table view with entries")
+                if hasattr(self, "_table_view") and self._table_view:
+                    self._table_view.set_entries(entries)
+                    logger.info("Table view updated successfully")
+                else:
+                    logger.error("Dashboard: _table_view not initialized or not available!")
 
                 # Update statistics
-                self._statistics_widget.set_entries(entries)
+                if hasattr(self, "_statistics_widget") and self._statistics_widget:
+                    self._statistics_widget.set_entries(entries)
+                    logger.info("Statistics widget updated successfully")
 
                 # Show status message
-                if self._status_bar:
+                if hasattr(self, "_status_bar") and self._status_bar:
                     self._status_bar.showMessage(f"Loaded {len(entries)} entries", 3000)
+                    logger.info("Status bar message updated")
+
+                # Update action buttons for validation
+                if hasattr(self, "_action_buttons") and self._action_buttons:
+                    self._action_buttons.set_entries_loaded(True)
+                    logger.info("Action buttons updated")
         except Exception as e:
-            self._logger.error(f"Error in _on_entries_loaded: {str(e)}")
+            logger.error(f"Error in _on_entries_loaded: {str(e)}")
             import traceback
 
-            self._logger.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
         finally:
             self._processing_entries_loaded = False
+            logger.info("_on_entries_loaded processing completed")
 
     @Slot(list)
-    def _on_corrections_loaded(self, rules: List[CorrectionRule]):
+    def _on_corrections_applied(self, results):
         """
-        Handle corrections loaded event.
+        Handle when corrections are applied.
 
         Args:
-            rules: List of loaded correction rules
+            results: Correction results
         """
-        # Prevent signal loops
-        if self._processing_corrections_loaded:
-            self._logger.debug("Skipping _on_corrections_loaded due to signal loop prevention")
-            return
-
         try:
-            self._processing_corrections_loaded = True
-            self._logger.info(f"Dashboard: Processing {len(rules)} loaded correction rules")
+            self.logger.debug("Handling corrections applied signal")
+            if self._processing_corrections_applied:
+                self.logger.warning(
+                    "Skipping _on_corrections_applied due to signal loop prevention"
+                )
+                return
 
-            # Store the rules
-            self._correction_rules = rules
-
-            # Set them in the corrector
-            self._corrector.set_rules(rules)
-
-            # Update UI elements
-            self._action_buttons.set_corrections_loaded(len(rules) > 0)
-            self._statistics_widget.set_correction_rules(rules)
-
-            # Apply corrections if auto-apply is enabled
-            config_manager = ConfigManager()
-            if len(self._entries) > 0 and config_manager.get_bool(
-                "Correction", "auto_apply", fallback=True
-            ):
-                self._apply_corrections()
-
-            # Emit corrections loaded signal
-            self.corrections_loaded.emit(rules)
-
-            # Show status message
-            if self._status_bar:
-                self._status_bar.showMessage(f"Loaded {len(rules)} correction rules", 3000)
-        except Exception as e:
-            self._logger.error(f"Error in _on_corrections_loaded: {str(e)}")
-            import traceback
-
-            self._logger.error(traceback.format_exc())
-        finally:
-            self._processing_corrections_loaded = False
-
-    @Slot(list)
-    def _on_corrections_applied(self, entries: List[ChestEntry]):
-        """
-        Handle corrections applied event.
-
-        Args:
-            entries: List of entries with corrections applied
-        """
-        # Prevent signal loops
-        if self._processing_corrections_applied:
-            self._logger.debug("Skipping _on_corrections_applied due to signal loop prevention")
-            return
-
-        try:
             self._processing_corrections_applied = True
-            self._logger.info(
-                f"Dashboard: Processing {len(entries)} entries with corrections applied"
+            self.logger.info(
+                f"Dashboard: Received {len(results)} applied corrections from DataManager"
             )
 
-            # Store the entries
-            self._entries = entries
-
-            # Update table view with corrected entries
-            self._table_view.set_entries(entries)
+            # Update the entries with corrected values
+            self._update_entries_with_corrections(results)
 
             # Update statistics
-            self._statistics_widget.set_entries(entries)
+            if self._statistics_widget:
+                self.logger.info("Updating statistics after corrections")
+                self._statistics_widget._update_statistics(self._entries)
 
-            # Emit entries updated signal
-            self.entries_updated.emit(entries)
+            # Update table view with corrected entries
+            if self._table_view:
+                self.logger.info("Updating table view with corrected entries")
+                self._table_view.set_entries(self._entries)
 
-            # Emit corrections applied signal
-            self.corrections_applied.emit(entries)
-
-            # Show status message
+            # Update status bar
             if self._status_bar:
-                correction_count = sum(entry.has_corrections for entry in entries)
-                self._status_bar.showMessage(
-                    f"Applied {correction_count} corrections to {len(entries)} entries", 3000
-                )
-        except Exception as e:
-            self._logger.error(f"Error in _on_corrections_applied: {str(e)}")
-            import traceback
+                self.logger.info(f"Setting status bar message: {len(results)} corrections applied")
+                self._status_bar.showMessage(f"{len(results)} corrections applied", 5000)
 
-            self._logger.error(traceback.format_exc())
-        finally:
+            self._processing_corrections_applied = False
+        except Exception as e:
+            self.logger.error(f"Error in _on_corrections_applied: {str(e)}")
+            self.logger.error(traceback.format_exc())
             self._processing_corrections_applied = False
 
-    @Slot(bool)
-    def _on_corrections_enabled_changed(self, enabled: bool):
+    @Slot(list)
+    def _update_entries_with_corrections(self, correction_results):
         """
-        Handle corrections enabled changed signal.
+        Update entries with the applied corrections.
 
         Args:
-            enabled: Whether corrections are enabled
+            correction_results (List[CorrectionResult]): List of correction results
         """
-        # Update action buttons
-        self._action_buttons.set_button_enabled(
-            "apply_corrections", enabled and len(self._correction_rules) > 0
-        )
+        try:
+            if not correction_results:
+                self.logger.info("No corrections to apply")
+                return
+
+            self.logger.info(f"Updating entries with {len(correction_results)} corrections")
+
+            # Check if the results are actually entries
+            if correction_results and isinstance(correction_results[0], ChestEntry):
+                self.logger.info("Received list of ChestEntry objects, replacing entries")
+                self._entries = correction_results
+                return
+
+            # If we have CorrectionResult objects, process them
+            # Group corrections by entry ID for efficient processing
+            corrections_by_entry = {}
+            for result in correction_results:
+                if not hasattr(result, "entry"):
+                    self.logger.warning(
+                        f"Correction result object does not have 'entry' attribute: {result}"
+                    )
+                    continue
+
+                entry_id = result.entry
+                if entry_id not in corrections_by_entry:
+                    corrections_by_entry[entry_id] = []
+                corrections_by_entry[entry_id].append(result)
+
+            # Apply corrections to entries
+            updated_count = 0
+            for entry_id, entry_corrections in corrections_by_entry.items():
+                # Find the entry with this ID
+                matching_entries = [e for e in self._entries if e.id == entry_id]
+                if not matching_entries:
+                    self.logger.warning(f"No entry found with ID {entry_id}")
+                    continue
+
+                entry = matching_entries[0]
+
+                # Apply each correction
+                for correction in entry_corrections:
+                    field_name = correction.field
+                    corrected_value = correction.corrected
+
+                    self.logger.debug(
+                        f"Applying correction to entry {entry_id}: {field_name} -> {corrected_value}"
+                    )
+
+                    # Apply the correction using the entry's method
+                    entry.apply_correction(field_name, corrected_value)
+                    updated_count += 1
+
+            self.logger.info(f"Updated {updated_count} fields in entries")
+
+        except Exception as e:
+            self.logger.error(f"Error updating entries with corrections: {str(e)}")
+            self.logger.error(traceback.format_exc())
 
     @Slot()
     def _on_save_requested(self):
@@ -1003,7 +931,7 @@ class Dashboard(QWidget):
             # For now, just show a message
             QMessageBox.information(self, "Save", "Saving entries is not yet implemented")
         except Exception as e:
-            self._logger.error(f"Error saving entries: {str(e)}")
+            self.logger.error(f"Error saving entries: {str(e)}")
             QMessageBox.critical(
                 self, "Save Error", f"An error occurred while saving entries:\n\n{str(e)}"
             )
@@ -1020,7 +948,7 @@ class Dashboard(QWidget):
             # For now, just show a message
             QMessageBox.information(self, "Export", "Exporting entries is not yet implemented")
         except Exception as e:
-            self._logger.error(f"Error exporting entries: {str(e)}")
+            self.logger.error(f"Error exporting entries: {str(e)}")
             QMessageBox.critical(
                 self, "Export Error", f"An error occurred while exporting entries:\n\n{str(e)}"
             )
@@ -1085,14 +1013,16 @@ class Dashboard(QWidget):
                     f"Applied {correction_count} corrections to {entry_count} entries.",
                 )
 
-            # Emit signals only if corrections were made
-            if correction_count > 0:
+                # Emit signals only if corrections were made
                 self.entries_updated.emit(self._entries)
                 self.corrections_applied.emit(self._entries)
 
             # Update the table view regardless of corrections
             if hasattr(self, "_table_view"):
                 self._table_view.set_entries(self._entries)
+
+            # Validate entries after corrections are applied to update status
+            self._validate_entries()
 
         except Exception as e:
             logger.error(f"Error applying corrections: {str(e)}", exc_info=True)
@@ -1165,15 +1095,6 @@ class Dashboard(QWidget):
         """
         self._on_entries_loaded(entries)
 
-    def set_correction_rules(self, rules: List[CorrectionRule]):
-        """
-        Set the correction rules.
-
-        Args:
-            rules: List of correction rules
-        """
-        self._on_corrections_loaded(rules)
-
     def set_validation_errors(self, count: int):
         """
         Set the validation error count.
@@ -1194,9 +1115,18 @@ class Dashboard(QWidget):
         Get the current entries.
 
         Returns:
-            List of entries
+            List[ChestEntry]: List of entries
         """
-        return self._entries
+        return self._data_manager.get_entries() if self._data_manager else []
+
+    def get_entry_table_view(self):
+        """
+        Get the entry table view for connecting adapters.
+
+        Returns:
+            EnhancedTableView: The table view for entries
+        """
+        return self._table_view
 
     def showEvent(self, event):
         """
@@ -1286,7 +1216,7 @@ class Dashboard(QWidget):
             self._table_view.set_entries(entries)
 
             # Log some info
-            self._logger.info(f"Loaded {len(entries)} entries from {file_path}")
+            self.logger.info(f"Loaded {len(entries)} entries from {file_path}")
 
             # Show message in status bar
             status_bar = self.statusBar()
@@ -1294,7 +1224,7 @@ class Dashboard(QWidget):
                 status_bar.showMessage(f"Loaded {len(entries)} entries from {file_path}", 5000)
 
         except Exception as e:
-            self._logger.error(f"Error loading text file: {e}")
+            self.logger.error(f"Error loading text file: {e}")
             QMessageBox.critical(self, "Error Loading Text File", f"Error: {str(e)}")
 
     def _on_save_output(self):
@@ -1327,5 +1257,281 @@ class Dashboard(QWidget):
             self.statusBar().showMessage(f"Saved {len(entries)} entries to {file_path}")
 
         except Exception as e:
-            self._logger.error(f"Error saving output: {e}")
+            self.logger.error(f"Error saving output: {e}")
             QMessageBox.critical(self, "Error Saving Output", f"Error: {str(e)}")
+
+    def _validate_entries(self):
+        """
+        Validate all entries against validation lists.
+
+        This method validates all entries against the validation lists
+        and updates their validation status.
+        """
+        try:
+            self.logger.info("Validating entries in Dashboard")
+
+            # Get validation lists from DataManager
+            validation_lists = {}
+            if self._data_manager:
+                validation_lists = self._data_manager.get_validation_lists()
+
+            # Extract individual lists
+            player_list = validation_lists.get("player", None)
+            chest_type_list = validation_lists.get("chest_type", None)
+            source_list = validation_lists.get("source", None)
+
+            # Log validation lists status
+            self.logger.info(
+                f"Validation lists: Players={len(player_list.items) if player_list else 0}, "
+                f"Chest Types={len(chest_type_list.items) if chest_type_list else 0}, "
+                f"Sources={len(source_list.items) if source_list else 0}"
+            )
+
+            # Reset validation counters
+            error_count = 0
+            warning_count = 0
+
+            # Validate entries
+            for entry in self._entries:
+                # Reset existing validation
+                entry.reset_validation()
+
+                # Validate player
+                if player_list:
+                    player_valid = player_list.is_valid(entry.player)
+                    fuzzy_match = None
+                    confidence = 1.0
+
+                    if not player_valid:
+                        fuzzy_match, confidence = player_list.find_fuzzy_match(entry.player)
+                        player_valid = fuzzy_match is not None
+
+                    entry.set_field_validation("player", player_valid, confidence, fuzzy_match)
+                    if not player_valid:
+                        error_count += 1
+                    elif fuzzy_match and fuzzy_match != entry.player:
+                        warning_count += 1
+
+                # Validate chest type
+                if chest_type_list:
+                    chest_valid = chest_type_list.is_valid(entry.chest_type)
+                    fuzzy_match = None
+                    confidence = 1.0
+
+                    if not chest_valid:
+                        fuzzy_match, confidence = chest_type_list.find_fuzzy_match(entry.chest_type)
+                        chest_valid = fuzzy_match is not None
+
+                    entry.set_field_validation("chest_type", chest_valid, confidence, fuzzy_match)
+                    if not chest_valid:
+                        error_count += 1
+                    elif fuzzy_match and fuzzy_match != entry.chest_type:
+                        warning_count += 1
+
+                # Validate source
+                if source_list:
+                    source_valid = source_list.is_valid(entry.source)
+                    fuzzy_match = None
+                    confidence = 1.0
+
+                    if not source_valid:
+                        fuzzy_match, confidence = source_list.find_fuzzy_match(entry.source)
+                        source_valid = fuzzy_match is not None
+
+                    entry.set_field_validation("source", source_valid, confidence, fuzzy_match)
+                    if not source_valid:
+                        error_count += 1
+                    elif fuzzy_match and fuzzy_match != entry.source:
+                        warning_count += 1
+
+                # Update entry status
+                if entry.has_validation_errors():
+                    entry.status = "Invalid"
+                elif entry.has_corrections():
+                    entry.status = "Corrected"
+                else:
+                    entry.status = "Valid"
+
+            # Update validation errors count
+            self._validation_errors_count = error_count
+
+            # Update statistics widget
+            if self._statistics_widget:
+                self._statistics_widget._update_statistics(self._entries)
+
+            # Update table view
+            if self._table_view:
+                self._table_view.set_entries(self._entries)
+
+            # Update status bar
+            if self._status_bar:
+                self._status_bar.showMessage(
+                    f"Validation complete: {error_count} errors, {warning_count} warnings", 5000
+                )
+
+            self.logger.info(
+                f"Validation completed: {error_count} errors, {warning_count} warnings"
+            )
+            return error_count, warning_count
+        except Exception as e:
+            self.logger.error(f"Error validating entries: {str(e)}")
+            self.logger.error(traceback.format_exc())
+            return 0, 0
+
+    def _load_input_file(self, file_path):
+        """
+        Load an input file with chest entries.
+
+        Args:
+            file_path (str): Path to the file to load
+        """
+        try:
+            if not file_path:
+                self.logger.warning("No file path provided to _load_input_file")
+                return False
+
+            # Load entries from file
+            entries = self._file_parser.parse_entry_file(file_path)
+            if not entries:
+                self.logger.warning(f"No entries loaded from {file_path}")
+                return False
+
+            # Store entries and update UI
+            self._entries = entries
+            self.logger.info(f"Loaded {len(entries)} entries from {file_path}")
+
+            # Update data manager
+            if self._data_manager:
+                self._data_manager.set_entries(entries)
+
+            # Update table view
+            if self._table_view:
+                self._table_view.set_entries(entries)
+
+            # Apply corrections if configured to do so
+            if self._config.get("Correction", "auto_apply_corrections", fallback=True):
+                self.logger.info("Auto-applying corrections to loaded entries")
+                self._apply_corrections()
+
+            # Update statistics
+            if self._statistics_widget:
+                self._statistics_widget.update_statistics(entries)
+
+            # Validate entries
+            self._validate_entries()
+
+            return True
+        except Exception as e:
+            self.logger.error(f"Error loading input file: {str(e)}")
+            self.logger.error(traceback.format_exc())
+            return False
+
+    def set_correction_rules(self, rules):
+        """
+        Set the correction rules.
+
+        This method receives correction rules from outside components
+        and updates the internal state and UI components.
+
+        Args:
+            rules (List[CorrectionRule]): The correction rules to set
+        """
+        try:
+            self.logger.info(f"Dashboard: set_correction_rules called with {len(rules)} rules")
+            self._correction_rules = rules
+
+            # Update the file import widget if it exists
+            if self._file_import_widget:
+                self.logger.info("Updating file import widget with correction rules")
+                self._file_import_widget.set_correction_rules(rules)
+
+            # Apply corrections to current entries if any
+            if (
+                hasattr(self, "_entries")
+                and self._entries
+                and self._config.get("Correction", "auto_apply_corrections", fallback=True)
+            ):
+                self.logger.info("Auto-applying new correction rules to existing entries")
+                self._apply_corrections()
+
+        except Exception as e:
+            self.logger.error(f"Error in set_correction_rules: {str(e)}")
+            self.logger.error(traceback.format_exc())
+
+    def _export_entries(self):
+        """
+        Export the entries to a file.
+
+        This method implements the export logic for the entries.
+        """
+        try:
+            # Implement export logic here
+            pass
+        except Exception as e:
+            self.logger.error(f"Error exporting entries: {str(e)}")
+
+    def _load_default_validation_lists(self):
+        """
+        Load default validation lists from predefined locations.
+        This is used as a fallback when no validation lists are found in the config.
+        """
+        logger = logging.getLogger(__name__)
+        logger.info("Loading default validation lists")
+
+        lists = {}
+
+        try:
+            # Determine the validation directory
+            validation_dir = Path(self._config.get_path("validation_dir", "data/validation"))
+
+            # Make sure the directory exists
+            validation_dir.mkdir(parents=True, exist_ok=True)
+
+            # Default file paths based on type
+            default_files = {
+                "player": validation_dir
+                / f"{DEFAULT_VALIDATION_LISTS.get('player', 'players')}.txt",
+                "chest_type": validation_dir
+                / f"{DEFAULT_VALIDATION_LISTS.get('chest_type', 'chest_types')}.txt",
+                "source": validation_dir
+                / f"{DEFAULT_VALIDATION_LISTS.get('source', 'sources')}.txt",
+            }
+
+            # Load default lists if they exist
+            for list_type, file_path in default_files.items():
+                if file_path.exists():
+                    logger.info(f"Loading default {list_type} list from {file_path}")
+                    try:
+                        validation_list = ValidationList.load_from_file(file_path, list_type)
+                        if validation_list and validation_list.items:
+                            lists[list_type] = validation_list
+                            logger.info(
+                                f"Loaded default {list_type} list with {len(validation_list.items)} items"
+                            )
+
+                            # Update the config with the file path
+                            if list_type == "player":
+                                self._config.set_path("player_list_file", str(file_path))
+                            elif list_type == "chest_type":
+                                self._config.set_path("chest_type_list_file", str(file_path))
+                            elif list_type == "source":
+                                self._config.set_path("source_list_file", str(file_path))
+                    except Exception as e:
+                        logger.warning(f"Error loading default {list_type} list: {str(e)}")
+                        logger.debug(traceback.format_exc())
+
+            # If we have validation lists, update data manager and emit signal
+            if lists:
+                # Save to data manager
+                self._data_manager.set_validation_lists(lists)
+
+                # Emit signal with delay to ensure components are ready
+                self._delayed_emit_validation_lists(lists)
+
+                logger.info(f"Loaded {len(lists)} default validation lists")
+            else:
+                logger.warning("No default validation lists found")
+
+        except Exception as e:
+            logger.error(f"Error loading default validation lists: {str(e)}")
+            logger.debug(traceback.format_exc())

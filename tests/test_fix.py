@@ -33,9 +33,7 @@ def test_text_file_import():
     # Create a test file path
     test_file = Path("data/validation/players.txt")
 
-    if not test_file.exists():
-        logger.error(f"Test file {test_file} does not exist!")
-        return False
+    assert test_file.exists(), f"Test file {test_file} does not exist!"
 
     try:
         # Try to load the validation list from the text file
@@ -46,26 +44,22 @@ def test_text_file_import():
         logger.info(f"Entries: {validation_list.get_entries()}")
 
         # Validate the loaded list
-        if validation_list.list_type != "player":
-            logger.error(f"Expected list_type 'player', got '{validation_list.list_type}'")
-            return False
-
-        if validation_list.name != "Players":
-            logger.error(f"Expected name 'Players', got '{validation_list.name}'")
-            return False
+        assert validation_list.list_type == "player", (
+            f"Expected list_type 'player', got '{validation_list.list_type}'"
+        )
+        assert validation_list.name == "Players", (
+            f"Expected name 'Players', got '{validation_list.name}'"
+        )
 
         # Check if entries were loaded
-        if validation_list.count() <= 0:
-            logger.error(f"Expected entries, got {validation_list.count()}")
-            return False
+        assert validation_list.count() > 0, f"Expected entries, got {validation_list.count()}"
 
         logger.info(f"Loaded {validation_list.count()} player entries successfully")
         logger.info("Text file import test passed")
-        return True
 
     except Exception as e:
         logger.error(f"Error importing text file: {e}")
-        return False
+        assert False, f"Error importing text file: {e}"
 
 
 def main():
@@ -74,11 +68,12 @@ def main():
     logger.info("Starting validation list import tests")
 
     # Test text file import
-    if test_text_file_import():
+    try:
+        test_text_file_import()
         logger.info("All tests passed!")
         return 0
-    else:
-        logger.error("Tests failed")
+    except AssertionError as e:
+        logger.error(f"Tests failed: {str(e)}")
         return 1
 
 

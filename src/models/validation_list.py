@@ -13,7 +13,9 @@ from typing import Dict, List, Literal, Optional, Set, Tuple, Union
 import logging
 import os
 
-from src.services.config_manager import ConfigManager
+# Remove direct import to break circular dependency
+# from src.services.config_manager import ConfigManager
+from src.interfaces.i_config_manager import IConfigManager
 from src.services.fuzzy_matcher import FuzzyMatcher
 
 
@@ -45,6 +47,7 @@ class ValidationList:
         name: str = "Default",
         use_fuzzy_matching: bool = False,
         file_path: Optional[str] = None,
+        config_manager: Optional[IConfigManager] = None,
     ):
         """
         Initialize a validation list.
@@ -55,6 +58,7 @@ class ValidationList:
             name (str, optional): Name of the list. Defaults to "Default".
             use_fuzzy_matching (bool, optional): Whether to use fuzzy matching. Defaults to False.
             file_path (Optional[str], optional): Path to the file containing the list. Defaults to None.
+            config_manager (Optional[IConfigManager], optional): Config manager instance. Defaults to None.
         """
         # Validate list type
         if list_type not in ("player", "chest_type", "source") and list_type:
@@ -68,10 +72,28 @@ class ValidationList:
 
         # Initialize private attributes for property accessors
         self._use_fuzzy_matching = use_fuzzy_matching
+        self._config_manager = config_manager
 
-        # Initialize fuzzy matcher with default threshold from config
-        config = ConfigManager()
-        threshold = config.get_float("Validation", "fuzzy_threshold", fallback=75) / 100.0
+        # Initialize fuzzy matcher with default threshold
+        threshold = 0.75  # Default threshold
+
+        # If config_manager is provided, use it to get threshold
+        if self._config_manager:
+            threshold = (
+                self._config_manager.get_float("Validation", "fuzzy_threshold", fallback=75) / 100.0
+            )
+        # Otherwise, try to get ConfigManager lazily but only if needed
+        elif use_fuzzy_matching:
+            # Import ConfigManager only when needed (lazy import)
+            try:
+                from src.services.config_manager import ConfigManager
+
+                config = ConfigManager()
+                threshold = config.get_float("Validation", "fuzzy_threshold", fallback=75) / 100.0
+            except ImportError:
+                logger = logging.getLogger(__name__)
+                logger.warning("Could not import ConfigManager, using default threshold")
+
         self._fuzzy_matcher = FuzzyMatcher(threshold=threshold)
 
         # Add entries if provided
@@ -188,9 +210,24 @@ class ValidationList:
         if not entry:
             return False, 0.0, None
 
-        # Get config settings
-        config = ConfigManager()
-        case_sensitive = config.get_bool("Validation", "case_sensitive", fallback=False)
+        # Default values
+        case_sensitive = False
+
+        # Get config settings if available
+        if self._config_manager:
+            case_sensitive = self._config_manager.get_bool(
+                "Validation", "case_sensitive", fallback=False
+            )
+        else:
+            # Try to get ConfigManager lazily if needed
+            try:
+                from src.services.config_manager import ConfigManager
+
+                config = ConfigManager()
+                case_sensitive = config.get_bool("Validation", "case_sensitive", fallback=False)
+            except ImportError:
+                logger = logging.getLogger(__name__)
+                logger.warning("Could not import ConfigManager, using default case sensitivity")
 
         # Normalize entry for comparison
         normalized_entry = entry.strip()
@@ -275,7 +312,10 @@ class ValidationList:
 
     @classmethod
     def load_from_file(
-        cls, file_path: Union[str, Path], list_type: Optional[str] = None
+        cls,
+        file_path: Union[str, Path],
+        list_type: Optional[str] = None,
+        config_manager: Optional[IConfigManager] = None,
     ) -> "ValidationList":
         """
         Load a validation list from a file.
@@ -283,6 +323,7 @@ class ValidationList:
         Args:
             file_path (Union[str, Path]): Path to the file containing the validation list.
             list_type (Optional[str]): Override the list type (useful for text files).
+            config_manager (Optional[IConfigManager]): Config manager instance. Defaults to None.
 
         Returns:
             ValidationList: The loaded validation list.
@@ -364,7 +405,9 @@ class ValidationList:
                             )
 
                             # Create and return the validation list
-                            validation_list = cls(list_type=final_list_type, name=name)
+                            validation_list = cls(
+                                list_type=final_list_type, name=name, config_manager=config_manager
+                            )
                             for entry in entries:
                                 validation_list.add_entry(entry)
                             validation_list.file_path = file_path
@@ -426,7 +469,9 @@ class ValidationList:
                 )
 
                 # Create and return the validation list
-                validation_list = cls(list_type=final_list_type, name=name)
+                validation_list = cls(
+                    list_type=final_list_type, name=name, config_manager=config_manager
+                )
                 for entry in entries:
                     validation_list.add_entry(entry)
                 validation_list.file_path = file_path

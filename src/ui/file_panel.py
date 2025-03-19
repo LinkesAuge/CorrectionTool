@@ -88,7 +88,7 @@ class FilePanel(QWidget):
         self._input_file_edit.setReadOnly(True)
 
         self._browse_input_button = QPushButton("Browse...")
-        self._browse_input_button.clicked.connect(self._browse_input_file)
+        self._browse_input_button.clicked.connect(self._open_input_file)
 
         input_file_layout.addWidget(self._input_file_edit)
         input_file_layout.addWidget(self._browse_input_button)
@@ -117,7 +117,7 @@ class FilePanel(QWidget):
         self._correction_file_edit.setReadOnly(True)
 
         self._browse_correction_button = QPushButton("Browse...")
-        self._browse_correction_button.clicked.connect(self._browse_correction_file)
+        self._browse_correction_button.clicked.connect(self._load_correction_list)
 
         correction_file_layout.addWidget(self._correction_file_edit)
         correction_file_layout.addWidget(self._browse_correction_button)
@@ -181,35 +181,63 @@ class FilePanel(QWidget):
         # Add spacer
         main_layout.addStretch()
 
-    def _browse_input_file(self) -> None:
-        """Browse for an input file."""
-        default_dir = self._config.get("Files", "default_input_dir")
+    def _open_input_file(self):
+        """
+        Open a file dialog to select an input file.
+        """
+        import logging
+        from pathlib import Path
+        from PySide6.QtWidgets import QFileDialog
+
+        logger = logging.getLogger(__name__)
+        logger.info("Opening file dialog to select input file")
+
+        # Get the default directory using the new path API
+        default_dir = self._config.get_path("input_dir", "data/input")
+
+        # Open the file dialog
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Input File", default_dir, "Text Files (*.txt)"
+            self, "Open Input File", default_dir, "All Files (*)"
         )
 
+        # If a file was selected
         if file_path:
-            self._input_file_edit.setText(file_path)
-            self._load_file_button.setEnabled(True)
+            # Update the config
+            path = Path(file_path)
+            self._config.set_path("input_dir", str(path.parent))
+            self._config.set_path("last_input_file", str(path))
 
-            # Save the directory
-            self._config.set("Files", "default_input_dir", str(Path(file_path).parent))
-            self._config.save()
+            # Load the file
+            self._file_parser.load_file(file_path)
 
-    def _browse_correction_file(self) -> None:
-        """Browse for a correction list file."""
-        default_dir = self._config.get("Files", "default_correction_list")
+    def _load_correction_list(self):
+        """
+        Open a file dialog to select a correction list file.
+        """
+        import logging
+        from pathlib import Path
+        from PySide6.QtWidgets import QFileDialog
+
+        logger = logging.getLogger(__name__)
+        logger.info("Opening file dialog to select correction list file")
+
+        # Get the default directory using the new path API
+        default_dir = self._config.get_path("corrections_dir", "data/corrections")
+
+        # Open the file dialog
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Correction List", default_dir, "CSV Files (*.csv)"
+            self, "Open Correction List", default_dir, "All Files (*)"
         )
 
+        # If a file was selected
         if file_path:
-            self._correction_file_edit.setText(file_path)
-            self._load_correction_button.setEnabled(True)
+            # Update the config
+            path = Path(file_path)
+            self._config.set_path("corrections_dir", str(path.parent))
+            self._config.set_path("correction_rules_file", str(path))
 
-            # Save the file path
-            self._config.set("Files", "default_correction_list", file_path)
-            self._config.save()
+            # Load the correction list
+            self._correction_widget.load_correction_list(file_path)
 
     def _load_input_file(self) -> None:
         """Load the input file."""

@@ -610,3 +610,75 @@ class ValidationListWidget(QWidget):
             self.list_updated.emit(validation_list)
         finally:
             self._processing_signal = False
+
+    def _get_file_paths(self, list_type):
+        """
+        Get file paths from config.
+
+        Args:
+            list_type (str): Type of validation list
+
+        Returns:
+            tuple: (file_path, general_path, validation_path)
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Get config
+        config = ConfigManager()
+
+        # Use new consolidated path structure
+        file_path = config.get_path(f"{list_type}_list_file")
+
+        # For backward compatibility reporting, show the legacy paths too
+        general_path = config.get("General", f"{list_type}_list_path", "not set")
+        validation_path = config.get("Validation", f"{list_type}_list", "not set")
+
+        logger.debug(f"File path for {list_type} list: {file_path}")
+        logger.debug(f"Legacy paths - General: {general_path}, Validation: {validation_path}")
+
+        return file_path, general_path, validation_path
+
+    def _save_validation_list(self, list_type, file_path):
+        """
+        Save validation list to file and update config.
+
+        Args:
+            list_type (str): Type of validation list
+            file_path (str): Path to the validation list file
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"Saving {list_type} list to: {file_path}")
+
+        validation_list = self._get_validation_list(list_type)
+        if validation_list is None:
+            logger.warning(f"No {list_type} list to save")
+            return
+
+        try:
+            # Save the file
+            validation_list.save_to_file(file_path)
+            validation_list.file_path = file_path
+            logger.info(
+                f"Saved {list_type} list with {len(validation_list.items)} items to {file_path}"
+            )
+
+            # Update config using the new path API
+            config = ConfigManager()
+            config.set_path(f"{list_type}_list_file", file_path)
+
+            # Update the validation directory in the config
+            from pathlib import Path
+
+            validation_dir = str(Path(file_path).parent)
+            config.set_path("validation_dir", validation_dir)
+
+            logger.info(f"Updated config with {list_type} list path: {file_path}")
+        except Exception as e:
+            logger.error(f"Error saving {list_type} list: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())

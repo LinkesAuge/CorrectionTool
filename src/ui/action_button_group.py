@@ -32,6 +32,7 @@ class ActionButtonGroup(QWidget):
         save_requested: Signal emitted when the save button is clicked
         export_requested: Signal emitted when the export button is clicked
         apply_corrections_requested: Signal emitted when the apply corrections button is clicked
+        validate_requested: Signal emitted when the validate button is clicked
         settings_requested: Signal emitted when the settings button is clicked
 
     Implementation Notes:
@@ -45,6 +46,7 @@ class ActionButtonGroup(QWidget):
     save_requested = Signal()
     export_requested = Signal()
     apply_corrections_requested = Signal()
+    validate_requested = Signal()
     settings_requested = Signal()
 
     def __init__(self, parent=None):
@@ -90,6 +92,12 @@ class ActionButtonGroup(QWidget):
 
         main_layout.addStretch(1)  # Flexible spacer
 
+        self._buttons["validate"] = self._create_action_button(
+            icon_name="validate", tooltip="Validate entries against validation lists", enabled=False
+        )
+
+        main_layout.addStretch(1)  # Flexible spacer
+
         self._buttons["settings"] = self._create_action_button(
             icon_name="settings", tooltip="Open settings", enabled=True
         )
@@ -103,6 +111,7 @@ class ActionButtonGroup(QWidget):
         self._buttons["save"].clicked.connect(self.save_requested.emit)
         self._buttons["export"].clicked.connect(self.export_requested.emit)
         self._buttons["apply_corrections"].clicked.connect(self.apply_corrections_requested.emit)
+        self._buttons["validate"].clicked.connect(self.validate_requested.emit)
         self._buttons["settings"].clicked.connect(self.settings_requested.emit)
 
     def _create_action_button(
@@ -151,6 +160,7 @@ class ActionButtonGroup(QWidget):
         """
         self._buttons["save"].setEnabled(loaded)
         self._buttons["export"].setEnabled(loaded)
+        self._buttons["validate"].setEnabled(loaded)
 
     def set_corrections_loaded(self, loaded: bool) -> None:
         """

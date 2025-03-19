@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-from PySide6.QtCore import QSize, Qt, Signal, Slot
+from PySide6.QtCore import QSize, Qt, Signal, Slot, QByteArray
 from PySide6.QtGui import QAction, QCloseEvent, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -207,8 +207,8 @@ class MainWindow(QMainWindow):
         # Switch content page
         self._content_widget.setCurrentIndex(page_index)
 
-        # Save active tab
-        self._config.set("Window", "active_tab", page_index)
+        # Save active tab (convert to string)
+        self._config.set("Window", "active_tab", str(page_index))
 
     def _setup_status_bar(self):
         """Set up the status bar."""
@@ -289,7 +289,8 @@ class MainWindow(QMainWindow):
             # This is the key change - all components listen to the central DataManager
             data_manager = self._data_manager
 
-            # Connect DataManager to Dashboard
+            # Connect DataManager to Dashboard - SIMPLIFIED SIGNAL FLOW
+            # Only connect to dashboard's set methods, not to its emit methods
             data_manager.correction_rules_changed.connect(self._dashboard.set_correction_rules)
             data_manager.validation_lists_changed.connect(self._dashboard.set_validation_lists)
             data_manager.entries_changed.connect(self._dashboard.set_entries)
@@ -308,13 +309,21 @@ class MainWindow(QMainWindow):
             data_manager.correction_rules_changed.connect(self._report_panel.set_correction_rules)
             data_manager.validation_lists_changed.connect(self._report_panel.set_validation_lists)
 
-            # Connect components to DataManager
-            # Dashboard -> DataManager
-            self._dashboard.corrections_loaded.connect(data_manager.set_correction_rules)
+            # Connect components to DataManager - SIMPLIFIED TO AVOID LOOPS
+            # Only primary sources should connect to DataManager
+
+            # Dashboard -> DataManager (dashboard is the primary UI for file loading)
             self._dashboard.entries_loaded.connect(data_manager.set_entries)
             self._dashboard.entries_updated.connect(data_manager.set_entries)
 
-            # CorrectionManagerPanel -> DataManager
+            # FileImportWidget -> DataManager
+            # Get a reference to file_import_widget from dashboard
+            file_import_widget = getattr(self._dashboard, "_file_import_widget", None)
+            if file_import_widget:
+                # This is where corrections are initially loaded
+                file_import_widget.corrections_loaded.connect(data_manager.set_correction_rules)
+
+            # CorrectionManagerPanel -> DataManager (for manual edits)
             self._correction_manager.correction_rules_updated.connect(
                 data_manager.set_correction_rules
             )
@@ -322,11 +331,13 @@ class MainWindow(QMainWindow):
                 data_manager.set_validation_lists
             )
 
-            # Dashboard to MainWindow signals (for status updates)
+            # Dashboard to MainWindow signals (for status updates ONLY)
             self._dashboard.entries_loaded.connect(self._on_entries_loaded)
             self._dashboard.entries_updated.connect(self._on_entries_updated)
-            self._dashboard.corrections_loaded.connect(self._on_corrections_loaded)
             self._dashboard.corrections_applied.connect(self._on_corrections_applied)
+
+            # For status bar updates only, not to trigger processing
+            data_manager.correction_rules_changed.connect(self._on_corrections_loaded)
 
             # Audit signals to prevent multiple connections
             self._audit_signal_connections()
@@ -370,7 +381,7 @@ class MainWindow(QMainWindow):
         # Correction manager signals to audit
         correction_manager_signals = {
             self._correction_manager.correction_rules_updated: [
-                self._dashboard.set_correction_rules,
+                self._dashboard.corrections_loaded.emit,
             ],
             self._correction_manager.validation_lists_updated: [
                 self._dashboard.set_validation_lists,
@@ -405,13 +416,33 @@ class MainWindow(QMainWindow):
 
         try:
             # Restore window geometry
-            geometry = self._config.get("Window", "geometry", "")
-            if geometry:
-                self.restoreGeometry(bytes.fromhex(geometry))
+            geometry_str = self._config.get("Window", "geometry", "")
+            if geometry_str:
+                try:
+                    # Convert from Base64 string back to QByteArray
+                    geometry_bytes = QByteArray.fromBase64(geometry_str.encode())
+                    self.restoreGeometry(geometry_bytes)
+                except Exception as e:
+                    logger.warning(f"Failed to restore window geometry: {str(e)}")
 
-            # Set active tab
-            active_tab = self._config.get_int("Window", "active_tab", fallback=0)
-            self._content_widget.setCurrentIndex(active_tab)
+            # Restore window state
+            state_str = self._config.get("Window", "state", "")
+            if state_str:
+                try:
+                    # Convert from Base64 string back to QByteArray
+                    state_bytes = QByteArray.fromBase64(state_str.encode())
+                    self.restoreState(state_bytes)
+                except Exception as e:
+                    logger.warning(f"Failed to restore window state: {str(e)}")
+
+            # Set active tab (convert from string to int)
+            active_tab_str = self._config.get("Window", "active_tab", "0")
+            try:
+                active_tab = int(active_tab_str)
+                self._content_widget.setCurrentIndex(active_tab)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid active tab value: {active_tab_str}, using default")
+                self._content_widget.setCurrentIndex(0)
 
             # Load initial data from DataManager
             logger.info("Loading initial data")
@@ -424,18 +455,16 @@ class MainWindow(QMainWindow):
                 self._data_manager.correction_rules_changed.emit(rules)
 
             # Load validation lists
-            lists = self._data_manager.load_saved_validation_lists()
+            success = self._data_manager._load_saved_validation_lists()
+            lists = self._data_manager.get_validation_lists()
+
             if not lists or len(lists) < 3:
                 logger.info("Not all validation lists were loaded from saved configuration")
                 # Try to load default lists as a backup
                 logger.info("Loading default validation lists")
-                default_lists = self._data_manager.load_default_validation_lists()
-
-                # Merge default lists with existing lists
-                for list_type in ["player", "chest_type", "source"]:
-                    if list_type not in lists and list_type in default_lists:
-                        lists[list_type] = default_lists[list_type]
-                        logger.info(f"Added default {list_type} list")
+                self._data_manager._load_default_validation_lists()
+                # Update the lists with any newly loaded ones
+                lists = self._data_manager.get_validation_lists()
 
             # Make sure we have all three types of lists
             if lists and len(lists) > 0:
@@ -455,9 +484,17 @@ class MainWindow(QMainWindow):
 
     def _save_state(self):
         """Save window state to configuration."""
-        self._config.set("Window", "geometry", self.saveGeometry())
-        self._config.set("Window", "state", self.saveState())
-        self._config.set("Window", "active_tab", self._content_widget.currentIndex())
+        # Convert QByteArray to Base64 string before saving
+        geometry_bytes = self.saveGeometry()
+        geometry_str = geometry_bytes.toBase64().data().decode()
+        self._config.set("Window", "geometry", geometry_str)
+
+        state_bytes = self.saveState()
+        state_str = state_bytes.toBase64().data().decode()
+        self._config.set("Window", "state", state_str)
+
+        # Convert index to string
+        self._config.set("Window", "active_tab", str(self._content_widget.currentIndex()))
 
     def closeEvent(self, event: QCloseEvent):
         """
@@ -568,6 +605,25 @@ class MainWindow(QMainWindow):
         # Update status bar
         self._status_bar.showMessage(f"Settings updated: {category}", 2000)
 
+    @Slot(list)
+    def _on_correction_rules_updated(self, rules: List[CorrectionRule]):
+        """
+        Handle correction rules updated signal.
+
+        Args:
+            rules: Updated list of correction rules
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"MainWindow: Received {len(rules)} updated correction rules")
+
+        # Update status bar
+        self.statusBar().showMessage(f"Correction rules updated: {len(rules)} rules", 3000)
+
+        # Update data manager - will propagate to all components
+        self._data_manager.set_correction_rules(rules)
+
     def get_entries(self) -> List[ChestEntry]:
         """
         Get the current entries.
@@ -598,6 +654,51 @@ class MainWindow(QMainWindow):
         if self._validation_panel:
             return self._validation_panel.get_validation_lists()
         return {}
+
+    def _connect_dashboard_signals(self):
+        """
+        Connect dashboard signals to various components.
+
+        SIMPLIFIED: Only connect signals that don't trigger processing loops
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info("Connecting dashboard signals")
+
+        # Check if dashboard is initialized
+        if not hasattr(self, "_dashboard") or not self._dashboard:
+            logger.error("Dashboard not initialized, cannot connect signals")
+            return
+
+        # Check if correction manager is initialized
+        if not hasattr(self, "_correction_manager") or not self._correction_manager:
+            logger.warning("Correction manager not available for signal connection")
+            return
+
+        # REMOVED: We don't need these - they already come from DataManager
+        # self._dashboard.corrections_loaded.connect(self._correction_manager.set_correction_rules)
+        # self._dashboard.correction_rules_updated.connect(
+        #     self._correction_manager.set_correction_rules
+        # )
+        # self._dashboard.validation_lists_updated.connect(
+        #     self._correction_manager.set_validation_lists
+        # )
+
+        # SIMPLIFIED: Only connect UI update signals, not data processing signals
+        self._dashboard.entries_loaded.connect(self._on_entries_loaded)
+        self._dashboard.entries_updated.connect(self._on_entries_updated)
+        self._dashboard.corrections_applied.connect(self._on_corrections_applied)
+
+        # REMOVED: Circular references
+        # self._correction_manager.correction_rules_updated.connect(
+        #     self._dashboard.set_correction_rules
+        # )
+        # self._correction_manager.validation_lists_updated.connect(
+        #     self._dashboard.set_validation_lists
+        # )
+
+        logger.info("Dashboard signals connected successfully")
 
 
 if __name__ == "__main__":

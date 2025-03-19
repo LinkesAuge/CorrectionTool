@@ -1,0 +1,86 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Data Management and UI Rules
+
+This document outlines the core principles and rules to be followed for all future work on the data management system and UI components in the Chest Tracker Correction Tool.
+
+## Core Data Management Principles
+
+1. **Single Source of Truth**: All application data must be managed by the central `DataFrameStore`. Never create duplicate data stores or allow components to maintain their own copies of data.
+
+2. **pandas-First Approach**: Always use pandas DataFrames as the primary data structure. Leverage pandas' built-in methods for filtering, transformation, and analysis rather than implementing custom logic.
+
+3. **Immutable State Updates**: Treat DataFrames as immutable. Create new DataFrame instances for updates rather than modifying existing ones in-place to maintain a clear history of changes.
+
+4. **Atomic Operations**: Implement data operations as atomic transactions that either completely succeed or fail. Never leave data in an inconsistent state.
+
+5. **Data Validation at Source**: Validate all data at the entry point before storing it in DataFrames. Never assume input data is valid.
+
+## UI-Data Separation
+
+6. **Clean Adapter Pattern**: Always use dedicated adapter classes to transform data between DataFrames and UI components. Never have UI components directly manipulate DataFrames.
+
+7. **Reactive UI Updates**: Implement a clean observer pattern where UI components subscribe to specific data changes. Never poll for changes or implement redundant update checks.
+
+8. **Unidirectional Data Flow**: Follow a strict unidirectional data flow: DataFrameStore → Adapter → UI Component. UI components should only trigger events that are handled by services that update the DataFrameStore.
+
+9. **No Direct Data Access**: UI components should never directly access the DataFrameStore. Always use dedicated service methods that provide controlled access to data.
+
+## Event Architecture
+
+10. **Event-Based Communication**: Replace the Qt signal system with a cleaner event-based architecture. Use an event bus pattern with clearly defined event types and handlers.
+
+11. **No Event Loops**: Implement proper event loop prevention in all event handlers. Use a throttling mechanism for frequent events to prevent performance issues.
+
+12. **Selective Updates**: Make events granular enough to allow components to subscribe only to the specific changes they care about. Avoid broadcasting general "data changed" events.
+
+13. **Event Documentation**: Clearly document all event types, their purpose, payload structure, and expected handlers. Maintain a central registry of all events in the system.
+
+## Performance Considerations
+
+14. **Lazy Loading**: Implement lazy loading for large datasets. Only load data when needed and consider pagination for large tables.
+
+15. **Efficient Filtering**: Use pandas' query capabilities for filtering rather than implementing custom filtering logic. Create proper indexes for frequently filtered columns.
+
+16. **Batch Operations**: Always process data in batches when possible, especially for file operations, validation, and correction applications.
+
+17. **Caching Strategy**: Implement appropriate caching for expensive operations. Use LRU (Least Recently Used) cache for function results that depend on frequently accessed data.
+
+## API Design
+
+18. **Consistent Naming**: Follow consistent naming conventions across all components. Method names should clearly indicate whether they mutate state (e.g., `update_`, `set_`) or just read data (e.g., `get_`, `find_`).
+
+19. **Type Annotations**: Always include proper type annotations for all method parameters and return values. Use pandas-specific types like `DataFrame`, `Series`, etc.
+
+20. **Method Documentation**: Document all public methods with docstrings explaining purpose, parameters, return values, exceptions, and example usage.
+
+21. **Error Handling**: Implement comprehensive error handling with specific exception types for different error categories. Never use generic exceptions for specific error conditions.
+
+## Code Organization
+
+22. **Service Boundaries**: Maintain clear service boundaries with specific responsibilities:
+    - `FileService`: All file operations
+    - `ValidationService`: Data validation logic
+    - `CorrectionService`: Correction application
+    - `ExportService`: Data export operations
+
+23. **Model Simplification**: Replace complex model classes with simple dictionaries or dataclasses that can be easily converted to/from DataFrame rows.
+
+24. **Component Isolation**: Ensure UI components only depend on their immediate needs. Components should be reusable and not tightly coupled to specific business logic.
+
+25. **Dead Code Removal**: Always remove dead code completely rather than commenting it out. Trust version control to preserve history if needed.
+
+## Implementation Best Practices
+
+26. **Testing First**: Write tests before implementing new features or refactoring existing ones. Ensure all DataFrame operations have proper test coverage.
+
+27. **Incremental Changes**: Though we're doing a complete rewrite of the data management system, implement changes incrementally in logical chunks that can be tested independently.
+
+28. **Performance Benchmarking**: Include performance benchmarks for critical operations, especially for large datasets. Compare before and after metrics for all optimizations.
+
+29. **Documentation**: Keep documentation up-to-date with implementation changes. Update todo.mdc and bugfixing.mdc after each significant change.
+
+30. **Clean Dependencies**: Avoid circular dependencies between components. Use dependency injection for service access rather than direct imports where possible. 
