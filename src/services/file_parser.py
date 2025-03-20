@@ -463,8 +463,13 @@ class FileParser:
                         field.lower() if field else "" for field in (reader.fieldnames or [])
                     ]
 
-                    # Map lowercase headers to required headers
-                    header_map = {"from": "From", "to": "To", "category": "Category"}
+                    # Standard header mapping (case-insensitive)
+                    header_map = {
+                        "from": "From",
+                        "to": "To",
+                        "category": "Category",
+                        "enabled": "Enabled",
+                    }
 
                     # Check if required headers are present (case-insensitive)
                     if "from" in lowercase_fieldnames and "to" in lowercase_fieldnames:
@@ -568,7 +573,7 @@ class FileParser:
             with open(file_path, "w", encoding="utf-8", newline="") as f:
                 # Create a CSV writer with the required headers
                 writer = csv.DictWriter(
-                    f, fieldnames=["From", "To", "Category"], delimiter=delimiter
+                    f, fieldnames=["From", "To", "Category", "Enabled"], delimiter=delimiter
                 )
 
                 # Write the header row
@@ -576,20 +581,15 @@ class FileParser:
                 self.logger.debug("Wrote CSV header row")
 
                 # Write each rule as a row
-                for i, rule in enumerate(rules):
-                    try:
-                        row = rule.to_csv_row()
-                        writer.writerow(row)
-                        self.logger.debug(f"Wrote rule {i + 1}: {row}")
-                    except Exception as e:
-                        self.logger.error(f"Error writing rule {i + 1} to CSV: {e}")
-                        self.logger.error(f"Rule: {rule}")
-                        # Continue with next rule
-                        continue
+                for rule in rules:
+                    # Convert rule to a row dictionary using the to_csv_row method
+                    row = rule.to_csv_row()
+                    writer.writerow(row)
+                    self.logger.debug(f"Wrote rule: {rule.from_text} -> {rule.to_text}")
 
-            self.logger.info(f"Successfully saved {len(rules)} rules to {file_path}")
+                self.logger.info(f"Successfully saved {len(rules)} rules to CSV")
         except Exception as e:
-            self.logger.error(f"Error saving rules to CSV file: {e}")
+            self.logger.error(f"Error saving rules to CSV: {str(e)}")
             self.logger.error(traceback.format_exc())
             raise
 

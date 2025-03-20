@@ -11,11 +11,15 @@ Usage:
 
 from typing import Any, Dict, List, Optional, Callable, Protocol, runtime_checkable
 import pandas as pd
+from PySide6.QtCore import QObject, QMimeData
+from PySide6.QtWidgets import QWidget
 
 
 @runtime_checkable
 class IUiAdapter(Protocol):
     """
+    Interface for UI adapters.
+
     Base interface for UI adapters.
 
     This interface defines the common contract for all UI adapters, which are responsible
@@ -182,5 +186,61 @@ class IStatusAdapter(IUiAdapter, Protocol):
         Args:
             value (int): Current progress value
             maximum (int): Maximum progress value
+        """
+        ...
+
+
+class IDragDropAdapter(QObject):
+    """
+    Interface for drag-and-drop adapters.
+
+    Drag-and-drop adapters enable drag-and-drop functionality between different
+    UI components, such as validation lists and correction rules.
+
+    Implementation Notes:
+        - Should handle the drag start event
+        - Should handle the drop event
+        - Should provide visual cues for drag operations
+        - Should validate and transform data between different components
+    """
+
+    def connect(self) -> None:
+        """
+        Connect the adapter to the widget and set up event filters.
+
+        This method should set up event filters and connections needed for drag-and-drop.
+        """
+        ...
+
+    def disconnect(self) -> None:
+        """
+        Disconnect the adapter from the widget and remove event filters.
+
+        This method should remove event filters and clean up connections.
+        """
+        ...
+
+    def eventFilter(self, watched: QWidget, event: Any) -> bool:
+        """
+        Filter events for the widget.
+
+        Args:
+            watched: The widget being watched
+            event: The event to filter
+
+        Returns:
+            bool: True if the event was handled, False otherwise
+        """
+        ...
+
+    def can_accept_drop(self, mime_data: QMimeData) -> bool:
+        """
+        Check if the adapter can accept the drop.
+
+        Args:
+            mime_data: The MIME data to check
+
+        Returns:
+            bool: True if the adapter can accept the drop, False otherwise
         """
         ...

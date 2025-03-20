@@ -12,9 +12,9 @@ from src.ui.styles import get_stylesheet, COLORS
 # Lazy-loaded getters for UI components
 def get_main_window():
     """Lazy loading getter for MainWindow class."""
-    from src.ui.main_window_refactor import MainWindow
+    from src.ui.main_window_interface import MainWindowInterface
 
-    return MainWindow
+    return MainWindowInterface
 
 
 def get_navigation_panel():

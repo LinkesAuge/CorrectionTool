@@ -74,15 +74,61 @@ class ValidationListItemModel(QStandardItemModel):
         for item in self._items:
             self.appendRow(QStandardItem(item))
 
-    def set_validation_list(self, validation_list: ValidationList):
+    def set_validation_list(self, validation_list):
         """
         Set the validation list.
 
         Args:
-            validation_list: ValidationList instance
+            validation_list: ValidationList instance or DataFrame
         """
-        self._validation_list = validation_list
-        self._items = validation_list.items.copy()
+        import logging
+        import pandas as pd
+
+        logger = logging.getLogger(__name__)
+
+        # Check if validation_list is a method
+        if callable(validation_list) and not hasattr(validation_list, "items"):
+            logger.warning(f"validation_list is a method, cannot set in model")
+            return
+
+        # Determine what kind of object we have
+        if isinstance(validation_list, pd.DataFrame):
+            # It's a DataFrame
+            self._validation_list = validation_list
+            if validation_list.index.name == "entry":
+                # Index is 'entry'
+                self._items = list(validation_list.index)
+            elif "entry" in validation_list.columns:
+                # 'entry' is a column
+                self._items = list(validation_list["entry"])
+            else:
+                # Just use whatever index it has
+                self._items = list(validation_list.index)
+
+        elif hasattr(validation_list, "items") and callable(validation_list.items):
+            # It's an object with items() method
+            try:
+                self._validation_list = validation_list
+                self._items = list(validation_list.items())
+            except Exception as e:
+                logger.warning(f"Could not get items from validation list: {e}")
+                self._items = []
+
+        elif hasattr(validation_list, "items") and not callable(validation_list.items):
+            # It's a ValidationList with items attribute
+            self._validation_list = validation_list
+            self._items = validation_list.items.copy()
+
+        elif hasattr(validation_list, "entries") and not callable(validation_list.entries):
+            # It's a ValidationList with entries attribute
+            self._validation_list = validation_list
+            self._items = validation_list.entries.copy()
+
+        else:
+            # Not a valid object
+            logger.error(f"Cannot set validation list: invalid type {type(validation_list)}")
+            return
+
         self._populate_model()
 
     def get_validation_list(self) -> ValidationList:
@@ -223,60 +269,28 @@ class ValidationListWidget(QWidget):
         # Set up UI
         self._setup_ui()
 
-    def _setup_ui(self):
-        """Set up the user interface."""
-        # Main layout
-        main_layout = QVBoxLayout(self)
+    def set_validation_list(self, validation_list):
+        """
+        Compatibility method that calls set_list.
 
-        # Create table
-        self._table_view = QTableView()
-        self._table_view.setModel(self._model)
-        self._table_view.setSelectionBehavior(QTableView.SelectRows)
-        self._table_view.setSelectionMode(QTableView.SingleSelection)
-        self._table_view.setAlternatingRowColors(True)
-        self._table_view.setSortingEnabled(True)
+        Args:
+            validation_list: ValidationList object or DataFrame
+        """
+        import logging
+        import pandas as pd
 
-        # Configure header
-        header = self._table_view.horizontalHeader()
-        header.setStretchLastSection(True)
+        logger = logging.getLogger(__name__)
+        logger.info(f"set_validation_list called for {self._list_name}, forwarding to set_list")
 
-        # Add table to layout
-        main_layout.addWidget(self._table_view)
+        # Check if validation_list is a method/function
+        if callable(validation_list) and not hasattr(validation_list, "items"):
+            logger.warning(f"validation_list is a method, cannot set in {self._list_name}")
+            return
 
-        # Create buttons
-        button_layout = QHBoxLayout()
+        # Now safe to proceed with set_list
+        self.set_list(validation_list)
 
-        self._add_button = QPushButton("Add")
-        self._add_button.clicked.connect(self._on_add)
-
-        self._edit_button = QPushButton("Edit")
-        self._edit_button.clicked.connect(self._on_edit)
-        self._edit_button.setEnabled(False)
-
-        self._delete_button = QPushButton("Delete")
-        self._delete_button.clicked.connect(self._on_delete)
-        self._delete_button.setEnabled(False)
-
-        self._import_button = QPushButton("Import")
-        self._import_button.clicked.connect(self._on_import)
-
-        self._export_button = QPushButton("Export")
-        self._export_button.clicked.connect(self._on_export)
-
-        button_layout.addWidget(self._add_button)
-        button_layout.addWidget(self._edit_button)
-        button_layout.addWidget(self._delete_button)
-        button_layout.addStretch()
-        button_layout.addWidget(self._import_button)
-        button_layout.addWidget(self._export_button)
-
-        # Add buttons to layout
-        main_layout.addLayout(button_layout)
-
-        # Connect selection signals
-        self._table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
-
-    def set_list(self, validation_list: ValidationList):
+    def set_list(self, validation_list):
         """
         Set the validation list.
 
@@ -285,21 +299,48 @@ class ValidationListWidget(QWidget):
         """
         import logging
         import traceback
+        import pandas as pd
 
         logger = logging.getLogger(__name__)
-        logger.info(
-            f"ValidationListWidget.set_list called for {self._list_name} with {len(validation_list.items)} items"
-        )
-        logger.info(f"Widget is visible: {self.isVisible()}")
 
         # Add signal loop prevention
         if getattr(self, "_processing_signal", False):
             logger.warning(f"Skipping set_list for {self._list_name} due to signal loop prevention")
             return
 
-        if not validation_list:
+        # Special check for DataFrames
+        if isinstance(validation_list, pd.DataFrame):
+            is_empty = validation_list.empty
+        else:
+            is_empty = not validation_list
+
+        if is_empty:
             logger.warning(f"Empty validation list passed to {self._list_name}")
             return
+
+        # Check if validation_list is a method
+        if callable(validation_list) and not hasattr(validation_list, "items"):
+            logger.warning(f"validation_list is a method, cannot set in {self._list_name}")
+            return
+
+        # Log item count if possible
+        item_count = 0
+        if hasattr(validation_list, "items"):
+            if callable(validation_list.items):
+                try:
+                    items = validation_list.items()
+                    item_count = len(items) if hasattr(items, "__len__") else 0
+                except Exception as e:
+                    logger.warning(f"Error getting items: {e}")
+            else:
+                item_count = (
+                    len(validation_list.items) if hasattr(validation_list.items, "__len__") else 0
+                )
+
+        logger.info(
+            f"ValidationListWidget.set_list called for {self._list_name} with approximately {item_count} items"
+        )
+        logger.info(f"Widget is visible: {self.isVisible()}")
 
         # Check if the validation list has a file path
         file_path = getattr(validation_list, "file_path", None)
@@ -395,13 +436,33 @@ class ValidationListWidget(QWidget):
 
             # Verify validation list is stored
             if hasattr(self, "_validation_list"):
-                item_count = len(self._validation_list.items)
-                logger.info(f"Validation list has {item_count} items")
+                # Handle items whether it's a method or attribute
+                if hasattr(self._validation_list, "items"):
+                    if callable(self._validation_list.items):
+                        # It's a method
+                        try:
+                            items = self._validation_list.items()
+                            item_count = len(items) if items is not None else 0
+                            logger.info(f"Validation list has {item_count} items (from method)")
+                        except Exception as e:
+                            logger.warning(f"Couldn't get items from method: {e}")
+                    else:
+                        # It's an attribute
+                        item_count = (
+                            len(self._validation_list.items)
+                            if self._validation_list.items is not None
+                            else 0
+                        )
+                        logger.info(f"Validation list has {item_count} items (from attribute)")
+                else:
+                    logger.warning("Validation list has no 'items' attribute or method")
 
                 # Get file path if available
                 file_path = getattr(self._validation_list, "file_path", None)
                 if file_path:
                     logger.info(f"File path: {file_path}")
+                else:
+                    logger.warning("Validation list has no file path")
             else:
                 logger.warning("No validation list is stored!")
 
@@ -682,3 +743,65 @@ class ValidationListWidget(QWidget):
             import traceback
 
             logger.error(traceback.format_exc())
+
+    def model(self) -> ValidationListItemModel:
+        """
+        Get the model for the validation list.
+
+        Returns:
+            ValidationListItemModel: The model used by the widget
+        """
+        return self._model
+
+    def _setup_ui(self):
+        """Set up the user interface."""
+        # Main layout
+        main_layout = QVBoxLayout(self)
+
+        # Create table
+        self._table_view = QTableView()
+        self._table_view.setModel(self._model)
+        self._table_view.setSelectionBehavior(QTableView.SelectRows)
+        self._table_view.setSelectionMode(QTableView.SingleSelection)
+        self._table_view.setAlternatingRowColors(True)
+        self._table_view.setSortingEnabled(True)
+
+        # Configure header
+        header = self._table_view.horizontalHeader()
+        header.setStretchLastSection(True)
+
+        # Add table to layout
+        main_layout.addWidget(self._table_view)
+
+        # Create buttons
+        button_layout = QHBoxLayout()
+
+        self._add_button = QPushButton("Add")
+        self._add_button.clicked.connect(self._on_add)
+
+        self._edit_button = QPushButton("Edit")
+        self._edit_button.clicked.connect(self._on_edit)
+        self._edit_button.setEnabled(False)
+
+        self._delete_button = QPushButton("Delete")
+        self._delete_button.clicked.connect(self._on_delete)
+        self._delete_button.setEnabled(False)
+
+        self._import_button = QPushButton("Import")
+        self._import_button.clicked.connect(self._on_import)
+
+        self._export_button = QPushButton("Export")
+        self._export_button.clicked.connect(self._on_export)
+
+        button_layout.addWidget(self._add_button)
+        button_layout.addWidget(self._edit_button)
+        button_layout.addWidget(self._delete_button)
+        button_layout.addStretch()
+        button_layout.addWidget(self._import_button)
+        button_layout.addWidget(self._export_button)
+
+        # Add buttons to layout
+        main_layout.addLayout(button_layout)
+
+        # Connect selection signals
+        self._table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)

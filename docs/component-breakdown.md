@@ -4,7 +4,7 @@ This document provides a detailed breakdown of the components needed for the rew
 
 ## UI Components
 
-### Main Window (`main_window.py`)
+### Main Window (`main_window_interface.py`)
 - **Purpose**: Main application container
 - **Key Features**:
   - Tab navigation (Dashboard, Correction Manager)
@@ -14,6 +14,9 @@ This document provides a detailed breakdown of the components needed for the rew
   - Uses QTabWidget for main navigation
   - Preserves existing app icon and title
   - Manages state sharing between tabs
+  - Uses interface-based architecture
+  - Receives dependencies through constructor injection
+  - Directly interacts with service interfaces
 
 ### Dashboard Components
 
@@ -353,28 +356,5 @@ This document provides a detailed breakdown of the components needed for the rew
 This implementation requires:
 
 1. **Existing Components to Modify**:
-   - `main_window.py`
+   - `main_window_interface.py`
    - `models/chest_entry.py`
-   - `models/correction_rule.py`
-   - `models/validation_list.py`
-   - `services/config_manager.py`
-   - `services/file_parser.py`
-   - `services/fuzzy_matcher.py`
-
-2. **New Components to Create**:
-   - All components listed above
-   - New delegate and model classes
-   - Drag and drop implementation
-   - Style components
-
-3. **Components to Remove**:
-   - `preview_panel.py`
-   - Redundant tabs and panels
-
-## Implementation Strategy
-
-1. Start with core changes to maintain functionality
-2. Create new UI components incrementally
-3. Replace old components when new ones are ready
-4. Implement visual improvements last
-5. Test thoroughly at each stage 

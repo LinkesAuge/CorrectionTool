@@ -23,6 +23,9 @@ from src.interfaces.i_service_factory import IServiceFactory
 # Config
 from src.interfaces.i_config_manager import IConfigManager
 
+# Filters
+from src.interfaces.i_filter import IFilter, IFilterManager
+
 # UI Adapters
 from src.interfaces.ui_adapters import IUiAdapter, ITableAdapter, IComboBoxAdapter, IStatusAdapter
 
@@ -40,6 +43,9 @@ __all__ = [
     "IServiceFactory",
     # Config
     "IConfigManager",
+    # Filters
+    "IFilter",
+    "IFilterManager",
     # UI Adapters
     "IUiAdapter",
     "ITableAdapter",

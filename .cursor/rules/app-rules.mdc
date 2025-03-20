@@ -1,0 +1,121 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Chest Tracker Correction Tool - Project Rules
+
+## Code Organization
+
+- Always organize imports in this order: standard library, third-party packages, local modules
+- Use relative imports for modules within the same package
+- Follow the src/ directory structure for new components
+- Place test files in the tests/ directory with a matching structure
+- Use pathlib for all file path operations
+
+## Naming Conventions
+
+- Class names: PascalCase
+- Method and function names: snake_case
+- Constants: UPPER_SNAKE_CASE
+- Private attributes/methods: _leading_underscore
+- Signal connections: _on_signal_name
+- UI components: use descriptive names with component type suffix (e.g., import_button, entries_table)
+
+## Qt/PySide6 Practices
+
+- Use Qt Signal/Slot mechanism for component communication
+- Initialize UI components in a separate _setup_ui method
+- Connect signals in a separate _connect_signals method
+- Prefix slot methods with _on_ (e.g., _on_button_clicked)
+- Use QSplitter for resizable layouts
+- Implement custom table delegates for specialized cell rendering/editing
+- Avoid direct manipulation of Qt widgets from non-UI classes
+
+## pandas Usage
+
+- Create copies of DataFrames before modification (df.copy())
+- Use vectorized operations instead of loops when possible
+- Always handle the empty DataFrame case
+- Use descriptive column names
+- Create indexes for frequently filtered columns
+- Clear unused DataFrames to reduce memory usage
+
+## Configuration Management
+
+- Always use the ConfigManager for accessing/updating configuration
+- Use the get_path/set_path methods for file paths
+- Check for file existence before operations
+- Create directories if missing with create_if_missing parameter
+- Add migration support for backward compatibility
+
+## Error Handling
+
+- Use specific exception types for different error categories
+- Log errors with appropriate context
+- Provide clear user feedback for errors
+- Implement graceful recovery for common error conditions
+- Validate input data before processing
+
+## Data Validation
+
+- Use the ValidationService for all validation operations
+- Support multiple validation levels (exact, case-insensitive, fuzzy)
+- Implement proper error feedback for validation errors
+- Cache validation results when appropriate
+- Use consistent validation color coding in the UI
+
+## File Operations
+
+- Always use FileService for file operations
+- Implement proper error handling for file operations
+- Support various file formats (TXT, CSV)
+- Preserve file format and structure during export
+- Handle file encoding issues gracefully
+
+## Pattern Catalog
+
+### Observer Pattern
+- Used for updates between DataFrameStore and UI components
+- Implemented via Qt Signals
+- Common pattern: data_store.entries_changed.connect(self._on_entries_changed)
+
+### Service Pattern
+- Business logic encapsulated in service classes
+- Services depend on DataFrameStore for data access
+- Common services: ValidationService, CorrectionService, FileService
+
+### Adapter Pattern
+- Used for transforming data between formats
+- Key adapters: TableModelAdapter, FileParserAdapter
+
+### Command Pattern
+- Used for user actions that can be undone/redone
+- Key commands: CorrectionCommand, ValidationCommand
+
+## Project-Specific Guidelines
+
+- Chest entry data always follows the 3-line pattern: ChestType, From: Player, Source: Location
+- Correction lists are always in CSV format with From,To columns
+- Validation lists are plain text with one entry per line
+- The main workflow is: Import → Validate → Correct → Export
+- Fuzzy matching is configurable via threshold settings
+- Configuration should persist between application sessions
+- UI updates should be responsive and non-blocking
+
+## Performance Tips
+
+- Use QThreads for long-running operations
+- Implement signal throttling for frequent updates
+- Use lazy loading for large datasets
+- Cache expensive computation results
+- Implement pagination for large tables
+
+## Testing Requirements
+
+- Use pytest for all tests
+- Create test fixtures for common test data
+- Mock external dependencies
+- Test each service independently
+- Test critical user workflows
+- Verify performance with larger datasets 

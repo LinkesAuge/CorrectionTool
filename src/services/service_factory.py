@@ -5,11 +5,12 @@ Description: Factory for creating and accessing services using dependency inject
 Usage:
     from src.services.service_factory import ServiceFactory
     from src.interfaces.i_data_store import IDataStore
-    factory = ServiceFactory()
+    factory = ServiceFactory.get_instance()
     data_store = factory.get_service(IDataStore)
 """
 
 import logging
+import threading
 from typing import Dict, Any, Optional, Type, TypeVar
 
 from src.interfaces.i_service_factory import IServiceFactory
@@ -33,11 +34,32 @@ class ServiceFactory(IServiceFactory):
         - Implements dependency injection pattern
         - Manages service registrations by interface type
         - Provides type-safe service resolution
+        - Uses singleton pattern for global access
     """
+
+    # Singleton instance and lock for thread safety
+    _instance = None
+    _instance_lock = threading.Lock()
+
+    @classmethod
+    def get_instance(cls):
+        """
+        Get the singleton instance with thread-safety.
+
+        Returns:
+            ServiceFactory: The singleton instance
+        """
+        if cls._instance is None:
+            with cls._instance_lock:
+                if cls._instance is None:
+                    cls._instance = ServiceFactory()
+        return cls._instance
 
     def __init__(self):
         """
         Initialize the ServiceFactory.
+
+        Note: This should not be called directly. Use get_instance() instead.
         """
         # Initialize dictionary for services
         self._services = {}

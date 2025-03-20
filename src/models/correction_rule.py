@@ -259,7 +259,7 @@ class CorrectionRule:
         Create a CorrectionRule from a CSV row.
 
         Args:
-            row (Dict[str, str]): CSV row with 'From', 'To', and optionally 'Category' columns
+            row (Dict[str, str]): CSV row with 'From', 'To', and optionally 'Category' and 'Enabled' columns
 
         Returns:
             CorrectionRule: The created rule
@@ -299,13 +299,23 @@ class CorrectionRule:
                         category = category_value
                 break
 
-        # Find the 'Disabled' field (case-insensitive)
+        # Check for 'Enabled' field first (case-insensitive)
         for key in row:
-            if key.lower() == "disabled":
-                disabled_value = row[key]
-                if disabled_value and isinstance(disabled_value, str):
-                    disabled = disabled_value.lower() in ("true", "yes", "1", "t")
+            if key.lower() == "enabled":
+                enabled_value = row[key]
+                if enabled_value and isinstance(enabled_value, str):
+                    # If enabled is false, set disabled to true
+                    disabled = enabled_value.lower() not in ("true", "yes", "1", "t")
                 break
+
+        # If no 'Enabled' field, check for 'Disabled' field for backward compatibility
+        if all(key.lower() != "enabled" for key in row):
+            for key in row:
+                if key.lower() == "disabled":
+                    disabled_value = row[key]
+                    if disabled_value and isinstance(disabled_value, str):
+                        disabled = disabled_value.lower() in ("true", "yes", "1", "t")
+                    break
 
         # Check if required fields were found
         if from_value is None:
@@ -332,11 +342,11 @@ class CorrectionRule:
         Convert the rule to a CSV row.
 
         Returns:
-            Dict[str, str]: CSV row with 'From', 'To', and 'Category' columns
+            Dict[str, str]: CSV row with 'From', 'To', 'Category', and 'Enabled' columns
         """
         return {
             "From": self.from_text,
             "To": self.to_text,
             "Category": self.category,
-            "Disabled": str(self.disabled).lower(),
+            "Enabled": str(not self.disabled).lower(),
         }

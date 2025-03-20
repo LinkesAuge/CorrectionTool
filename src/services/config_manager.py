@@ -187,9 +187,30 @@ class ConfigManager(IConfigManager):
         # Logging section
         self.config["Logging"] = {
             "log_level": "INFO",
-            "log_file": "correction_tool.log",
+            "log_directory": "logs",
+            "log_file_pattern": "correction_tool_%Y%m%d_%H%M%S.log",
             "max_log_size": "10485760",  # 10MB
             "backup_count": "5",
+        }
+
+        # Dashboard section
+        self.config["Dashboard"] = {
+            "show_statistics": "true",
+            "auto_validate": "true",
+            "auto_correct": "true",
+            "show_validation_errors": "true",
+            "table_row_height": "30",
+            "splitter_position": "200",
+            "splitter_sizes": "200,800",  # Add default splitter sizes
+        }
+
+        # CorrectionManager section
+        self.config["CorrectionManager"] = {
+            "show_disabled_rules": "true",
+            "auto_refresh": "true",
+            "splitter_position": "400",
+            "last_tab_index": "0",
+            "splitter_sizes": "400,600",  # Add default splitter sizes
         }
 
     def _create_default_directories(self) -> None:
@@ -251,7 +272,68 @@ class ConfigManager(IConfigManager):
         Returns:
             Any: The configuration value
         """
+        # Ensure core sections exist with defaults
+        self._ensure_core_sections_exist()
+
         return self.config.get(section, key, fallback=fallback)
+
+    def _ensure_core_sections_exist(self):
+        """
+        Ensure that core configuration sections exist with default values.
+        If they don't exist, create them with sensible defaults.
+        """
+        # Core sections with their default values
+        core_sections = {
+            "Dashboard": {
+                "show_statistics": "true",
+                "auto_validate": "true",
+                "auto_correct": "true",
+                "show_validation_errors": "true",
+                "table_row_height": "30",
+                "splitter_position": "200",
+                "splitter_sizes": "200,800",  # Add default splitter sizes
+            },
+            "CorrectionManager": {
+                "show_disabled_rules": "true",
+                "auto_refresh": "true",
+                "splitter_position": "400",
+                "last_tab_index": "0",
+                "splitter_sizes": "400,600",  # Add default splitter sizes
+            },
+            "Window": {
+                "active_tab": "0",
+                "geometry": "",
+                "state": "",
+            },
+            "ValidationPanel": {
+                "active_tab": "0",
+                "fuzzy_match_enabled": "true",
+                "fuzzy_match_threshold": "85",
+            },
+            "ReportPanel": {
+                "active_tab": "0",
+                "include_corrections": "true",
+                "include_validation": "true",
+            },
+            "UI": {
+                "theme": "dark",
+                "font_size": "12",
+                "row_height": "30",
+                "show_grid": "true",
+            },
+        }
+
+        # Check each core section and create if missing
+        save_needed = False
+        for section, defaults in core_sections.items():
+            if not self.config.has_section(section):
+                self.logger.info(f"Creating missing {section} section in config")
+                self.config[section] = defaults
+                save_needed = True
+
+        # Save config if any sections were added
+        if save_needed:
+            self.save_config()
 
     def get_str(self, section: str, key: str, fallback: str = "") -> str:
         """
@@ -265,6 +347,7 @@ class ConfigManager(IConfigManager):
         Returns:
             String value from the configuration or fallback
         """
+        self._ensure_core_sections_exist()
         return self.config.get(section, key, fallback=fallback)
 
     def get_int(self, section: str, key: str, fallback: int = 0) -> int:
@@ -279,6 +362,7 @@ class ConfigManager(IConfigManager):
         Returns:
             int: The configuration value as an integer
         """
+        self._ensure_core_sections_exist()
         try:
             return int(self.config.get(section, key, fallback=str(fallback)))
         except ValueError:
@@ -296,6 +380,7 @@ class ConfigManager(IConfigManager):
         Returns:
             bool: The configuration value as a boolean
         """
+        self._ensure_core_sections_exist()
         value = self.config.get(section, key, fallback=str(fallback))
         return value.lower() in ["true", "1", "yes", "y", "t"]
 
@@ -325,6 +410,7 @@ class ConfigManager(IConfigManager):
         Returns:
             float: The configuration value as a float
         """
+        self._ensure_core_sections_exist()
         try:
             return float(self.config.get(section, key, fallback=str(fallback)))
         except ValueError:
@@ -341,6 +427,7 @@ class ConfigManager(IConfigManager):
         Returns:
             Path: The path as a Path object
         """
+        self._ensure_core_sections_exist()
         path_str = self.config.get("Paths", path_key, fallback=str(fallback) if fallback else "")
         if not path_str:
             return Path(str(fallback)) if fallback else Path()
@@ -375,6 +462,7 @@ class ConfigManager(IConfigManager):
         Returns:
             Path: The path as a Path object
         """
+        self._ensure_core_sections_exist()
         path_str = self.config.get("LastUsed", key, fallback=str(fallback) if fallback else "")
         if not path_str:
             return Path(str(fallback)) if fallback else Path()
@@ -582,12 +670,22 @@ class ConfigManager(IConfigManager):
             Any: Configuration value
         """
         try:
-            if not self.config.has_section(section):
-                self.logger.warning(f"Section {section} not found in config")
-                return default
+            # Ensure core sections exist with defaults
+            self._ensure_core_sections_exist()
 
+            # Create section if it doesn't exist
+            if not self.config.has_section(section):
+                self.logger.info(f"Creating missing section {section} in config")
+                self.config.add_section(section)
+                self.save_config()
+
+            # Create key with default value if it doesn't exist
             if not self.config.has_option(section, key):
-                self.logger.warning(f"Key {key} not found in section {section}")
+                self.logger.info(
+                    f"Creating missing key {key} in section {section} with default value"
+                )
+                self.config.set(section, key, str(default) if default is not None else "")
+                self.save_config()
                 return default
 
             value = self.config.get(section, key)

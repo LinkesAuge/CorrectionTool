@@ -3,9 +3,15 @@ dataframe_store.py
 
 Description: Central data store using pandas DataFrames as the primary data structure
 Usage:
-    from src.services.dataframe_store import DataFrameStore
-    store = DataFrameStore.get_instance()
-    entries_df = store.get_entries()
+    from src.services import get_data_store
+    data_store = get_data_store()
+    entries_df = data_store.get_entries()
+
+    # Alternative interface-based approach:
+    from src.services import get_service
+    from src.interfaces.i_data_store import IDataStore
+    data_store = get_service(IDataStore)
+    entries_df = data_store.get_entries()
 """
 
 import logging
@@ -18,25 +24,16 @@ from enum import Enum, auto
 
 import pandas as pd
 
+# Import standardized EventType
+from src.interfaces.events import EventType, EventHandler, EventData
+from src.interfaces.i_data_store import IDataStore
+
 # Type variables for generic caching
 T = TypeVar("T")
 U = TypeVar("U")
 
 
-class EventType(Enum):
-    """Event types for the DataFrameStore event system."""
-
-    ENTRIES_UPDATED = auto()
-    CORRECTION_RULES_UPDATED = auto()
-    VALIDATION_LISTS_UPDATED = auto()
-    IMPORT_COMPLETED = auto()
-    EXPORT_COMPLETED = auto()
-    CORRECTION_APPLIED = auto()
-    VALIDATION_COMPLETED = auto()
-    ERROR_OCCURRED = auto()
-
-
-class DataFrameStore:
+class DataFrameStore(IDataStore):
     """
     Singleton class for centralized data management using pandas DataFrames.
 
@@ -170,7 +167,7 @@ class DataFrameStore:
     # Event System Methods
     # =====================
 
-    def subscribe(self, event_type: EventType, handler: Callable):
+    def subscribe(self, event_type: EventType, handler: EventHandler) -> None:
         """
         Subscribe to an event type.
 
@@ -180,7 +177,7 @@ class DataFrameStore:
         """
         self._event_handlers[event_type].add(handler)
 
-    def unsubscribe(self, event_type: EventType, handler: Callable):
+    def unsubscribe(self, event_type: EventType, handler: EventHandler) -> None:
         """
         Unsubscribe from an event type.
 
@@ -191,7 +188,7 @@ class DataFrameStore:
         if handler in self._event_handlers[event_type]:
             self._event_handlers[event_type].remove(handler)
 
-    def _emit_event(self, event_type: EventType, data: Any = None):
+    def _emit_event(self, event_type: EventType, data: EventData = None) -> None:
         """
         Emit an event to all subscribers.
 
@@ -199,6 +196,10 @@ class DataFrameStore:
             event_type: Type of event to emit
             data: Data to pass to the event handlers
         """
+        # Ensure data is always a dictionary
+        if data is None:
+            data = {}
+
         for handler in self._event_handlers[event_type]:
             try:
                 handler(data)
@@ -209,11 +210,14 @@ class DataFrameStore:
     # Transaction Methods
     # =====================
 
-    def begin_transaction(self):
+    def begin_transaction(self) -> bool:
         """
         Begin a transaction.
 
         This allows multiple changes to be made atomically.
+
+        Returns:
+            bool: True if the transaction was started, False if already in a transaction
         """
         if self._transaction_active:
             self._logger.warning("Transaction already in progress")
@@ -228,11 +232,14 @@ class DataFrameStore:
         self._logger.debug("Transaction started")
         return True
 
-    def commit_transaction(self):
+    def commit_transaction(self) -> bool:
         """
         Commit the current transaction.
 
         This applies all changes made during the transaction.
+
+        Returns:
+            bool: True if the transaction was committed, False if no transaction in progress
         """
         if not self._transaction_active:
             self._logger.warning("No transaction in progress")
@@ -248,11 +255,14 @@ class DataFrameStore:
         self._logger.debug("Transaction committed")
         return True
 
-    def rollback_transaction(self):
+    def rollback_transaction(self) -> bool:
         """
         Rollback the current transaction.
 
         This discards all changes made during the transaction.
+
+        Returns:
+            bool: True if the transaction was rolled back, False if no transaction in progress
         """
         if not self._transaction_active:
             self._logger.warning("No transaction in progress")
@@ -328,37 +338,48 @@ class DataFrameStore:
         """
         return self._entries_df.copy()
 
-    def set_entries(self, df: pd.DataFrame, source: str = "", emit_event: bool = True):
+    def set_entries(
+        self, entries_df: pd.DataFrame, source: str = "", emit_event: bool = True
+    ) -> bool:
         """
         Set the entries DataFrame.
 
         Args:
-            df: New entries DataFrame
+            entries_df: New entries DataFrame
             source: Source of the update (optional, for tracking)
-            emit_event: Whether to emit an event after updating
+            emit_event: Whether to emit an event after updating (optional)
+
+        Returns:
+            bool: True if successful, False otherwise
         """
-        # Validate DataFrame structure
-        required_columns = {"chest_type", "player", "source", "status"}
-        if not required_columns.issubset(df.columns):
-            missing = required_columns - set(df.columns)
-            self._logger.error(f"Missing required columns in entries DataFrame: {missing}")
-            raise ValueError(f"Missing required columns: {missing}")
+        try:
+            # Validate DataFrame structure
+            required_columns = {"chest_type", "player", "source", "status"}
+            if not required_columns.issubset(entries_df.columns):
+                missing = required_columns - set(entries_df.columns)
+                self._logger.error(f"Missing required columns in entries DataFrame: {missing}")
+                return False
 
-        # Store a copy to ensure immutability
-        self._entries_df = df.copy()
+            # Store a copy to ensure immutability
+            self._entries_df = entries_df.copy()
 
-        # Clear cache
-        self._cache.clear()
+            # Clear cache
+            self._cache.clear()
 
-        # Emit event
-        if emit_event:
-            # Pass a dictionary with both the dataframe and metadata
-            self._emit_event(
-                EventType.ENTRIES_UPDATED,
-                {"df": self._entries_df, "source": source, "count": len(df)},
-            )
+            # Emit event
+            if emit_event:
+                # Pass a dictionary with both the dataframe and metadata
+                self._emit_event(
+                    EventType.ENTRIES_UPDATED,
+                    {"df": self._entries_df, "source": source, "count": len(entries_df)},
+                )
 
-        self._logger.info(f"Entries DataFrame updated with {len(df)} rows")
+            self._logger.info(f"Entries DataFrame updated with {len(entries_df)} rows")
+            return True
+
+        except Exception as e:
+            self._logger.error(f"Error setting entries: {e}")
+            return False
 
     def add_entry(
         self, entry_data: Dict[str, Any], source: str = "", emit_event: bool = True
@@ -510,36 +531,47 @@ class DataFrameStore:
         """
         return self._correction_rules_df.copy()
 
-    def set_correction_rules(self, df: pd.DataFrame, emit_event: bool = True):
+    def set_correction_rules(self, rules_df: pd.DataFrame, emit_event: bool = True) -> bool:
         """
         Set the correction rules DataFrame.
 
         Args:
-            df: New correction rules DataFrame
-            emit_event: Whether to emit an event after updating
+            rules_df: New correction rules DataFrame
+            emit_event: Whether to emit an event after updating (optional)
+
+        Returns:
+            bool: True if successful, False otherwise
         """
-        # Validate DataFrame structure
-        required_columns = {"from_text", "to_text"}
-        if not required_columns.issubset(df.columns):
-            missing = required_columns - set(df.columns)
-            self._logger.error(f"Missing required columns in correction rules DataFrame: {missing}")
-            raise ValueError(f"Missing required columns: {missing}")
+        try:
+            # Validate DataFrame structure
+            required_columns = {"from_text", "to_text"}
+            if not required_columns.issubset(rules_df.columns):
+                missing = required_columns - set(rules_df.columns)
+                self._logger.error(
+                    f"Missing required columns in correction rules DataFrame: {missing}"
+                )
+                return False
 
-        # Store a copy to ensure immutability
-        self._correction_rules_df = df.copy()
+            # Store a copy to ensure immutability
+            self._correction_rules_df = rules_df.copy()
 
-        # Ensure 'enabled' column exists with default value True
-        if "enabled" not in self._correction_rules_df.columns:
-            self._correction_rules_df["enabled"] = True
+            # Ensure 'enabled' column exists with default value True
+            if "enabled" not in self._correction_rules_df.columns:
+                self._correction_rules_df["enabled"] = True
 
-        # Clear cache
-        self._cache.clear()
+            # Clear cache
+            self._cache.clear()
 
-        # Emit event
-        if emit_event:
-            self._emit_event(EventType.CORRECTION_RULES_UPDATED, self._correction_rules_df)
+            # Emit event
+            if emit_event:
+                self._emit_event(EventType.CORRECTION_RULES_UPDATED, self._correction_rules_df)
 
-        self._logger.info(f"Correction rules DataFrame updated with {len(df)} rows")
+            self._logger.info(f"Correction rules DataFrame updated with {len(rules_df)} rows")
+            return True
+
+        except Exception as e:
+            self._logger.error(f"Error setting correction rules: {e}")
+            return False
 
     def add_correction_rule(self, rule_data: Dict[str, Any], emit_event: bool = True) -> int:
         """
@@ -681,45 +713,59 @@ class DataFrameStore:
 
         return self._validation_lists[list_type].copy()
 
-    def set_validation_list(self, list_type: str, df: pd.DataFrame, emit_event: bool = True):
+    def set_validation_list(
+        self, list_type: str, entries_df: pd.DataFrame, emit_event: bool = True
+    ) -> bool:
         """
         Set a validation list DataFrame.
 
         Args:
             list_type: Type of validation list ('player', 'chest_type', 'source')
-            df: New validation list DataFrame
-            emit_event: Whether to emit an event after updating
+            entries_df: New validation list DataFrame
+            emit_event: Whether to emit an event after updating (optional)
+
+        Returns:
+            bool: True if successful, False otherwise
         """
-        if list_type not in self._validation_lists:
-            self._logger.error(f"Invalid validation list type: {list_type}")
-            raise ValueError(f"Invalid validation list type: {list_type}")
+        try:
+            if list_type not in self._validation_lists:
+                self._logger.error(f"Invalid validation list type: {list_type}")
+                return False
 
-        # Validate DataFrame structure
-        if "entry" not in df.columns and df.index.name != "entry":
-            self._logger.error("Missing required 'entry' column in validation list DataFrame")
-            raise ValueError("Missing required 'entry' column")
+            # Validate DataFrame structure
+            if "entry" not in entries_df.columns and entries_df.index.name != "entry":
+                self._logger.error("Missing required 'entry' column in validation list DataFrame")
+                return False
 
-        # Store a copy to ensure immutability
-        self._validation_lists[list_type] = df.copy()
+            # Store a copy to ensure immutability
+            self._validation_lists[list_type] = entries_df.copy()
 
-        # Ensure 'enabled' column exists with default value True
-        if "enabled" not in self._validation_lists[list_type].columns:
-            self._validation_lists[list_type]["enabled"] = True
+            # Ensure 'enabled' column exists with default value True
+            if "enabled" not in self._validation_lists[list_type].columns:
+                self._validation_lists[list_type]["enabled"] = True
 
-        # Make sure 'entry' is the index
-        if df.index.name != "entry":
-            self._validation_lists[list_type].set_index("entry", inplace=True)
+            # Make sure 'entry' is the index
+            if entries_df.index.name != "entry":
+                self._validation_lists[list_type].set_index("entry", inplace=True)
 
-        # Clear cache
-        self._cache.clear()
+            # Clear cache
+            self._cache.clear()
 
-        # Emit event
-        if emit_event:
-            self._emit_event(
-                EventType.VALIDATION_LISTS_UPDATED, {list_type: self._validation_lists[list_type]}
+            # Emit event
+            if emit_event:
+                self._emit_event(
+                    EventType.VALIDATION_LISTS_UPDATED,
+                    {list_type: self._validation_lists[list_type]},
+                )
+
+            self._logger.info(
+                f"Validation list '{list_type}' updated with {len(entries_df)} entries"
             )
+            return True
 
-        self._logger.info(f"Validation list '{list_type}' updated with {len(df)} entries")
+        except Exception as e:
+            self._logger.error(f"Error updating validation list: {e}")
+            return False
 
     def add_validation_entry(self, list_type: str, entry: str, emit_event: bool = True) -> bool:
         """
@@ -803,6 +849,80 @@ class DataFrameStore:
 
         self._logger.info(f"Deleted '{entry}' from {list_type} validation list")
         return True
+
+    def update_validation_list(
+        self, list_type: str, validation_list: Any, emit_event: bool = True
+    ) -> bool:
+        """
+        Update a validation list from a ValidationList object.
+
+        Args:
+            list_type: Type of validation list ('player', 'chest_type', 'source')
+            validation_list: ValidationList object containing the entries
+            emit_event: Whether to emit an event after updating
+
+        Returns:
+            bool: True if validation list was updated
+        """
+        if list_type not in self._validation_lists:
+            self._logger.error(f"Invalid validation list type: {list_type}")
+            raise ValueError(f"Invalid validation list type: {list_type}")
+
+        try:
+            # Get entries from the ValidationList object
+            if hasattr(validation_list, "entries"):
+                entries = validation_list.entries
+            elif hasattr(validation_list, "items"):
+                entries = validation_list.items
+            else:
+                self._logger.error(f"ValidationList object has no entries or items attribute")
+                return False
+
+            # Create DataFrame from the entries
+            import datetime
+            import pandas as pd
+
+            df = pd.DataFrame(
+                {
+                    "enabled": [True] * len(entries),
+                    "created_at": [pd.Timestamp(datetime.datetime.now())] * len(entries),
+                },
+                index=entries,
+            )
+            df.index.name = "entry"
+
+            # Update the validation list
+            self._validation_lists[list_type] = df
+
+            # Clear cache
+            self._cache.clear()
+
+            # Emit event
+            if emit_event:
+                self._emit_event(
+                    EventType.VALIDATION_LISTS_UPDATED,
+                    {"list_type": list_type, "count": len(entries)},
+                )
+
+            self._logger.info(f"Validation list '{list_type}' updated with {len(entries)} entries")
+            return True
+        except Exception as e:
+            self._logger.error(f"Error updating validation list: {e}")
+            return False
+
+    def remove_validation_entry(self, list_type: str, entry: str) -> bool:
+        """
+        Remove an entry from a validation list.
+
+        Args:
+            list_type: Type of validation list ('player', 'chest_type', 'source')
+            entry: Entry to remove
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        # Delegate to the existing implementation
+        return self.delete_validation_entry(list_type, entry)
 
     # =====================
     # Query Methods
@@ -956,3 +1076,108 @@ class DataFrameStore:
                 list_stats["disabled_entries"] = len(df) - list_stats["enabled_entries"]
 
             stats[list_type] = list_stats
+
+    def _filter_entries(self, filter_info: Dict[str, Any]) -> None:
+        """
+        Filter the entries based on the provided filter information.
+
+        Args:
+            filter_info: A dictionary containing filter parameters.
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Filtering entries: {filter_info}")
+
+        try:
+            # Get the filter configuration
+            config = filter_info.get("config", None)
+            apply_filter = filter_info.get("apply_filter", True)
+
+            if not apply_filter or not config:
+                logger.debug("Filter not applied (apply_filter=False or no config)")
+                self._filtered_entries_df = self._entries_df.copy()
+                return
+
+            # Apply the filter
+            filtered_df = self._filter_service.apply_filter(self._entries_df, config)
+
+            # Update the filtered entries
+            if filtered_df is None or (isinstance(filtered_df, pd.DataFrame) and filtered_df.empty):
+                logger.warning("Filtering resulted in an empty DataFrame")
+                # Keep a copy of the empty dataframe to maintain structure
+                if isinstance(filtered_df, pd.DataFrame):
+                    self._filtered_entries_df = filtered_df
+                else:
+                    self._filtered_entries_df = pd.DataFrame(columns=self._entries_df.columns)
+            else:
+                self._filtered_entries_df = filtered_df
+
+            logger.debug(
+                f"Filtered entries: {len(self._filtered_entries_df)} out of {len(self._entries_df)}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error filtering entries: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())
+            # Fall back to unfiltered entries
+            self._filtered_entries_df = self._entries_df.copy()
+
+    def _update_validation_list(self, event_data: Dict[str, Any]) -> None:
+        """
+        Update validation list from validation service.
+
+        Args:
+            event_data: Dictionary with validation data
+                - validation_list: ValidationList object containing validation results
+                - entries: Optional list of entries the validation was performed on
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug("Updating validation list")
+
+        try:
+            validation_list = event_data.get("validation_list", None)
+            entries = event_data.get("entries", None)
+
+            if not validation_list:
+                logger.warning("Received empty validation list")
+                return
+
+            # Process validation errors into entries
+            if entries is not None:
+                # We have specific entries to update
+                if isinstance(entries, pd.DataFrame):
+                    entries_to_update = entries
+                elif isinstance(entries, list) and entries:
+                    # Convert list to DataFrame if needed
+                    entries_to_update = pd.DataFrame(entries)
+                else:
+                    logger.warning(f"Received invalid entries format: {type(entries)}")
+                    return
+
+                # Update the specific entries
+                if isinstance(entries_to_update, pd.DataFrame) and not entries_to_update.empty:
+                    self._update_validation_for_entries(validation_list, entries_to_update)
+                else:
+                    logger.warning("Cannot update validation for empty entries")
+            else:
+                # Update all entries if no specific entries provided
+                self._update_validation_for_entries(validation_list, self._entries_df)
+
+            # Emit events to notify that entries are updated
+            if not self._entries_df.empty:
+                self._event_bus.emit(
+                    EventType.ENTRIES_UPDATED, {"entries": self._entries_df.to_dict("records")}
+                )
+
+            if not self._filtered_entries_df.empty:
+                self._event_bus.emit(
+                    EventType.FILTERED_ENTRIES_UPDATED,
+                    {"entries": self._filtered_entries_df.to_dict("records")},
+                )
+
+        except Exception as e:
+            logger.error(f"Error updating validation list: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())

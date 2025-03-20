@@ -43,6 +43,7 @@ class FileImportWidget(QWidget):
         corrections_loaded (list): Signal emitted when corrections are loaded
         corrections_applied (list): Signal emitted when corrections are applied
         corrections_enabled_changed (bool): Signal emitted when corrections are enabled/disabled
+        file_loaded (str, int): Signal emitted when a file is loaded
 
     Implementation Notes:
         - Provides buttons for importing text and CSV files
@@ -59,6 +60,7 @@ class FileImportWidget(QWidget):
     corrections_loaded = Signal(list)  # List[CorrectionRule]
     corrections_applied = Signal(list)  # List[ChestEntry]
     corrections_enabled_changed = Signal(bool)  # enabled
+    file_loaded = Signal(str, int)  # file_path, count
 
     def __init__(self, parent=None):
         """
@@ -319,36 +321,88 @@ class FileImportWidget(QWidget):
                 self.logger.debug("Rules are unchanged, skipping update")
                 return
 
-            self.logger.info(f"FileImportWidget: Setting {len(rules)} correction rules")
-
             self._correction_rules = rules
 
             # Update status label
-            rule_count = len(rules)
-            if rule_count > 0:
-                self._corrections_status_label.setText(f"{rule_count} correction rules loaded")
+            if rules:
+                rule_count = len(rules)
+                self._corrections_status_label.setText(f"{rule_count} rules loaded")
                 self._corrections_status_label.setStyleSheet("color: #007700;")
             else:
-                self._corrections_status_label.setText("No corrections loaded")
+                self._corrections_status_label.setText("No rules loaded")
                 self._corrections_status_label.setStyleSheet("")
 
-            # Emit signal with the updated rules ONLY if the update came from a user action
+            # Emit signal - but only if not in auto-loading mode
+            # This prevents multiple signal emissions when we're doing something
             # like loading a file, not if it came from another component
-            # This helps prevent cascading signals
-            auto_load = getattr(self, "_auto_loading", False)
-            if not auto_load:
-                self.logger.info(f"Emitting corrections_loaded signal with {len(rules)} rules")
+            if not self._auto_loading:
+                self.logger.info(
+                    f"Auto-load complete, emitting corrections_loaded with {len(rules)} rules"
+                )
                 self.corrections_loaded.emit(rules)
-            else:
-                self.logger.info("Auto-loading, skipping emissions to prevent signal cascades")
 
             # Auto-apply corrections if enabled and we have entries
-            # Only do this if auto_load is False to prevent applying corrections multiple times
-            if self._corrections_enabled and self._entries and not auto_load:
+            if self._corrections_enabled and self._entries:
                 self._apply_corrections()
 
         finally:
             self._processing_signal = False
+
+    def set_loaded_file(self, file_path):
+        """
+        Set the loaded file path and update UI accordingly.
+
+        Args:
+            file_path: Path to the loaded file (str or Path)
+        """
+        self.logger.info(f"Setting loaded file: {file_path}")
+
+        try:
+            # Convert to Path object if it's a string
+            if isinstance(file_path, str):
+                path_obj = Path(file_path)
+            else:
+                path_obj = file_path
+
+            # Save in config
+            self._config.set_last_used_path("last_input_file", str(path_obj))
+
+            # Update directory too
+            self._config.set_last_used_path("last_entry_directory", str(path_obj.parent))
+
+            # Update status label
+            self._entries_status_label.setText(f"File loaded: {path_obj.name}")
+            self._entries_status_label.setStyleSheet("color: #007700;")
+
+            # Reload the entries from the file path
+            entries = []
+            try:
+                # Use the file parser to get entries
+                entries = self._file_parser.parse_entry_file(str(path_obj))
+
+                # Update entries
+                self._entries = entries
+                entry_count = len(entries)
+                self._entries_status_label.setText(f"{entry_count} entries loaded")
+
+                # Emit the signal with the file path and count
+                if not self._processing_signal:
+                    self.entries_loaded.emit(entries)
+                    self.file_loaded.emit(str(path_obj), entry_count)
+
+                # The file path and count should be handled by subscribers
+                # to this signal
+
+                self.logger.info(f"Loaded {entry_count} entries from {str(path_obj)}")
+            except Exception as e:
+                self.logger.error(f"Error loading entries from file: {e}")
+                self._entries_status_label.setText("Error loading file")
+                self._entries_status_label.setStyleSheet("color: #FF0000;")
+
+        except Exception as e:
+            self.logger.error(f"Error setting loaded file: {e}")
+            self._entries_status_label.setText("Invalid file path")
+            self._entries_status_label.setStyleSheet("color: #FF0000;")
 
     def _apply_corrections(self):
         """Apply correction rules to the loaded entries."""

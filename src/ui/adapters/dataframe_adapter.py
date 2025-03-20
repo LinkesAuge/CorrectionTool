@@ -15,7 +15,11 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal, Slot, QAbstractTableModel, QModelIndex, Qt
 from PySide6.QtWidgets import QTableView, QTableWidget, QTableWidgetItem, QComboBox
 
-from src.services.dataframe_store import DataFrameStore, EventType
+# Import standardized EventType
+from src.interfaces.events import EventType, EventHandler, EventData
+from src.interfaces import IDataStore, IConfigManager
+
+from src.services.dataframe_store import DataFrameStore
 
 
 class EntryTableModel(QAbstractTableModel):

@@ -58,16 +58,11 @@ def configure_logging(log_to_file=True, debug_mode=False):
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
 
-        # Also keep the default log file for backward compatibility
-        default_log_file = Path("correction_tool.log")
-        default_file_handler = logging.FileHandler(default_log_file, encoding="utf-8")
-        default_file_handler.setFormatter(formatter)
-        root_logger.addHandler(default_file_handler)
+        # Log the path of the log file
+        root_logger.info(f"Logging to file: {log_file.absolute()}")
 
     # Log initial message
     root_logger.info(f"Logging initialized with level: {logging.getLevelName(level)}")
-    if log_to_file:
-        root_logger.info(f"Logging to file: {log_file}")
 
     # Set excepthook to log unhandled exceptions
     def exception_handler(exc_type, exc_value, exc_traceback):

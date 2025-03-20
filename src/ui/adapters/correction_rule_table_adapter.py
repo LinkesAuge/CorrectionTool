@@ -72,7 +72,8 @@ class CorrectionRuleTableAdapter(QObject):
         }
 
         # Current filter
-        self._filter = ""
+        self._filter_column = ""
+        self._filter_value = None
 
     def _on_correction_rules_updated(self, event_data: EventData) -> None:
         """
@@ -229,15 +230,17 @@ class CorrectionRuleTableAdapter(QObject):
         rules_df = self._data_store.get_correction_rules()
 
         # Apply filter if set
-        if self._filter:
-            # Filter by text (case-insensitive) in from_text or to_text columns
-            mask = rules_df["from_text"].str.contains(
-                self._filter, case=False, na=False
-            ) | rules_df["to_text"].str.contains(self._filter, case=False, na=False)
-            if "category" in rules_df.columns:
-                mask = mask | rules_df["category"].str.contains(self._filter, case=False, na=False)
-
-            rules_df = rules_df[mask]
+        if self._filter_column and self._filter_value is not None:
+            if self._filter_column in rules_df.columns:
+                # For text columns, do a case-insensitive contains search
+                if rules_df[self._filter_column].dtype == "object":
+                    mask = rules_df[self._filter_column].str.contains(
+                        str(self._filter_value), case=False, na=False
+                    )
+                    rules_df = rules_df[mask]
+                else:
+                    # For non-text columns, do an exact match
+                    rules_df = rules_df[rules_df[self._filter_column] == self._filter_value]
 
         # Clear the table
         self._table_widget.setRowCount(0)
@@ -250,20 +253,18 @@ class CorrectionRuleTableAdapter(QObject):
                 # Create items for each column
                 for j, col in enumerate(self._columns):
                     value = rule.get(col, "")
-                    item = QTableWidgetItem()
 
-                    # Handle special column types
-                    if col == "enabled" and isinstance(value, bool):
-                        # Checkbox column
-                        item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                        item.setCheckState(Qt.Checked if value else Qt.Unchecked)
-                    else:
-                        # Text column
-                        item.setText(str(value))
+                    # Create and configure the table item
+                    item = QTableWidgetItem(str(value) if value is not None else "")
 
-                    # Store the rule index in the first column
+                    # Store the original index as data in the first column
                     if j == 0:
                         item.setData(Qt.UserRole, idx)
+
+                    # For boolean values like enabled, use a checkbox
+                    if col == "enabled":
+                        item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                        item.setCheckState(Qt.Checked if value else Qt.Unchecked)
 
                     # Add the item to the table
                     self._table_widget.setItem(i, j, item)
@@ -273,58 +274,99 @@ class CorrectionRuleTableAdapter(QObject):
 
     def get_selected_rows(self) -> List[int]:
         """
-        Get the currently selected rows.
+        Get the indices of selected rows in the table view.
 
         Returns:
             List[int]: List of selected row indices
         """
-        if not self._connected:
-            return []
+        selected_rows = []
 
-        # Get unique rows from selection
-        rows = sorted(set(item.row() for item in self._table_widget.selectedItems()))
-        return rows
+        # Get selected ranges
+        selected_ranges = self._table_widget.selectedRanges()
+
+        # Also get selected items (for single cell selections)
+        selected_items = self._table_widget.selectedItems()
+
+        # Process ranges
+        for selection_range in selected_ranges:
+            for row in range(selection_range.topRow(), selection_range.bottomRow() + 1):
+                if row not in selected_rows:
+                    selected_rows.append(row)
+
+        # Process individual items
+        for item in selected_items:
+            if item.row() not in selected_rows:
+                selected_rows.append(item.row())
+
+        return sorted(selected_rows)
 
     def get_row_data(self, row_index: int) -> Dict[str, Any]:
         """
         Get data for a specific row.
 
         Args:
-            row_index: Index of the row
+            row_index (int): Index of the row
 
         Returns:
-            Dict[str, Any]: Dictionary containing row data
+            Dict[str, Any]: Row data as a dictionary of column name to value
         """
-        if not self._connected or row_index < 0 or row_index >= self._table_widget.rowCount():
-            return {}
+        row_data = {}
 
-        # Get the rule index from the first column
-        item = self._table_widget.item(row_index, 0)
-        if not item:
-            return {}
+        # Check if row index is valid
+        if row_index < 0 or row_index >= self._table_widget.rowCount():
+            return row_data
 
-        rule_index = item.data(Qt.UserRole)
-        if rule_index is None:
-            return {}
+        # Get the original dataframe index from the first cell's user data
+        first_item = self._table_widget.item(row_index, 0)
+        if first_item is None:
+            return row_data
 
-        # Get the rule from the data store
+        df_index = first_item.data(Qt.UserRole)
+        if df_index is None:
+            return row_data
+
+        # Get the rules dataframe
         rules_df = self._data_store.get_correction_rules()
-        if rule_index not in rules_df.index:
-            return {}
 
-        return rules_df.loc[rule_index].to_dict()
+        # Check if the index exists in the dataframe
+        if df_index in rules_df.index:
+            # Return the row as a dictionary
+            return rules_df.loc[df_index].to_dict()
 
-    def set_filter(self, filter_text: str) -> None:
+        # If we reach here, construct the dictionary from the table items
+        for col_idx, col_name in enumerate(self._columns):
+            item = self._table_widget.item(row_index, col_idx)
+            if item is not None:
+                # Handle special case for checkboxes
+                if col_name == "enabled" and item.checkState() is not None:
+                    row_data[col_name] = item.checkState() == Qt.Checked
+                else:
+                    row_data[col_name] = item.text()
+
+        return row_data
+
+    def set_filter(self, column: str, value: Any) -> None:
         """
-        Set a filter for the table.
+        Set a filter on the table view.
 
         Args:
-            filter_text: Text to filter by
+            column (str): Column name to filter on
+            value (Any): Value to filter for
         """
-        if not self._connected:
-            return
+        self._filter_column = column
+        self._filter_value = value
 
-        self._filter = filter_text
+        # Apply the filter
+        self.refresh()
+
+    def clear_filters(self) -> None:
+        """
+        Clear all filters from the table view.
+        """
+        self._filter_column = ""
+        self._filter_value = None
+
+        # Refresh the table to show all data
         self.refresh()
 
     def add_rule(

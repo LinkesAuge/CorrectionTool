@@ -24,15 +24,28 @@ class EventType(Enum):
     ENTRIES_UPDATED = auto()
     CORRECTION_RULES_UPDATED = auto()
     VALIDATION_LISTS_UPDATED = auto()
+    VALIDATION_LIST_UPDATED = auto()  # Individual list update
 
-    # Operation events
-    IMPORT_COMPLETED = auto()
-    EXPORT_COMPLETED = auto()
-    CORRECTION_APPLIED = auto()
+    # Process events
+    VALIDATION_STARTED = auto()
     VALIDATION_COMPLETED = auto()
+    CORRECTION_STARTED = auto()
+    CORRECTION_APPLIED = auto()
+    CORRECTIONS_RESET = auto()
+    IMPORT_STARTED = auto()
+    IMPORT_COMPLETED = auto()
+    EXPORT_STARTED = auto()
+    EXPORT_COMPLETED = auto()
 
-    # Error events
+    # Status events
     ERROR_OCCURRED = auto()
+    WARNING_ISSUED = auto()
+    INFO_MESSAGE = auto()
+
+    # UI events
+    UI_REFRESH_NEEDED = auto()
+    SELECTION_CHANGED = auto()
+    FILTER_CHANGED = auto()
 
 
 # Type definitions

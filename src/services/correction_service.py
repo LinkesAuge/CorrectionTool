@@ -16,7 +16,7 @@ from pathlib import Path
 
 from src.interfaces.i_correction_service import ICorrectionService
 from src.interfaces.i_data_store import IDataStore
-from src.enums.event_type import EventType
+from src.interfaces.events import EventType, EventHandler, EventData
 
 
 class CorrectionService(ICorrectionService):

@@ -1,15 +1,14 @@
 """
-enhanced_table_view.py
+Enhanced table view with additional features like sorting, filtering, and context menu.
 
-Description: Enhanced table view with advanced features and custom delegates
-Usage:
-    from src.ui.enhanced_table_view import EnhancedTableView
-    table_view = EnhancedTableView(parent=self)
+This module provides an extended QTableView with capabilities for advanced
+data handling, filtering, and user interaction.
 """
 
-from typing import Dict, List, Optional, Tuple, Any, Set, Union
+from typing import Dict, List, Optional, Tuple, Any, Set, Union, Callable
 import logging
 import time
+import math
 
 from PySide6.QtCore import (
     Qt,
@@ -19,8 +18,11 @@ from PySide6.QtCore import (
     QAbstractTableModel,
     QSortFilterProxyModel,
     QTimer,
+    QEvent,
+    QObject,
+    QItemSelectionModel,
 )
-from PySide6.QtGui import QColor, QBrush, QFont, QPalette
+from PySide6.QtGui import QColor, QBrush, QFont, QPalette, QStandardItemModel, QAction
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
@@ -108,6 +110,24 @@ class ChestEntryTableModel(QAbstractTableModel):
             return 0
         return len(self._columns)
 
+    def _get_value(self, entry, key, default=""):
+        """
+        Helper method to get a value from an entry, handling both objects and dictionaries.
+
+        Args:
+            entry: The entry object or dictionary
+            key: The attribute or key to retrieve
+            default: Default value if not found
+
+        Returns:
+            The value from the entry
+        """
+        # Check if entry is a dictionary
+        if isinstance(entry, dict):
+            return entry.get(key, default)
+        # Otherwise treat as object with attributes
+        return getattr(entry, key, default)
+
     def data(self, index, role=Qt.DisplayRole):
         """
         Return data for the given role at the given index.
@@ -134,40 +154,57 @@ class ChestEntryTableModel(QAbstractTableModel):
 
             if role == Qt.DisplayRole:
                 if index.column() == ChestEntryTableModel.COLUMN_ID:
-                    return str(entry.id) if entry.id is not None else ""
+                    # For ID column, try multiple ways to get the ID to ensure it's always displayed
+                    entry_id = None
+
+                    # Try to get ID from dictionary key
+                    if isinstance(entry, dict):
+                        entry_id = entry.get("id", None)
+                    # Try to get ID from object attribute
+                    else:
+                        entry_id = getattr(entry, "id", None)
+
+                    # If still None, try to get row number
+                    if entry_id is None:
+                        entry_id = index.row()
+
+                    return str(entry_id) if entry_id is not None else str(index.row())
                 elif index.column() == ChestEntryTableModel.COLUMN_CHEST_TYPE:
-                    return entry.chest_type if entry.chest_type else ""
+                    return self._get_value(entry, "chest_type")
                 elif index.column() == ChestEntryTableModel.COLUMN_PLAYER:
-                    return entry.player if entry.player else ""
+                    return self._get_value(entry, "player")
                 elif index.column() == ChestEntryTableModel.COLUMN_SOURCE:
-                    return entry.source if entry.source else ""
+                    return self._get_value(entry, "source")
                 elif index.column() == 4:  # Status column
-                    return entry.status if hasattr(entry, "status") else "Pending"
+                    return self._get_value(entry, "status", "Pending")
 
             elif role == Qt.BackgroundRole:
                 # Use background color for validation error indication
-                has_error = getattr(entry, "has_validation_error", False)
+                has_error = self._get_value(entry, "has_validation_error", False)
                 if has_error:
                     return QBrush(QColor(255, 200, 200))  # Light red for errors
 
             elif role == self.VALIDATION_ERROR_ROLE:
-                return getattr(entry, "validation_error", None)
+                return self._get_value(entry, "validation_error")
 
             elif role == self.ORIGINAL_VALUE_ROLE:
                 if index.column() == ChestEntryTableModel.COLUMN_CHEST_TYPE:
-                    return getattr(entry, "original_chest_type", entry.chest_type)
+                    original = self._get_value(entry, "original_chest_type")
+                    return original if original else self._get_value(entry, "chest_type")
                 elif index.column() == ChestEntryTableModel.COLUMN_PLAYER:
-                    return getattr(entry, "original_player", entry.player)
+                    original = self._get_value(entry, "original_player")
+                    return original if original else self._get_value(entry, "player")
                 elif index.column() == ChestEntryTableModel.COLUMN_SOURCE:
-                    return getattr(entry, "original_source", entry.source)
+                    original = self._get_value(entry, "original_source")
+                    return original if original else self._get_value(entry, "source")
 
             elif role == self.HAS_CORRECTION_ROLE:
                 if index.column() == ChestEntryTableModel.COLUMN_CHEST_TYPE:
-                    return hasattr(entry, "original_chest_type")
+                    return self._get_value(entry, "original_chest_type") is not None
                 elif index.column() == ChestEntryTableModel.COLUMN_PLAYER:
-                    return hasattr(entry, "original_player")
+                    return self._get_value(entry, "original_player") is not None
                 elif index.column() == ChestEntryTableModel.COLUMN_SOURCE:
-                    return hasattr(entry, "original_source")
+                    return self._get_value(entry, "original_source") is not None
 
             return None
         except Exception as e:
@@ -177,22 +214,6 @@ class ChestEntryTableModel(QAbstractTableModel):
             import traceback
 
             logger.error(traceback.format_exc())
-
-            # Log additional information about the entry if possible
-            try:
-                if index.row() < len(self._entries):
-                    entry = self._entries[index.row()]
-                    logger.error(
-                        f"Entry details: ID={entry.id}, Type={entry.chest_type}, Player={entry.player}, Source={entry.source}"
-                    )
-            except Exception as inner_e:
-                logger.error(f"Could not log entry details: {str(inner_e)}")
-
-            # Return some default values based on the role to avoid crashes
-            if role == Qt.DisplayRole:
-                return "Error"
-            elif role == Qt.BackgroundRole:
-                return QBrush(QColor(255, 200, 200))  # Light red for errors
             return None
 
     def headerData(self, section: int, orientation: Qt.Orientation, role=Qt.DisplayRole) -> Any:
@@ -231,12 +252,23 @@ class ChestEntryTableModel(QAbstractTableModel):
             entry = self._entries[index.row()]
             field_name = ["chest_type", "player", "source"][index.column() - 1]
 
-            # Store original value if not already set
-            if field_name not in entry.original_values:
-                entry.original_values[field_name] = getattr(entry, field_name)
-
-            # Update the value
-            setattr(entry, field_name, value)
+            if isinstance(entry, dict):
+                # For dictionaries, store original value and update
+                original_values = entry.get("original_values", {})
+                if field_name not in original_values:
+                    original_values[field_name] = entry.get(field_name, "")
+                    entry["original_values"] = original_values
+                # Update the value
+                entry[field_name] = value
+            else:
+                # For objects, use attribute access
+                # Store original value if not already set
+                if not hasattr(entry, "original_values"):
+                    entry.original_values = {}
+                if field_name not in entry.original_values:
+                    entry.original_values[field_name] = getattr(entry, field_name, "")
+                # Update the value
+                setattr(entry, field_name, value)
 
             # Emit data changed signal
             self.dataChanged.emit(index, index)
@@ -665,9 +697,15 @@ class EnhancedTableView(QTableView):
         """
         try:
             logger = logging.getLogger(__name__)
-            logger.debug(
-                f"Opening edit dialog for entry: {entry.chest_type}, {entry.player}, {entry.source}"
-            )
+            # Log differently based on entry type
+            if isinstance(entry, dict):
+                logger.debug(
+                    f"Opening edit dialog for entry: {entry.get('chest_type', '')}, {entry.get('player', '')}, {entry.get('source', '')}"
+                )
+            else:
+                logger.debug(
+                    f"Opening edit dialog for entry: {entry.chest_type}, {entry.player}, {entry.source}"
+                )
 
             # Create edit dialog
             try:
@@ -689,9 +727,15 @@ class EnhancedTableView(QTableView):
                     # Refresh the view
                     self._refresh_view()
 
-                    logger.debug(
-                        f"Entry edited successfully: {edited_entry.chest_type}, {edited_entry.player}, {edited_entry.source}"
-                    )
+                    # Log differently based on entry type
+                    if isinstance(edited_entry, dict):
+                        logger.debug(
+                            f"Entry edited successfully: {edited_entry.get('chest_type', '')}, {edited_entry.get('player', '')}, {edited_entry.get('source', '')}"
+                        )
+                    else:
+                        logger.debug(
+                            f"Entry edited successfully: {edited_entry.chest_type}, {edited_entry.player}, {edited_entry.source}"
+                        )
             except ImportError as ie:
                 logger.error(f"Could not import EntryEditDialog: {str(ie)}")
                 QMessageBox.critical(
@@ -715,52 +759,92 @@ class EnhancedTableView(QTableView):
         Update an entry in the entries list.
 
         Args:
-            entry (ChestEntry): The entry to update
+            entry: The entry to update (dict or object)
 
         Returns:
             bool: True if the entry was found and updated, False otherwise
         """
         logger = logging.getLogger(__name__)
-        logger.debug(f"Updating entry with ID {entry.id if hasattr(entry, 'id') else 'None'}")
+
+        # Get entry ID with type handling
+        entry_id = None
+        if isinstance(entry, dict):
+            entry_id = entry.get("id")
+            logger.debug(f"Updating dictionary entry with ID {entry_id}")
+        else:
+            entry_id = getattr(entry, "id", None)
+            logger.debug(f"Updating object entry with ID {entry_id}")
 
         try:
             # First try to find the entry by ID if possible
-            if hasattr(entry, "id") and entry.id is not None:
+            if entry_id is not None:
                 try:
                     # Convert IDs to strings for comparison to handle type differences
-                    entry_id_str = str(entry.id)
+                    entry_id_str = str(entry_id)
                     for i, existing_entry in enumerate(self._entries):
-                        if hasattr(existing_entry, "id") and existing_entry.id is not None:
-                            if str(existing_entry.id) == entry_id_str:
-                                logger.debug(f"Found entry by ID at index {i}")
-                                self._entries[i] = entry
-                                return True
+                        existing_id = None
+                        if isinstance(existing_entry, dict):
+                            existing_id = existing_entry.get("id")
+                        else:
+                            existing_id = getattr(existing_entry, "id", None)
+
+                        if existing_id is not None and str(existing_id) == entry_id_str:
+                            logger.debug(f"Found entry by ID at index {i}")
+                            self._entries[i] = entry
+                            return True
                 except Exception as e:
                     logger.error(f"Error finding entry by ID: {str(e)}")
                     import traceback
 
                     logger.error(traceback.format_exc())
 
-            # If we couldn't find by ID, try to find by index or content
+            # If we couldn't find by ID, try to find by content
             try:
                 for i, existing_entry in enumerate(self._entries):
-                    if (
-                        existing_entry.chest_type == entry.chest_type
-                        and existing_entry.player == entry.player
-                        and existing_entry.source == entry.source
-                    ):
-                        logger.debug(f"Found entry by content at index {i}")
-                        self._entries[i] = entry
-                        return True
+                    # Get values based on entry type
+                    if isinstance(existing_entry, dict) and isinstance(entry, dict):
+                        if (
+                            existing_entry.get("chest_type") == entry.get("chest_type")
+                            and existing_entry.get("player") == entry.get("player")
+                            and existing_entry.get("source") == entry.get("source")
+                        ):
+                            logger.debug(f"Found dictionary entry by content at index {i}")
+                            self._entries[i] = entry
+                            return True
+                    elif not isinstance(existing_entry, dict) and not isinstance(entry, dict):
+                        if (
+                            existing_entry.chest_type == entry.chest_type
+                            and existing_entry.player == entry.player
+                            and existing_entry.source == entry.source
+                        ):
+                            logger.debug(f"Found object entry by content at index {i}")
+                            self._entries[i] = entry
+                            return True
+                    # Mixed types - try to compare using the _get_value helper
+                    else:
+                        e1_chest = self._get_value(existing_entry, "chest_type", "")
+                        e1_player = self._get_value(existing_entry, "player", "")
+                        e1_source = self._get_value(existing_entry, "source", "")
+
+                        e2_chest = self._get_value(entry, "chest_type", "")
+                        e2_player = self._get_value(entry, "player", "")
+                        e2_source = self._get_value(entry, "source", "")
+
+                        if (
+                            e1_chest == e2_chest
+                            and e1_player == e2_player
+                            and e1_source == e2_source
+                        ):
+                            logger.debug(f"Found mixed-type entry by content at index {i}")
+                            self._entries[i] = entry
+                            return True
             except Exception as e:
                 logger.error(f"Error finding entry by content: {str(e)}")
                 import traceback
 
                 logger.error(traceback.format_exc())
 
-            logger.warning(
-                f"Entry with ID {entry.id if hasattr(entry, 'id') else 'None'} not found for updating"
-            )
+            logger.warning(f"Entry with ID {entry_id} not found for updating")
             return False
         except Exception as e:
             logger.error(f"Unexpected error in _update_entry_in_list: {str(e)}")
@@ -774,13 +858,19 @@ class EnhancedTableView(QTableView):
         Create a correction rule from entry.
 
         Args:
-            entry: Entry to create rule from
+            entry: Entry to create rule from (dict or object)
         """
         logger = logging.getLogger(__name__)
         try:
-            logger.debug(
-                f"Creating correction rule from entry: {entry.chest_type}, {entry.player}, {entry.source}"
-            )
+            # Log differently based on entry type
+            if isinstance(entry, dict):
+                logger.debug(
+                    f"Creating correction rule from dictionary entry: {entry.get('chest_type', '')}, {entry.get('player', '')}, {entry.get('source', '')}"
+                )
+            else:
+                logger.debug(
+                    f"Creating correction rule from object entry: {entry.chest_type}, {entry.player}, {entry.source}"
+                )
 
             # This is a stub - the actual implementation will come from signals
             # connected to this view from the correction manager panel
@@ -798,20 +888,41 @@ class EnhancedTableView(QTableView):
         Reset entry to original values.
 
         Args:
-            entry: Entry to reset
+            entry: Entry to reset (dict or object)
         """
         logger = logging.getLogger(__name__)
         try:
-            logger.debug(
-                f"Resetting entry to original values: {entry.chest_type}, {entry.player}, {entry.source}"
-            )
+            # Log differently based on entry type
+            if isinstance(entry, dict):
+                logger.debug(
+                    f"Resetting dictionary entry to original values: {entry.get('chest_type', '')}, {entry.get('player', '')}, {entry.get('source', '')}"
+                )
 
-            # Reset the entry
-            if hasattr(entry, "reset_corrections"):
-                entry.reset_corrections()
+                # Reset dictionary entry
+                if "original_values" in entry:
+                    for field, original in entry["original_values"].items():
+                        entry[field] = original
+                    entry["original_values"] = {}
+                else:
+                    logger.warning(f"Dictionary entry does not have original_values: {entry}")
+                    return
             else:
-                logger.warning(f"Entry does not have reset_corrections method: {entry}")
-                return
+                logger.debug(
+                    f"Resetting object entry to original values: {entry.chest_type}, {entry.player}, {entry.source}"
+                )
+
+                # Reset object entry
+                if hasattr(entry, "reset_corrections"):
+                    entry.reset_corrections()
+                elif hasattr(entry, "original_values"):
+                    for field, original in entry.original_values.items():
+                        setattr(entry, field, original)
+                    entry.original_values = {}
+                else:
+                    logger.warning(
+                        f"Object entry does not have reset_corrections method or original_values: {entry}"
+                    )
+                    return
 
             # Update the entries list
             self._update_entry_in_list(entry)
@@ -830,8 +941,6 @@ class EnhancedTableView(QTableView):
             logger.error(traceback.format_exc())
 
             # Show error message to user
-            from PySide6.QtWidgets import QMessageBox
-
             QMessageBox.critical(
                 self, "Error", f"An error occurred while trying to reset the entry: {str(e)}"
             )
@@ -934,7 +1043,7 @@ class EnhancedTableView(QTableView):
         Get the currently selected entry.
 
         Returns:
-            ChestEntry: Selected entry or None if no entry is selected
+            The selected entry (dict or object) or None if no entry is selected
         """
         # Get selected indexes
         indexes = self.selectionModel().selectedRows()
@@ -952,7 +1061,7 @@ class EnhancedTableView(QTableView):
             index: Model index
 
         Returns:
-            ChestEntry: Entry at index or None if index is invalid
+            Entry at index (dict or object) or None if index is invalid
         """
         logger = logging.getLogger(__name__)
         try:
@@ -979,9 +1088,15 @@ class EnhancedTableView(QTableView):
 
             if 0 <= source_row < len(self._entries):
                 entry = self._entries[source_row]
-                logger.debug(
-                    f"Found entry at index {source_row}: {entry.chest_type if hasattr(entry, 'chest_type') else 'Unknown'}"
-                )
+                # Log differently based on entry type
+                if isinstance(entry, dict):
+                    logger.debug(
+                        f"Found dictionary entry at index {source_row}: {entry.get('chest_type', 'Unknown')}"
+                    )
+                else:
+                    logger.debug(
+                        f"Found object entry at index {source_row}: {getattr(entry, 'chest_type', 'Unknown')}"
+                    )
                 return entry
             else:
                 logger.warning(
@@ -1010,3 +1125,94 @@ class EnhancedTableView(QTableView):
 
         # Force a visual update
         self.viewport().update()
+
+    def highlight_validation_errors(self):
+        """
+        Highlight rows with validation errors.
+
+        This method refreshes the view and ensures the validation error
+        highlighting is applied by the item delegate.
+        """
+        logger = logging.getLogger(__name__)
+        try:
+            # Force refresh to apply highlighting
+            if hasattr(self, "_proxy_model") and self._proxy_model:
+                self._proxy_model.invalidate()
+
+            # Ensure custom delegates are applied
+            if not self.itemDelegate() or not isinstance(
+                self.itemDelegate(), ValidationHighlightDelegate
+            ):
+                # Create a validation highlight delegate if not already set
+                self.setItemDelegate(ValidationHighlightDelegate(self))
+
+            # Update the view
+            self.viewport().update()
+            logger.debug("Applied validation error highlighting")
+        except Exception as e:
+            logger.error(f"Error highlighting validation errors: {e}")
+            import traceback
+
+            logger.error(traceback.format_exc())
+
+
+class ValidationHighlightDelegate(QStyledItemDelegate):
+    """
+    Delegate for highlighting validation errors in the table.
+
+    This delegate applies visual styling to rows that have validation errors.
+    """
+
+    def __init__(self, parent=None):
+        """Initialize the delegate."""
+        super().__init__(parent)
+
+    def paint(self, painter, option, index):
+        """
+        Paint the cell with appropriate styling based on validation status.
+
+        Args:
+            painter: QPainter instance
+            option: Style options
+            index: Model index
+        """
+        # Get the source model index if using a proxy model
+        source_index = index
+        if isinstance(index.model(), QSortFilterProxyModel):
+            source_index = index.model().mapToSource(index)
+
+        # Get the source model
+        source_model = source_index.model()
+
+        # Check if the row has validation errors
+        row = source_index.row()
+        has_error = False
+
+        try:
+            # Get the entry from the model
+            if hasattr(source_model, "_entries") and row < len(source_model._entries):
+                entry = source_model._entries[row]
+
+                # Check for validation_errors field
+                if isinstance(entry, dict) and "validation_errors" in entry:
+                    has_error = entry["validation_errors"] and len(entry["validation_errors"]) > 0
+                elif hasattr(entry, "validation_errors"):
+                    has_error = entry.validation_errors and len(entry.validation_errors) > 0
+
+            # Apply highlighting if has errors
+            if has_error:
+                # Save original state
+                original_bg = option.palette.brush(QPalette.Base)
+
+                # Set error background
+                error_option = QStyleOptionViewItem(option)
+                error_option.backgroundBrush = QBrush(QColor(255, 220, 220))  # Light red
+
+                # Paint with modified option
+                super().paint(painter, error_option, index)
+            else:
+                # Paint normally
+                super().paint(painter, option, index)
+        except Exception:
+            # Fall back to normal painting if any error
+            super().paint(painter, option, index)

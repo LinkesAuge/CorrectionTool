@@ -18,7 +18,7 @@ import pandas as pd
 
 from src.interfaces.i_file_service import IFileService
 from src.interfaces.i_data_store import IDataStore
-from src.enums.event_type import EventType
+from src.interfaces.events import EventType, EventHandler, EventData
 
 
 class FileService(IFileService):
@@ -270,26 +270,45 @@ class FileService(IFileService):
             self._logger.error(f"Error saving validation list to {file_path}: {e}")
             return False
 
-    def load_correction_rules(self, file_path: Path) -> bool:
+    def load_correction_rules(self, file_path: Union[str, Path]) -> bool:
         """
         Load correction rules from a file.
 
         Args:
-            file_path: Path to the file
+            file_path: Path to the file (can be a string or Path object)
 
         Returns:
             bool: True if successful, False otherwise
         """
+        # Convert to Path object if it's a string
+        file_path = Path(file_path) if isinstance(file_path, str) else file_path
+
         if not file_path.exists():
             self._logger.error(f"Correction rules file not found: {file_path}")
             return False
 
         try:
             # Read CSV file
-            rules_df = pd.read_csv(file_path)
+            rules_df = pd.read_csv(file_path, sep=None, engine="python")
+
+            # Standardize column names (case-insensitive matching)
+            column_mapping = {}
+            for col in rules_df.columns:
+                if col.lower() in ["from", "field", "pattern"]:
+                    column_mapping[col] = "from_text"
+                elif col.lower() in ["to", "replacement"]:
+                    column_mapping[col] = "to_text"
+                elif col.lower() == "category":
+                    column_mapping[col] = "category"
+                elif col.lower() == "enabled":
+                    column_mapping[col] = "enabled"
+
+            # Rename columns if needed
+            if column_mapping:
+                rules_df = rules_df.rename(columns=column_mapping)
 
             # Ensure required columns exist
-            required_columns = ["field", "pattern", "replacement"]
+            required_columns = ["from_text", "to_text"]
             missing_columns = [col for col in required_columns if col not in rules_df.columns]
 
             if missing_columns:
@@ -297,6 +316,13 @@ class FileService(IFileService):
                     f"Missing required columns in correction rules file: {missing_columns}"
                 )
                 return False
+
+            # Add any missing columns with default values
+            if "category" not in rules_df.columns:
+                rules_df["category"] = "text"
+
+            if "enabled" not in rules_df.columns:
+                rules_df["enabled"] = True
 
             # Store correction rules
             self._store.set_correction_rules(rules_df)
@@ -326,10 +352,38 @@ class FileService(IFileService):
                 self._logger.warning("No correction rules to save")
                 return False
 
-            # Save as CSV
-            rules_df.to_csv(file_path, index=False)
+            # Ensure we have the standard columns
+            required_columns = ["from_text", "to_text", "category", "enabled"]
+            for col in required_columns:
+                if col not in rules_df.columns:
+                    if col == "category":
+                        rules_df[col] = "text"
+                    elif col == "enabled":
+                        rules_df[col] = True
+                    else:
+                        self._logger.error(f"Required column {col} missing from correction rules")
+                        return False
 
-            self._logger.info(f"Saved {len(rules_df)} correction rules to {file_path}")
+            # Standardize column names for export (convert to From/To/Category for user readability)
+            export_df = rules_df.copy()
+            export_df.rename(
+                columns={
+                    "from_text": "From",
+                    "to_text": "To",
+                    "category": "Category",
+                    "enabled": "Enabled",
+                },
+                inplace=True,
+            )
+
+            # Only export the standard columns in a specific order
+            export_columns = ["From", "To", "Category", "Enabled"]
+            export_df = export_df[export_columns]
+
+            # Save to CSV
+            export_df.to_csv(file_path, index=False)
+
+            self._logger.info(f"Saved {len(export_df)} correction rules to {file_path}")
             return True
 
         except Exception as e:

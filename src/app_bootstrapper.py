@@ -18,6 +18,7 @@ from src.interfaces.i_correction_service import ICorrectionService
 from src.interfaces.i_validation_service import IValidationService
 from src.interfaces.i_service_factory import IServiceFactory
 from src.interfaces.i_config_manager import IConfigManager
+from src.interfaces.i_filter import IFilterManager
 
 # Import concrete service implementations
 from src.services.config_manager import ConfigManager
@@ -26,6 +27,7 @@ from src.services.file_service import FileService
 from src.services.validation_service import ValidationService
 from src.services.correction_service import CorrectionService
 from src.services.service_factory import ServiceFactory
+from src.services.filters.filter_manager import FilterManager
 
 
 class AppBootstrapper:
@@ -69,6 +71,7 @@ class AppBootstrapper:
         self._initialize_config_manager()
         self._initialize_data_store()
         self._initialize_services()
+        self._initialize_filter_manager()
 
         # Register all services with the service factory
         self._register_services_with_factory()
@@ -85,8 +88,8 @@ class AppBootstrapper:
         # Create the config manager
         config_manager = ConfigManager()
 
-        # Create the service factory and register the config manager
-        self.service_factory = ServiceFactory()
+        # Get the service factory singleton and register the config manager
+        self.service_factory = ServiceFactory.get_instance()
         self.service_factory.register_service(IConfigManager, config_manager)
 
     def _initialize_data_store(self) -> None:
@@ -99,7 +102,7 @@ class AppBootstrapper:
         config_manager = self.service_factory.get_service(IConfigManager)
 
         # Create the DataFrameStore with dependency injection
-        data_store = DataFrameStore()
+        data_store = DataFrameStore.get_instance()
 
         # Register as IDataStore implementation
         self.service_factory.register_service(IDataStore, data_store)
@@ -124,6 +127,22 @@ class AppBootstrapper:
         self.service_factory.register_service(IValidationService, validation_service)
         self.service_factory.register_service(ICorrectionService, correction_service)
 
+    def _initialize_filter_manager(self) -> None:
+        """
+        Initialize the filter manager.
+        """
+        self._logger.info("Initializing FilterManager...")
+
+        # Create the filter manager
+        filter_manager = FilterManager()
+
+        # Load filter state from config if available
+        config_manager = self.service_factory.get_service(IConfigManager)
+        filter_manager.load_filter_state(config_manager)
+
+        # Register as IFilterManager implementation
+        self.service_factory.register_service(IFilterManager, filter_manager)
+
     def _register_services_with_factory(self) -> None:
         """
         Register all services with the service factory.
@@ -138,6 +157,7 @@ class AppBootstrapper:
             IFileService,
             IValidationService,
             ICorrectionService,
+            IFilterManager,
         ]
 
         for service_type in services:

@@ -165,13 +165,33 @@ class StatisticsWidget(QWidget):
     @Slot(int)
     def set_validation_errors(self, count: int):
         """
-        Set the number of validation errors and update statistics.
+        Set the number of validation errors.
 
         Args:
             count: Number of validation errors
         """
         self._validation_errors = count
-        self._update_statistics()
+        self._errors_label.setText(str(count))
+
+        # Update background color based on error count
+        if count > 0:
+            self._errors_label.setStyleSheet("color: #d9534f; font-weight: bold;")
+        else:
+            self._errors_label.setStyleSheet("color: #5cb85c; font-weight: bold;")
+
+    @Slot(str, int)
+    def set_validation_list_count(self, list_type: str, count: int):
+        """
+        Set the count for a validation list.
+
+        Args:
+            list_type: Type of validation list ('player', 'chest_type', 'source')
+            count: Number of items in the list
+        """
+        # This is just for event handling from the DataFrameStore
+        # We don't need to display this in the statistics widget
+        # But we need to handle the signal to prevent errors
+        pass
 
     @Slot(int)
     def set_validation_progress(self, percentage: int):

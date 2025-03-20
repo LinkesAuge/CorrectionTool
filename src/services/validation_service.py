@@ -16,7 +16,7 @@ from pathlib import Path
 
 from src.interfaces.i_validation_service import IValidationService
 from src.interfaces.i_data_store import IDataStore
-from src.enums.event_type import EventType
+from src.interfaces.events import EventType, EventHandler, EventData
 
 
 class ValidationService(IValidationService):

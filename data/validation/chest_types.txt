@@ -1,6 +1,3 @@
-Type,chest_type
-Name,Default Chest Type List
-Entry
 Abandoned Chest
 Ancient Warrior's Chest
 Ancient Bastion Chest

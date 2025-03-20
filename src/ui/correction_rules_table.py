@@ -13,7 +13,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Any
+from typing import Dict, List, Optional, Set, Tuple, Any, Union
 
 from PySide6.QtCore import Qt, Signal, Slot, QSortFilterProxyModel, QModelIndex, QTimer
 from PySide6.QtGui import QIntValidator, QStandardItemModel
@@ -263,66 +263,114 @@ class CorrectionRulesModel(QSortFilterProxyModel):
         else:
             return Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
-    def set_rules(self, rules: List[CorrectionRule]):
+    def set_rules(self, rules: List[Union[CorrectionRule, Dict[str, Any]]]):
         """
         Set the rules.
 
         Args:
-            rules: List of correction rules
+            rules: List of correction rules (either CorrectionRule objects or dicts)
         """
         import logging
+        import time
+        from src.models.correction_rule import CorrectionRule
 
         logger = logging.getLogger(__name__)
         logger.info(f"CorrectionRulesModel.set_rules called with {len(rules)} rules")
 
-        # Check for empty from_text or to_text
-        invalid_rules = [
-            i for i, r in enumerate(rules) if not r.from_text.strip() or not r.to_text.strip()
-        ]
-        if invalid_rules:
-            logger.warning(
-                f"Found {len(invalid_rules)} rules with empty from_text or to_text at indices: {invalid_rules}"
-            )
+        # Convert dictionaries to CorrectionRule objects if needed
+        converted_rules = []
+        for rule in rules:
+            if isinstance(rule, dict):
+                try:
+                    # For old format (From, To, Category) - case insensitive
+                    from_key = next((k for k in rule.keys() if k.lower() == "from"), None)
+                    to_key = next((k for k in rule.keys() if k.lower() == "to"), None)
+                    category_key = next((k for k in rule.keys() if k.lower() == "category"), None)
+
+                    if from_key and to_key:
+                        # Convert old format dict to CorrectionRule
+                        rule_obj = CorrectionRule(
+                            from_text=rule[from_key],
+                            to_text=rule[to_key],
+                            category=rule.get(category_key, "general")
+                            if category_key
+                            else "general",
+                            rule_type=CorrectionRule.EXACT,
+                            priority=0,
+                            disabled=False,
+                        )
+                        converted_rules.append(rule_obj)
+                    # Check if this is a dict with the expected fields
+                    elif "from_text" in rule and "to_text" in rule:
+                        # Convert dict to CorrectionRule
+                        rule_obj = CorrectionRule(
+                            from_text=rule["from_text"],
+                            to_text=rule["to_text"],
+                            category=rule.get("category", "general"),
+                            rule_type=rule.get("rule_type", CorrectionRule.EXACT),
+                            priority=rule.get("priority", 0),
+                            disabled=not rule.get("enabled", True),
+                        )
+                        converted_rules.append(rule_obj)
+                    else:
+                        logger.error(f"Unable to convert dictionary to CorrectionRule: {rule}")
+                except Exception as e:
+                    logger.error(f"Error converting dict to CorrectionRule: {e}, dict: {rule}")
+            elif isinstance(rule, str):
+                # Skip string values with warning
+                logger.warning(f"Skipping string value that should be a CorrectionRule: {rule}")
+                continue
+            elif hasattr(rule, "from_text") and hasattr(rule, "to_text"):
+                # It has the required attributes, assume it's a CorrectionRule or compatible object
+                converted_rules.append(rule)
+            else:
+                logger.error(
+                    f"Unrecognized rule type: {type(rule)}, expected CorrectionRule or dict"
+                )
+
+        # Check for empty from_text or to_text only if we have any rules
+        if converted_rules:
+            invalid_rules = [
+                i
+                for i, r in enumerate(converted_rules)
+                if not r.from_text.strip() or not r.to_text.strip()
+            ]
+            if invalid_rules:
+                logger.warning(
+                    f"Found {len(invalid_rules)} rules with empty from_text or to_text at indices: {invalid_rules}"
+                )
 
         # Start the reset process - ensure we only call begin/endResetModel once
         self.beginResetModel()
 
         try:
             # Update our internal data
-            self._rules = rules
+            self._rules = converted_rules
 
             # Enable all rules by default
             # Create a unique identifier based on from_text and to_text since CorrectionRule doesn't have an id
-            self._enabled_rules = set((rule.from_text, rule.to_text) for rule in rules)
+            self._enabled_rules = set((rule.from_text, rule.to_text) for rule in converted_rules)
 
             # Prepare source model without calling clear() which would trigger another reset
             self._source_model.setRowCount(0)  # Clear rows without triggering reset
-            self._source_model.setRowCount(len(rules))
+            self._source_model.setRowCount(len(converted_rules))
             self._source_model.setColumnCount(len(self._COLUMNS))
 
-            # Set column headers in source model
-            for col, header in enumerate(self._COLUMNS):
-                self._source_model.setHeaderData(col, Qt.Horizontal, header, Qt.DisplayRole)
-
-            # Populate source model with data for better proxy integration
             from PySide6.QtGui import QStandardItem
 
-            for row, rule in enumerate(rules):
+            for row, rule in enumerate(converted_rules):
                 # Just need to create empty items to ensure proper row handling
                 for col in range(len(self._COLUMNS)):
                     self._source_model.setItem(row, col, QStandardItem())
 
             # Log some rules for debugging
-            for i, rule in enumerate(rules[:5]):
+            for i, rule in enumerate(converted_rules[:5]):
                 logger.info(
                     f"Rule {i} after set: {rule.from_text} -> {rule.to_text} (category: {rule.category})"
                 )
         finally:
             # Always ensure we end the reset to prevent model inconsistency
             self.endResetModel()
-
-        # No need for explicit layoutChanged after reset
-        # self.layoutChanged.emit()
 
     def get_rules(self) -> List[CorrectionRule]:
         """
@@ -850,15 +898,16 @@ class CorrectionRulesTable(QTableView):
         finally:
             self._processing_signal = False
 
-    def set_rules(self, rules: List[CorrectionRule]):
+    def set_rules(self, rules: List[Union[CorrectionRule, Dict[str, Any]]]):
         """
         Set the rules to display in the table.
 
         Args:
-            rules: List of correction rules
+            rules: List of correction rules (either CorrectionRule objects or dicts)
         """
         import logging
         import time
+        from src.models.correction_rule import CorrectionRule
 
         logger = logging.getLogger(__name__)
         logger.info(f"Setting {len(rules)} rules in CorrectionRulesTable")
@@ -867,8 +916,81 @@ class CorrectionRulesTable(QTableView):
         self._processing_signal = False
         self._last_update_time = time.time()
 
+        # Skip the first row if it contains column names (sometimes pandas includes header)
+        if len(rules) > 0 and isinstance(rules[0], dict):
+            # Check if first row contains column names instead of actual data
+            if all(k in rules[0].values() for k in ["from_text", "to_text", "category"]):
+                logger.warning("First row appears to be column headers, skipping")
+                rules = rules[1:]  # Skip the first row
+
+        # Convert dictionaries to CorrectionRule objects if needed
+        converted_rules = []
+        for rule in rules:
+            if isinstance(rule, dict):
+                try:
+                    # For old format (From, To, Category) - case insensitive
+                    from_key = next((k for k in rule.keys() if k.lower() == "from"), None)
+                    to_key = next((k for k in rule.keys() if k.lower() == "to"), None)
+                    category_key = next((k for k in rule.keys() if k.lower() == "category"), None)
+
+                    if from_key and to_key:
+                        # Convert old format dict to CorrectionRule
+                        rule_obj = CorrectionRule(
+                            from_text=rule[from_key],
+                            to_text=rule[to_key],
+                            category=rule.get(category_key, "general")
+                            if category_key
+                            else "general",
+                            rule_type=CorrectionRule.EXACT,
+                            priority=0,
+                            disabled=False,
+                        )
+                        converted_rules.append(rule_obj)
+                    # Check if this is a dict with the expected fields
+                    elif "from_text" in rule and "to_text" in rule:
+                        # Convert dict to CorrectionRule
+                        rule_obj = CorrectionRule(
+                            from_text=rule["from_text"],
+                            to_text=rule["to_text"],
+                            category=rule.get("category", "general"),
+                            rule_type=rule.get("rule_type", CorrectionRule.EXACT),
+                            priority=rule.get("priority", 0),
+                            disabled=not rule.get("enabled", True),
+                        )
+                        converted_rules.append(rule_obj)
+                    else:
+                        logger.error(f"Unable to convert dictionary to CorrectionRule: {rule}")
+                except Exception as e:
+                    logger.error(f"Error converting dict to CorrectionRule: {e}, dict: {rule}")
+            elif isinstance(rule, str):
+                # Skip string values with warning
+                logger.warning(f"Skipping string value that should be a CorrectionRule: {rule}")
+                continue
+            elif hasattr(rule, "from_text") and hasattr(rule, "to_text"):
+                # It has the required attributes, assume it's a CorrectionRule or compatible object
+                converted_rules.append(rule)
+            else:
+                logger.error(
+                    f"Unrecognized rule type: {type(rule)}, expected CorrectionRule or dict"
+                )
+
+        # Check for empty from_text or to_text only if we have any rules
+        if converted_rules:
+            invalid_rules = [
+                i
+                for i, r in enumerate(converted_rules)
+                if not r.from_text.strip() or not r.to_text.strip()
+            ]
+            if invalid_rules:
+                logger.warning(
+                    f"Found {len(invalid_rules)} rules with empty from_text or to_text at indices: {invalid_rules}"
+                )
+
+        # Log the number of rules being set to the model
+        logger.info(f"CorrectionRulesModel.set_rules called with {len(converted_rules)} rules")
+
         # Set rules in the model
-        self._model.set_rules(rules)
+        self._model.set_rules(converted_rules)
 
         # Clear selection
         self.clearSelection()
@@ -892,10 +1014,10 @@ class CorrectionRulesTable(QTableView):
         self._delayed_refresh()
 
         # Emit signal
-        self.rules_updated.emit(rules)
+        self.rules_updated.emit(converted_rules)
 
         logger.info(
-            f"Set {len(rules)} rules in CorrectionRulesTable and emitted rules_updated signal"
+            f"Set {len(converted_rules)} rules in CorrectionRulesTable and emitted rules_updated signal"
         )
 
     def get_rules(self) -> List[CorrectionRule]:

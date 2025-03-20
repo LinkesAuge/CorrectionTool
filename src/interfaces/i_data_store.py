@@ -13,6 +13,9 @@ from typing import Dict, List, Optional, Any, Union
 import pandas as pd
 from pathlib import Path
 
+# Import standardized event types
+from src.interfaces.events import EventType, EventHandler, EventData
+
 
 class IDataStore(ABC):
     """
@@ -151,5 +154,27 @@ class IDataStore(ABC):
 
         Returns:
             bool: True if successful, False otherwise
+        """
+        pass
+
+    @abstractmethod
+    def subscribe(self, event_type: EventType, handler: EventHandler) -> None:
+        """
+        Subscribe to an event type.
+
+        Args:
+            event_type: Type of event to subscribe to
+            handler: Callback function to be called when the event occurs
+        """
+        pass
+
+    @abstractmethod
+    def unsubscribe(self, event_type: EventType, handler: EventHandler) -> None:
+        """
+        Unsubscribe from an event type.
+
+        Args:
+            event_type: Type of event to unsubscribe from
+            handler: Callback function to remove
         """
         pass

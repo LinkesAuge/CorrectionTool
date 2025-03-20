@@ -12,10 +12,11 @@ import traceback
 import logging
 from pathlib import Path
 from PySide6.QtWidgets import QApplication, QMessageBox
-from src.ui.main_window import MainWindow
-from src.services.config_manager import ConfigManager
+from src.ui.main_window_interface import MainWindowInterface
+from src.app_bootstrapper import AppBootstrapper
 from src.ui.styles import get_stylesheet
 from src.utils.logging_config import configure_logging
+from src.interfaces.i_config_manager import IConfigManager
 
 
 def setup_environment():
@@ -26,10 +27,15 @@ def setup_environment():
     initializes basic configuration.
     """
     try:
-        # Initialize configuration first - ConfigManager will create default directories
-        logging.info("Initializing ConfigManager...")
-        config_manager = ConfigManager()
-        logging.info("ConfigManager initialized successfully")
+        # Initialize bootstrapper instead of directly using ConfigManager
+        logging.info("Initializing AppBootstrapper...")
+        bootstrapper = AppBootstrapper()
+        bootstrapper.initialize()
+        logging.info("AppBootstrapper initialized successfully")
+
+        # Get config manager from service factory
+        service_factory = bootstrapper.service_factory
+        config_manager = service_factory.get_service(IConfigManager)
 
         # Log the configuration sections
         sections = config_manager.get_sections()
@@ -59,9 +65,12 @@ def setup_environment():
             config_manager._create_default_config()
             config_manager.save()
             config_manager._create_default_directories()
+
+        return service_factory
     except Exception as e:
         logging.error(f"Error setting up environment: {e}")
         traceback.print_exc()
+        return None
 
 
 def main():
@@ -82,8 +91,11 @@ def main():
         logging.info(f"Command line: {' '.join(sys.argv)}")
         logging.info("=" * 80)
 
-        # Initialize environment
-        setup_environment()
+        # Initialize environment and get service factory
+        service_factory = setup_environment()
+        if not service_factory:
+            logging.critical("Failed to initialize environment")
+            return 1
 
         # Create QApplication instance
         app = QApplication(sys.argv)
@@ -94,18 +106,20 @@ def main():
         app.setStyleSheet(get_stylesheet())
 
         # Set up signal tracking
-        logging.info("Setting up MainWindow")
+        logging.info("Setting up MainWindowInterface")
 
         try:
-            # Create main window - with extra error handling
-            main_window = MainWindow()
-            logging.info("MainWindow created successfully")
+            # Create main window using the service factory
+            main_window = MainWindowInterface(service_factory)
+            logging.info("MainWindowInterface created successfully")
 
             # Show main window
             main_window.show()
-            logging.info("MainWindow shown successfully")
+            logging.info("MainWindowInterface shown successfully")
         except Exception as window_error:
-            logging.critical(f"Error creating or showing MainWindow: {window_error}", exc_info=True)
+            logging.critical(
+                f"Error creating or showing MainWindowInterface: {window_error}", exc_info=True
+            )
             raise
 
         logging.info("Application started successfully")
