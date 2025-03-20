@@ -323,4 +323,34 @@ The interface-based architecture is a significant improvement to the Chest Track
 
 By focusing on direct interface implementations without bridge classes, we've created a cleaner, more maintainable codebase that's easier to test and modify. We've also addressed critical issues such as configuration management, data format compatibility, and UI component integration. The event system standardization and dependency injection refinement will further improve the architecture's robustness and clarity, making it easier to add new features and adapt to changing requirements in the future.
 
-The successful removal of all legacy main window implementations represents a major milestone in the project's evolution, significantly reducing maintenance overhead and providing a cleaner starting point for future enhancements. 
+The successful removal of all legacy main window implementations represents a major milestone in the project's evolution, significantly reducing maintenance overhead and providing a cleaner starting point for future enhancements.
+
+## Interface System Documentation
+
+### Visual Documentation
+
+To better understand the interface architecture, we have created a set of visual diagrams:
+
+#### Class Diagrams
+- [Core Interfaces](diagrams/class/core.puml) - Shows the core service interfaces and their relationships
+- [UI Interfaces](diagrams/class/ui.puml) - Shows the UI adapter interfaces and their implementations
+
+#### Sequence Diagrams
+- [File Import Workflow](diagrams/sequence/import.puml) - Illustrates the sequence of operations during file import
+- [Validation Workflow](diagrams/sequence/validation.puml) - Shows the validation process flow
+- [Correction Application Workflow](diagrams/sequence/correction.puml) - Demonstrates how corrections are applied
+
+#### Component Diagrams
+- [Main Component Interactions](diagrams/component/main_components.puml) - Shows high-level component relationships
+
+#### Dependency Injection
+- [Dependency Injection System](diagrams/di/dependency_injection.puml) - Illustrates the DI pattern implementation
+
+#### Event System
+- [Event System](diagrams/events/event_system.puml) - Shows the event flow and publisher-subscriber relationships
+
+To view these diagrams, you can use the PlantUML extension in VS Code or any PlantUML viewer. Alternatively, you can generate PNG/SVG files using the PlantUML jar:
+
+```bash
+java -jar plantuml.jar path/to/diagram.puml
+``` 

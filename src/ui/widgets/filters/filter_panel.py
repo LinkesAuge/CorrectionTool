@@ -122,7 +122,7 @@ class FilterPanel(QWidget):
         """Connect filter signals to slots."""
         # Connect search bar if available
         if self._search_bar:
-            self._search_bar.filter_changed.connect(self._emit_filter_applied)
+            self._search_bar.search_changed.connect(self._emit_filter_applied)
 
         # Connect dropdown filters
         for filter_dropdown in self._dropdown_filters.values():
@@ -143,7 +143,7 @@ class FilterPanel(QWidget):
         self._filter_layout.insertWidget(0, search_bar)
 
         # Connect signal
-        search_bar.filter_changed.connect(self._emit_filter_applied)
+        search_bar.search_changed.connect(self._emit_filter_applied)
 
     def add_validation_filter(
         self, filter_id: str, filter_obj: ValidationListFilter, title: str
@@ -305,9 +305,10 @@ class FilterPanel(QWidget):
         """Update UI elements based on the current filter state."""
         # Update search bar if available
         if self._search_bar:
-            text_filter = self._filter_manager.get_filter(self._search_bar.get_filter_id())
+            # Use the known filter ID for the search bar
+            text_filter = self._filter_manager.get_filter("global_search")
             if text_filter and isinstance(text_filter, TextFilter):
-                self._search_bar.set_search_text(text_filter.get_search_text())
+                self._search_bar.set_search_text(text_filter.search_text)
                 self._search_bar.set_case_sensitive(text_filter.case_sensitive)
                 self._search_bar.set_whole_word(text_filter.whole_word)
                 self._search_bar.set_regex_enabled(text_filter.regex_enabled)

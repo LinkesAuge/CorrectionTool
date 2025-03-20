@@ -9,13 +9,13 @@ Usage:
 """
 
 import logging
-from typing import Dict, List, Optional, Any, cast
+from typing import Dict, List, Optional, Any, cast, Callable, Union, Tuple
 import pandas as pd
 from PySide6.QtCore import QObject, Signal, Slot, QAbstractTableModel, QModelIndex, Qt
 from PySide6.QtWidgets import QTableView
 
 # Import interfaces
-from src.interfaces import ITableAdapter, IDataStore, EventType, EventData
+from src.interfaces import ITableAdapter, IDataStore, EventType, EventData, IConfigManager
 
 # Import implementations
 from src.services.dataframe_store import DataFrameStore
@@ -78,10 +78,17 @@ class EntryTableModel(QAbstractTableModel):
         )
         self.refresh_data()
 
-    def refresh_data(self) -> None:
+    def refresh_data(self, entries_df=None) -> None:
         """Refresh the model data from DataFrameStore."""
         self.beginResetModel()
-        self._entries_df = self._store.get_entries()
+        if entries_df is not None:
+            self._entries_df = entries_df
+        else:
+            # Get data from the data store
+            if self._store and hasattr(self._store, "get_entries"):
+                df = self._store.get_entries()
+                if df is not None:
+                    self._entries_df = df
         self.endResetModel()
 
     def rowCount(self, parent=QModelIndex()) -> int:
@@ -276,6 +283,25 @@ class EntryTableModel(QAbstractTableModel):
             self._store.rollback_transaction()
             return False
 
+    def set_store(self, store: IDataStore) -> None:
+        """
+        Set the data store instance to use.
+
+        Args:
+            store: IDataStore instance to use for data
+        """
+        if self._store:
+            # Unsubscribe from old store events
+            self._store.unsubscribe(EventType.ENTRIES_UPDATED, self._on_entries_updated)
+
+        self._store = store
+
+        # Subscribe to new store events
+        self._store.subscribe(EventType.ENTRIES_UPDATED, self._on_entries_updated)
+
+        # Refresh data from the new store
+        self.refresh_data()
+
 
 class EntryTableAdapter(QObject):
     """
@@ -288,6 +314,7 @@ class EntryTableAdapter(QObject):
         _table_view: QTableView widget
         _model: EntryTableModel instance
         dataChanged: Signal emitted when data changes
+        selection_changed: Signal emitted when selection changes
 
     Implementation Notes:
         - Implements ITableAdapter interface
@@ -298,19 +325,24 @@ class EntryTableAdapter(QObject):
 
     # Signals
     dataChanged = Signal()
+    selection_changed = Signal()
 
-    def __init__(self, table_view: QTableView):
+    def __init__(
+        self, data_store: IDataStore = None, config_manager: Optional[IConfigManager] = None
+    ):
         """
         Initialize the EntryTableAdapter.
 
         Args:
-            table_view: QTableView widget
+            data_store: Optional data store instance (defaults to DataFrameStore singleton)
+            config_manager: Optional config manager for storing settings
         """
-        super().__init__(table_view)
+        super().__init__()
 
-        self._table_view = table_view
+        self._table_view = QTableView()
         self._model = EntryTableModel()
-        self._data_store = DataFrameStore.get_instance()
+        self._data_store = data_store or DataFrameStore.get_instance()
+        self._config_manager = config_manager
         self._logger = logging.getLogger(__name__)
 
         # Connected flag
@@ -319,23 +351,35 @@ class EntryTableAdapter(QObject):
         # Filters
         self._filters = {}
 
-    def connect(self) -> None:
+    def setup_connections(self) -> None:
         """
         Connect the adapter to the data store and table view.
 
         Sets up the model and connects signals.
         """
         if not self._connected:
-            # Set the model on the table view
+            # Initialize the model with the data store
+            self._model.set_store(self._data_store)
+
+            # Set the model for the table view
             self._table_view.setModel(self._model)
 
-            # Connect signals
-            self._model.dataChanged.connect(self.dataChanged)
+            # Connect selection model signal
+            selection_model = self._table_view.selectionModel()
+            if selection_model:
+                selection_model.selectionChanged.connect(self._on_selection_changed)
+
+            # Set up columns
+            self._refresh_columns()
+
+            # Connect model dataChanged to our signal
+            self._model.dataChanged.connect(self.dataChanged.emit)
 
             # Mark as connected
             self._connected = True
+            self._logger.debug("EntryTableAdapter connected to table view")
 
-            # Initial refresh
+            # Initial refresh to load data
             self.refresh()
 
     def disconnect(self) -> None:
@@ -351,6 +395,9 @@ class EntryTableAdapter(QObject):
             except TypeError:
                 # Signal was not connected
                 pass
+            self._table_view.selectionModel().selectionChanged.disconnect(
+                self._on_selection_changed
+            )
 
             # Mark as disconnected
             self._connected = False
@@ -448,3 +495,113 @@ class EntryTableAdapter(QObject):
         self._model.beginResetModel()
         self._model._entries_df = entries_df
         self._model.endResetModel()
+
+    def _on_selection_changed(self, selected, deselected) -> None:
+        """
+        Handle selection changes in the table view.
+
+        Args:
+            selected: Selected items
+            deselected: Deselected items
+        """
+        # Emit signal
+        self.selection_changed.emit()
+        self._logger.debug("Selection changed in table view")
+
+    def has_selection(self) -> bool:
+        """
+        Check if any rows are selected.
+
+        Returns:
+            bool: True if at least one row is selected, False otherwise
+        """
+        return len(self.get_selected_rows()) > 0
+
+    def get_selected_entry(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the currently selected entry.
+
+        Returns:
+            Optional[Dict[str, Any]]: The selected entry or None if no selection
+        """
+        selected_rows = self.get_selected_rows()
+        if not selected_rows:
+            return None
+
+        # Return the first selected row's data
+        return self.get_row_data(selected_rows[0])
+
+    def get_table_view(self) -> QTableView:
+        """
+        Get the table view widget.
+
+        Returns:
+            QTableView: The table view widget
+        """
+        return self._table_view
+
+    def _refresh_columns(self) -> None:
+        """
+        Configure table columns, set widths, and apply any stored settings.
+        """
+        if not self._connected or not self._table_view:
+            return
+
+        # Resize columns to content initially
+        self._table_view.resizeColumnsToContents()
+
+        # Set up horizontal header stretch behavior
+        header = self._table_view.horizontalHeader()
+        if header:
+            header.setStretchLastSection(True)
+
+        # Load column widths from configuration if available
+        if self._config_manager:
+            self._load_column_widths()
+
+    def _load_column_widths(self) -> None:
+        """Load column widths from configuration."""
+        if self._config_manager is None or not hasattr(self._model, "_displayed_columns"):
+            return
+
+        # Check if we have stored column widths
+        for i, col_name in enumerate(self._model._displayed_columns):
+            width_key = f"column_width_{col_name}"
+
+            # Try to get width from config
+            if self._config_manager.has_option("TableView", width_key):
+                width = self._config_manager.get_int("TableView", width_key, fallback=100)
+                self._table_view.setColumnWidth(i, width)
+
+    def _save_column_widths(self) -> None:
+        """Save column widths to configuration."""
+        if self._config_manager is None or not hasattr(self._model, "_displayed_columns"):
+            return
+
+        # Store current column widths
+        for i, col_name in enumerate(self._model._displayed_columns):
+            width = self._table_view.columnWidth(i)
+            width_key = f"column_width_{col_name}"
+            self._config_manager.set_value("TableView", width_key, str(width))
+
+        # Save configuration
+        self._config_manager.save_config()
+
+    def set_entries(self, entries_df):
+        """
+        Set the entries dataframe to the model.
+
+        Args:
+            entries_df: DataFrame containing the entries data
+        """
+        if not self._connected:
+            self._logger.warning("Cannot set entries - adapter not connected")
+            return
+
+        if self._model is None:
+            self._logger.warning("Cannot set entries - model not initialized")
+            return
+
+        self._model.refresh_data(entries_df)
+        self._refresh_columns()
+        self._logger.debug(f"Set {len(entries_df)} entries to the model")

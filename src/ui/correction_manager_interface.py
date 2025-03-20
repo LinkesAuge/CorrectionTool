@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QDialog,
     QFileDialog,
+    QFrame,
 )
 
 # Import standardized EventType
@@ -51,6 +52,7 @@ from src.ui.correction_rules_table import CorrectionRulesTable
 from src.ui.validation_list_widget import ValidationListWidget
 from src.ui.enhanced_table_view import EnhancedTableView
 from src.ui.helpers.drag_drop_manager import DragDropManager
+from src.ui.widgets.validation_lists_control_panel import ValidationListsControlPanel
 
 import pandas as pd
 
@@ -233,30 +235,55 @@ class CorrectionManagerInterface(QWidget):
         validation_tab = QWidget()
         tab_layout = QVBoxLayout(validation_tab)
 
+        # Add unified controls panel at the top
+        validation_lists_dict = {}
+
         # Create group boxes for each validation list
+        lists_container = QWidget()
+        lists_layout = QVBoxLayout(lists_container)
 
         # Player list
         player_group = QGroupBox("Players")
         player_layout = QVBoxLayout(player_group)
         self._player_list_widget = ValidationListWidget("player")
         player_layout.addWidget(self._player_list_widget)
+        validation_lists_dict["player"] = self._player_list_widget
 
         # Chest type list
         chest_group = QGroupBox("Chest Types")
         chest_layout = QVBoxLayout(chest_group)
         self._chest_type_list_widget = ValidationListWidget("chest_type")
         chest_layout.addWidget(self._chest_type_list_widget)
+        validation_lists_dict["chest_type"] = self._chest_type_list_widget
 
         # Source list
         source_group = QGroupBox("Sources")
         source_layout = QVBoxLayout(source_group)
         self._source_list_widget = ValidationListWidget("source")
         source_layout.addWidget(self._source_list_widget)
+        validation_lists_dict["source"] = self._source_list_widget
+
+        # Add unified control panel
+        self._validation_lists_control_panel = ValidationListsControlPanel(
+            validation_lists=validation_lists_dict,
+            config_manager=self._config_manager,
+            data_store=self._data_store,
+        )
+        tab_layout.addWidget(self._validation_lists_control_panel)
+
+        # Add a separator line
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        tab_layout.addWidget(separator)
 
         # Add groups to tab
-        tab_layout.addWidget(player_group)
-        tab_layout.addWidget(chest_group)
-        tab_layout.addWidget(source_group)
+        lists_layout.addWidget(player_group)
+        lists_layout.addWidget(chest_group)
+        lists_layout.addWidget(source_group)
+
+        # Add the lists container to the tab
+        tab_layout.addWidget(lists_container, 1)  # 1 = stretch factor
 
         # Add tab
         self._tabs.addTab(validation_tab, "Validation Lists")
@@ -323,6 +350,12 @@ class CorrectionManagerInterface(QWidget):
 
         if self._source_list_widget:
             self._source_list_widget.list_updated.connect(self._on_source_list_updated)
+
+        # Connect unified control panel signals
+        if self._validation_lists_control_panel:
+            self._validation_lists_control_panel.lists_updated.connect(
+                self.validation_lists_updated
+            )
 
         # Connect entry table signals
         if self._entry_table:

@@ -1,0 +1,123 @@
+@startuml Event System
+
+' Theme and styling
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam classAttributeIconSize 0
+
+' Title
+title Chest Tracker Correction Tool - Event System
+
+' Classes and components
+class "EventManager" as EventManager {
+  -_event_handlers: Dict[EventType, List[Callable]]
+  +subscribe(event_type: EventType, handler: Callable): None
+  +unsubscribe(event_type: EventType, handler: Callable): None
+  +publish(event_type: EventType, event_data: Any = None): None
+}
+
+enum "EventType" as EventType {
+  DATA_CHANGED
+  FILE_IMPORTED
+  VALIDATION_COMPLETED
+  VALIDATION_LIST_UPDATED
+  CORRECTION_APPLIED
+  SETTINGS_CHANGED
+  ERROR_OCCURRED
+}
+
+class "EventData" as EventData {
+  +event_type: EventType
+  +source: Any
+  +timestamp: datetime
+  +data: Any
+}
+
+class "DataFrameStore" as DataStore {
+  -_event_manager: EventManager
+  +__init__(event_manager: EventManager)
+  +set_entries(entries): None
+  -_publish_data_changed(): None
+}
+
+class "ValidationService" as ValidationService {
+  -_event_manager: EventManager
+  +validate_entries(): ValidationResults
+  -_publish_validation_completed(results): None
+}
+
+class "CorrectionService" as CorrectionService {
+  -_event_manager: EventManager
+  +apply_corrections(): CorrectionResults
+  -_publish_correction_applied(results): None
+}
+
+class "EntryTableAdapter" as TableAdapter {
+  -_event_manager: EventManager
+  +__init__(event_manager: EventManager)
+  +_on_data_changed(event_data): None
+  +_on_validation_completed(event_data): None
+  +_on_correction_applied(event_data): None
+}
+
+class "MainWindowInterface" as MainWindow {
+  -_event_manager: EventManager
+  +__init__(event_manager: EventManager)
+  +_on_data_changed(event_data): None
+  +_on_error_occurred(event_data): None
+  +_on_file_imported(event_data): None
+}
+
+' Relationships
+EventManager --> EventType : "uses"
+EventManager --> EventData : "creates"
+
+DataStore --> EventManager : "publishes events"
+ValidationService --> EventManager : "publishes events"
+CorrectionService --> EventManager : "publishes events"
+
+TableAdapter --> EventManager : "subscribes to events"
+MainWindow --> EventManager : "subscribes to events"
+
+' Event flow
+note left of EventManager
+  The EventManager implements a 
+  publish-subscribe pattern where:
+  
+  1. Components register handlers for specific event types
+  2. Publishers trigger events without knowing the subscribers
+  3. The EventManager dispatches events to all registered handlers
+end note
+
+' Event subscription example
+note bottom of TableAdapter
+  During initialization:
+  
+  self._event_manager.subscribe(
+      EventType.DATA_CHANGED, 
+      self._on_data_changed
+  )
+  self._event_manager.subscribe(
+      EventType.VALIDATION_COMPLETED,
+      self._on_validation_completed
+  )
+end note
+
+' Event publication example
+note right of DataStore
+  When data changes:
+  
+  def set_entries(self, entries):
+      self._entries = entries
+      self._publish_data_changed()
+      
+  def _publish_data_changed(self):
+      self._event_manager.publish(
+          EventType.DATA_CHANGED,
+          self._entries
+      )
+end note
+
+@enduml 

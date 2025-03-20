@@ -1,0 +1,129 @@
+@startuml Main Components
+
+' Theme and styling
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
+
+' Title
+title Chest Tracker Correction Tool - Main Components
+
+' Main components
+package "Core Services" {
+  [DataFrameStore] as DataStore
+  [FileService] as FileService
+  [ValidationService] as ValidationService
+  [CorrectionService] as CorrectionService
+  [ConfigManager] as ConfigManager
+  [EventManager] as EventManager
+  [ServiceFactory] as ServiceFactory
+}
+
+package "UI Components" {
+  [MainWindow] as MainWindow
+  
+  package "Dashboard Module" {
+    [DashboardInterface] as Dashboard
+    [EntryTableAdapter] as EntryTable
+    [FilterAdapter] as Filter
+  }
+  
+  package "Validation Module" {
+    [ValidationPanelInterface] as ValidationPanel
+    [ValidationListAdapter] as ValidationList
+  }
+  
+  package "Correction Module" {
+    [CorrectionManagerInterface] as CorrectionManager
+    [CorrectionRuleAdapter] as CorrectionRule
+  }
+  
+  package "Settings Module" {
+    [SettingsPanelInterface] as SettingsPanel
+    [ConfigurationAdapter] as ConfigAdapter
+  }
+  
+  package "Report Module" {
+    [ReportPanelInterface] as ReportPanel
+    [ExportAdapter] as Export
+  }
+}
+
+package "Application Framework" {
+  [AppBootstrapper] as Bootstrapper
+  [ErrorHandler] as ErrorHandler
+  [Logger] as Logger
+}
+
+' Data artifacts
+artifact "TXT File" as TXTFile
+artifact "CSV File" as CSVFile
+artifact "Config File" as ConfigFile
+
+' Interfaces
+interface "IDataStore" as IDataStore
+interface "IFileService" as IFileService
+interface "IValidationService" as IValidationService
+interface "ICorrectionService" as ICorrectionService
+interface "IConfigManager" as IConfigManager
+interface "IServiceFactory" as IServiceFactory
+
+' Dependencies between components
+ServiceFactory ..> DataStore : creates >
+ServiceFactory ..> FileService : creates >
+ServiceFactory ..> ValidationService : creates >
+ServiceFactory ..> CorrectionService : creates >
+ServiceFactory ..> ConfigManager : creates >
+ServiceFactory ..> EventManager : creates >
+
+Bootstrapper --> ServiceFactory : initializes >
+Bootstrapper --> MainWindow : creates >
+Bootstrapper --> Logger : configures >
+Bootstrapper --> ErrorHandler : configures >
+
+MainWindow --> Dashboard : contains >
+MainWindow --> ValidationPanel : contains >
+MainWindow --> CorrectionManager : contains >
+MainWindow --> SettingsPanel : contains >
+MainWindow --> ReportPanel : contains >
+
+Dashboard --> EntryTable : uses >
+Dashboard --> Filter : uses >
+
+ValidationPanel --> ValidationList : uses >
+CorrectionManager --> CorrectionRule : uses >
+SettingsPanel --> ConfigAdapter : uses >
+ReportPanel --> Export : uses >
+
+Dashboard ..> IDataStore : depends on >
+ValidationPanel ..> IDataStore : depends on >
+ValidationPanel ..> IValidationService : depends on >
+CorrectionManager ..> ICorrectionService : depends on >
+SettingsPanel ..> IConfigManager : depends on >
+ReportPanel ..> IFileService : depends on >
+
+' Implementation relationships
+DataStore --|> IDataStore : implements
+FileService --|> IFileService : implements
+ValidationService --|> IValidationService : implements
+CorrectionService --|> ICorrectionService : implements
+ConfigManager --|> IConfigManager : implements
+ServiceFactory --|> IServiceFactory : implements
+
+' File interactions
+FileService --> TXTFile : reads/writes >
+FileService --> CSVFile : reads/writes >
+ConfigManager --> ConfigFile : reads/writes >
+
+' Event flow
+EntryTable <.. EventManager : notifies <
+ValidationList <.. EventManager : notifies <
+CorrectionRule <.. EventManager : notifies <
+DataStore ..> EventManager : publishes >
+ValidationService ..> EventManager : publishes >
+CorrectionService ..> EventManager : publishes >
+
+@enduml 

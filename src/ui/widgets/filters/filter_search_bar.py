@@ -196,6 +196,33 @@ class FilterSearchBar(QWidget):
         """
         return self._search_edit.text()
 
+    def set_case_sensitive(self, enabled: bool) -> None:
+        """
+        Set case sensitivity option.
+
+        Args:
+            enabled: Whether case sensitivity is enabled
+        """
+        self._case_sensitive_check.setChecked(enabled)
+
+    def set_whole_word(self, enabled: bool) -> None:
+        """
+        Set whole word matching option.
+
+        Args:
+            enabled: Whether whole word matching is enabled
+        """
+        self._whole_word_check.setChecked(enabled)
+
+    def set_regex_enabled(self, enabled: bool) -> None:
+        """
+        Set regex matching option.
+
+        Args:
+            enabled: Whether regex matching is enabled
+        """
+        self._regex_check.setChecked(enabled)
+
     def clear(self) -> None:
         """Clear the search and reset options."""
         self._search_edit.clear()

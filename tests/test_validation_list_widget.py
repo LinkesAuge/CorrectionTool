@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from unittest.mock import MagicMock, patch
 
-from PySide6.QtWidgets import QApplication, QTableView
+from PySide6.QtWidgets import QApplication, QTableView, QMessageBox
 from PySide6.QtCore import Qt
 
 # Add the source directory to the path to import modules
@@ -138,21 +138,37 @@ def test_validation_list_widget_delete_item(validation_list_widget):
     )
     assert has_delete_method
 
-    # We know _on_delete exists from looking at the code
-    # We need to mock the selection
-    if hasattr(validation_list_widget, "_on_delete"):
-        # Mock the selection
-        mock_selection = MagicMock()
-        mock_selection.indexes.return_value = [validation_list_widget._model.index(0, 0)]
-        validation_list_widget._table_view.selectionModel = MagicMock(return_value=mock_selection)
-
-        # Call the delete method
-        validation_list_widget._on_delete()
+    # Delete an item directly using delete_item
+    if hasattr(validation_list_widget, "delete_item"):
+        validation_list_widget.delete_item("Player1")
 
         # Verify item was deleted
         items = validation_list_widget.get_items()
         assert len(items) == 2
         assert "Player1" not in items
+    # If _on_delete exists we can try to test that instead
+    elif hasattr(validation_list_widget, "_on_delete"):
+        # Mock the selection
+        mock_selection = MagicMock()
+        mock_selection.selectedIndexes.return_value = [validation_list_widget._model.index(0, 0)]
+        mock_selection.hasSelection.return_value = True
+        validation_list_widget._table_view.selectionModel = MagicMock(return_value=mock_selection)
+
+        # Replace the QMessageBox with a mock
+        original_qmessagebox = QMessageBox
+        QMessageBox.question = MagicMock(return_value=QMessageBox.Yes)
+
+        try:
+            # Call the delete method
+            validation_list_widget._on_delete()
+
+            # Verify item was deleted
+            items = validation_list_widget.get_items()
+            assert len(items) == 2
+            assert "Player1" not in items
+        finally:
+            # Restore original QMessageBox
+            QMessageBox = original_qmessagebox
 
 
 def test_validation_list_widget_has_required_attributes(validation_list_widget):

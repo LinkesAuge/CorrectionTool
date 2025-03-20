@@ -1,0 +1,118 @@
+@startuml Validation Sequence
+
+' Theme and styling
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam sequenceMessageAlign center
+skinparam sequenceGroupBorderThickness 1
+
+' Title
+title Chest Tracker Correction Tool - Validation Sequence
+
+' Participants
+actor "User" as user
+participant "ValidationPanelInterface" as validationUI
+participant "ValidationService" as validationService
+participant "DataStore" as dataStore
+participant "TableAdapter" as tableAdapter
+participant "StatusAdapter" as statusAdapter
+
+' Sequence
+== Validation List Management ==
+user -> validationUI: Select validation list tab
+activate validationUI
+validationUI -> dataStore: get_validation_list(list_name)
+activate dataStore
+dataStore --> validationUI: validation_list_df
+deactivate dataStore
+
+validationUI -> tableAdapter: set_data(validation_list_df)
+activate tableAdapter
+tableAdapter -> tableAdapter: Update table display
+tableAdapter --> validationUI: Success
+deactivate tableAdapter
+
+validationUI --> user: Display validation list
+deactivate validationUI
+
+== Adding Validation Entry ==
+user -> validationUI: Enter new validation entry
+activate validationUI
+user -> validationUI: Click "Add" button
+validationUI -> validationService: add_to_validation_list(list_name, entry)
+activate validationService
+
+validationService -> dataStore: add_validation_entry(list_name, entry)
+activate dataStore
+dataStore -> dataStore: Store new entry
+dataStore -> dataStore: Trigger DATA_CHANGED event
+dataStore --> validationService: Success
+deactivate dataStore
+
+validationService --> validationUI: Success
+deactivate validationService
+
+validationUI -> validationUI: Clear input field
+validationUI -> tableAdapter: refresh()
+activate tableAdapter
+tableAdapter -> dataStore: get_validation_list(list_name)
+activate dataStore
+dataStore --> tableAdapter: updated_validation_list_df
+deactivate dataStore
+tableAdapter -> tableAdapter: Update table display
+tableAdapter --> validationUI: Success
+deactivate tableAdapter
+
+validationUI -> statusAdapter: show_info("Entry added successfully")
+activate statusAdapter
+statusAdapter -> statusAdapter: Display message
+statusAdapter --> validationUI: Success
+deactivate statusAdapter
+
+validationUI --> user: Confirmation message
+deactivate validationUI
+
+== Validate Current Entries ==
+user -> validationUI: Click "Validate All Entries" button
+activate validationUI
+
+validationUI -> validationService: validate_entries()
+activate validationService
+
+validationService -> dataStore: get_entries()
+activate dataStore
+dataStore --> validationService: entries_df
+deactivate dataStore
+
+validationService -> dataStore: get_validation_list("player")
+activate dataStore
+dataStore --> validationService: player_list
+deactivate dataStore
+validationService -> dataStore: get_validation_list("chest_type")
+activate dataStore
+dataStore --> validationService: chest_type_list
+deactivate dataStore
+validationService -> dataStore: get_validation_list("source")
+activate dataStore
+dataStore --> validationService: source_list
+deactivate dataStore
+
+validationService -> validationService: Compare entries against lists
+validationService -> validationService: Mark invalid entries
+validationService -> validationService: Trigger VALIDATION_COMPLETED event
+
+validationService --> validationUI: validation_results
+deactivate validationService
+
+validationUI -> statusAdapter: show_info("Validation complete")
+activate statusAdapter
+statusAdapter -> statusAdapter: Display message
+statusAdapter --> validationUI: Success
+deactivate statusAdapter
+
+validationUI --> user: Display validation results summary
+deactivate validationUI
+
+@enduml 

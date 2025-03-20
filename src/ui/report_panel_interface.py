@@ -92,6 +92,7 @@ class ReportPanelInterface(QWidget):
 
         # Initialize data
         self._entries: List[ChestEntry] = []
+        self._entries_df = None
 
         # Signal processing flag to prevent recursion
         self._processing_signal = False

@@ -1,0 +1,85 @@
+@startuml File Import Sequence
+
+' Theme and styling
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam sequenceMessageAlign center
+skinparam sequenceGroupBorderThickness 1
+
+' Title
+title Chest Tracker Correction Tool - File Import Sequence
+
+' Participants
+actor "User" as user
+participant "MainWindowInterface" as main
+participant "FileService" as fileService
+participant "DataStore" as dataStore
+participant "ValidationService" as validationService
+participant "EntryTableAdapter" as tableAdapter
+
+' Sequence
+== File Selection ==
+user -> main: Click "Import File" button
+activate main
+main -> main: Show file dialog
+main -> user: Display file dialog
+user -> main: Select file and confirm
+deactivate main
+
+== File Processing ==
+user -> main: Click "Process" button
+activate main
+main -> fileService: load_entries(file_path)
+activate fileService
+fileService -> fileService: Parse file
+fileService -> fileService: Convert to DataFrame
+fileService --> main: Return entries DataFrame
+deactivate fileService
+
+main -> dataStore: set_entries(entries_df)
+activate dataStore
+dataStore -> dataStore: Store entries
+dataStore -> dataStore: Trigger DATA_CHANGED event
+dataStore --> main: Success
+deactivate dataStore
+
+== Data Validation ==
+main -> validationService: validate_entries(entries_df)
+activate validationService
+validationService -> dataStore: get_validation_list("player")
+activate dataStore
+dataStore --> validationService: player_list
+deactivate dataStore
+validationService -> dataStore: get_validation_list("chest_type")
+activate dataStore
+dataStore --> validationService: chest_type_list
+deactivate dataStore
+validationService -> dataStore: get_validation_list("source")
+activate dataStore
+dataStore --> validationService: source_list
+deactivate dataStore
+
+validationService -> validationService: Compare entries against lists
+validationService -> validationService: Mark invalid entries
+validationService -> validationService: Trigger VALIDATION_COMPLETED event
+validationService --> main: validation_results
+deactivate validationService
+
+== UI Update ==
+main -> tableAdapter: refresh()
+activate tableAdapter
+tableAdapter -> dataStore: get_entries()
+activate dataStore
+dataStore --> tableAdapter: entries_df
+deactivate dataStore
+tableAdapter -> tableAdapter: Update table model
+tableAdapter -> tableAdapter: Highlight invalid entries
+tableAdapter --> main: Success
+deactivate tableAdapter
+
+main --> user: Display imported data with validation status
+deactivate main
+
+@enduml 

@@ -302,4 +302,68 @@ Common issues and solutions:
 - [Python Abstract Base Classes](https://docs.python.org/3/library/abc.html)
 - [PEP 544 - Protocols](https://peps.python.org/pep-0544/)
 - [Interface Architecture Document](INTERFACE_ARCHITECTURE.md)
-- [Dependency Injection Guide](dependency_injection_guide.md) 
+- [Dependency Injection Guide](dependency_injection_guide.md)
+
+## Interface Architecture Diagrams
+
+To help developers better understand the interface architecture, we've created a comprehensive set of diagrams that visualize different aspects of the system:
+
+### Class Diagrams
+
+Class diagrams illustrate the structure of the interface system:
+
+- **Core Interfaces Diagram**: Shows all core service interfaces (IDataStore, IFileService, etc.) with their method signatures and relationships.
+  
+  Use this diagram to:
+  - Understand what services are available
+  - See method signatures for each interface
+  - Identify dependencies between services
+
+- **UI Interfaces Diagram**: Shows UI adapter interfaces and their implementations, focusing on the adapter pattern used in the application.
+  
+  Use this diagram to:
+  - Understand the UI adapter hierarchy
+  - See how concrete adapters implement interfaces
+  - Identify UI component relationships
+
+### Sequence Diagrams
+
+Sequence diagrams show the flow of interactions during key operations:
+
+- **File Import Sequence**: Illustrates the process flow when importing data files.
+- **Validation Sequence**: Shows how validation is performed against validation lists.
+- **Correction Application Sequence**: Demonstrates how correction rules are applied to data.
+
+These diagrams are particularly helpful for:
+- Understanding the order of operations
+- Seeing how events propagate through the system
+- Identifying component interactions during specific workflows
+
+### Component and Dependency Diagrams
+
+These diagrams provide a high-level overview of the system architecture:
+
+- **Component Interactions**: Shows major components and their dependencies.
+- **Dependency Injection**: Illustrates how the ServiceFactory provides dependencies to components.
+- **Event System**: Shows the publisher-subscriber relationships for application events.
+
+### Using the Diagrams
+
+1. **When learning the codebase**: Start with the component diagram to get a high-level overview, then examine the class diagrams to understand interfaces, and finally use sequence diagrams to see how components interact.
+
+2. **When implementing new features**: 
+   - Check the class diagrams to understand which interfaces you need to work with
+   - Review sequence diagrams to understand the expected interaction pattern
+   - Use the component diagram to identify which services to inject
+
+3. **When extending the system**:
+   - To add a new service, follow the pattern in the core interfaces diagram
+   - To add a new UI component, follow the pattern in the UI interfaces diagram
+   - To participate in the event system, follow the pattern in the event system diagram
+
+4. **When troubleshooting**:
+   - Use sequence diagrams to trace the expected flow of operations
+   - Compare actual behavior with the expected flow to identify issues
+   - Check dependency relationships in the component diagram
+
+All diagrams can be found in the `docs/diagrams/` directory and are organized by type. 

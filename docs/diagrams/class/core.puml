@@ -1,0 +1,127 @@
+@startuml Core Interfaces
+
+' Theme and styling
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+' Title
+title Chest Tracker Correction Tool - Core Interfaces
+
+' Interfaces
+interface "IDataStore" as IDataStore {
+  +get_entries(): pd.DataFrame
+  +set_entries(entries: pd.DataFrame): None
+  +get_validation_list(list_name: str): pd.DataFrame
+  +set_validation_list(list_name: str, entries: pd.DataFrame): None
+  +add_validation_entry(list_name: str, entry: str, enabled: bool): None
+  +remove_validation_entry(list_name: str, entry: str): None
+  +update_validation_entry(list_name: str, old_entry: str, new_entry: str, enabled: bool): None
+  +check_entry_valid(list_name: str, entry: str): bool
+  +get_active_validation_lists(): List[str]
+  +get_correction_rules(): pd.DataFrame
+  +set_correction_rules(rules: pd.DataFrame): None
+  +subscribe(event_type: EventType, callback: Callable): None
+  +unsubscribe(event_type: EventType, callback: Callable): None
+  +begin_transaction(): None
+  +commit_transaction(): None
+  +rollback_transaction(): None
+}
+
+interface "IFileService" as IFileService {
+  +load_csv_file(file_path: str): pd.DataFrame
+  +save_csv_file(file_path: str, data: pd.DataFrame): None
+  +validate_csv_file(file_path: str): bool
+  +get_csv_preview(file_path: str, num_rows: int): pd.DataFrame
+  +export_data(file_path: str, data: pd.DataFrame, format: str): None
+  +load_entries(file_path: str): pd.DataFrame
+  +save_entries(file_path: str, entries: pd.DataFrame): None
+  +load_validation_list(file_path: str): pd.DataFrame
+  +save_validation_list(file_path: str, list_data: pd.DataFrame): None
+  +load_correction_rules(file_path: str): pd.DataFrame
+  +save_correction_rules(file_path: str, rules: pd.DataFrame): None
+}
+
+interface "ICorrectionService" as ICorrectionService {
+  +load_correction_rules(file_path: str): None
+  +save_correction_rules(file_path: str): None
+  +get_correction_rules(): pd.DataFrame
+  +set_correction_rules(rules: pd.DataFrame): None
+  +add_correction_rule(rule: Dict): None
+  +remove_correction_rule(rule_id: int): None
+  +update_correction_rule(rule_id: int, updated_rule: Dict): None
+  +apply_corrections(data: pd.DataFrame): pd.DataFrame
+  +apply_specific_correction(data: pd.DataFrame, rule_id: int): pd.DataFrame
+  +reset_corrections(): None
+}
+
+interface "IValidationService" as IValidationService {
+  +validate_entries(entries: pd.DataFrame): Dict[str, bool]
+  +get_invalid_entries(): pd.DataFrame
+  +add_to_validation_list(list_name: str, entry: str): None
+  +get_validation_lists(): List[str]
+}
+
+interface "IConfigManager" as IConfigManager {
+  +get_value(section: str, key: str, fallback: Any): Any
+  +set_value(section: str, key: str, value: Any): None
+  +get_int(section: str, key: str, fallback: int): int
+  +get_bool(section: str, key: str, fallback: bool): bool
+  +get_float(section: str, key: str, fallback: float): float
+  +get_str(section: str, key: str, fallback: str): str
+  +get_path(key: str, fallback: Optional[str]): Optional[Path]
+  +set_path(key: str, value: Path): None
+  +get_section(section: str): Dict[str, Any]
+  +save_config(): None
+  +load_config(): None
+}
+
+interface "IServiceFactory" as IServiceFactory {
+  +register_service(interface_type: Type, implementation: Any): None
+  +get_service(interface_type: Type): Any
+  +has_service(interface_type: Type): bool
+  +get_data_store(): IDataStore
+  +get_file_service(): IFileService
+  +get_correction_service(): ICorrectionService
+  +get_validation_service(): IValidationService
+  +get_config_manager(): IConfigManager
+}
+
+interface "IFilter" as IFilter {
+  +apply(data: pd.DataFrame): pd.DataFrame
+  +set_target_columns(columns: List[str]): None
+  +get_target_columns(): List[str]
+  +get_description(): str
+  +get_type(): str
+  +get_configuration(): Dict[str, Any]
+  +set_configuration(config: Dict[str, Any]): None
+  +reset(): None
+}
+
+interface "EventType" as EventType << enumeration >> {
+  +DATA_CHANGED
+  +VALIDATION_COMPLETED
+  +CORRECTION_APPLIED
+  +FILTER_CHANGED
+  +CONFIG_CHANGED
+  +UI_STATE_CHANGED
+}
+
+' Relationships and dependencies
+IServiceFactory --> IDataStore : provides >
+IServiceFactory --> IFileService : provides >
+IServiceFactory --> ICorrectionService : provides >
+IServiceFactory --> IValidationService : provides >
+IServiceFactory --> IConfigManager : provides >
+
+IValidationService --> IDataStore : uses >
+ICorrectionService --> IDataStore : uses >
+IValidationService --> IConfigManager : uses >
+ICorrectionService --> IConfigManager : uses >
+IFileService --> IConfigManager : uses >
+IDataStore --> IConfigManager : uses >
+
+@enduml 

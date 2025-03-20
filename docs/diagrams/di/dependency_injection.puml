@@ -1,0 +1,157 @@
+@startuml Dependency Injection
+
+' Theme and styling
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam classAttributeIconSize 0
+
+' Title
+title Chest Tracker Correction Tool - Dependency Injection
+
+' Classes and interfaces
+interface "IServiceFactory" as IServiceFactory {
+  +register_service(interface_type: Type, implementation: Any): None
+  +get_service(interface_type: Type): Any
+  +has_service(interface_type: Type): bool
+}
+
+class "ServiceFactory" as ServiceFactory {
+  -_services: Dict[Type, Any]
+  +register_service(interface_type: Type, implementation: Any): None
+  +get_service(interface_type: Type): Any
+  +has_service(interface_type: Type): bool
+  -_create_instance(class_type: Type): Any
+  -_resolve_dependencies(cls_init: Callable): Dict[str, Any]
+}
+
+class "AppBootstrapper" as AppBootstrapper {
+  -_service_factory: ServiceFactory
+  +bootstrap(): None
+  -_setup_logging(): None
+  -_setup_config(): None
+  -_setup_services(): None
+  -_setup_ui(): None
+}
+
+class "DashboardInterface" as Dashboard {
+  -_service_factory: IServiceFactory
+  -_data_store: IDataStore
+  -_file_service: IFileService
+  -_validation_service: IValidationService
+  +__init__(service_factory: IServiceFactory)
+}
+
+class "ValidationPanelInterface" as ValidationPanel {
+  -_service_factory: IServiceFactory
+  -_validation_service: IValidationService
+  -_data_store: IDataStore
+  +__init__(service_factory: IServiceFactory)
+}
+
+class "CorrectionManagerInterface" as CorrectionManager {
+  -_service_factory: IServiceFactory
+  -_correction_service: ICorrectionService
+  -_data_store: IDataStore
+  +__init__(service_factory: IServiceFactory)
+}
+
+class "MainWindowInterface" as MainWindow {
+  -_service_factory: IServiceFactory
+  -_dashboard: DashboardInterface
+  -_validation_panel: ValidationPanelInterface
+  -_correction_manager: CorrectionManagerInterface
+  +__init__(service_factory: IServiceFactory)
+}
+
+class "DataFrameStore" as DataStore {
+  -_config_manager: IConfigManager
+  -_event_manager: EventManager
+  +__init__(config_manager: IConfigManager, event_manager: EventManager)
+}
+
+class "FileService" as FileService {
+  -_config_manager: IConfigManager
+  +__init__(config_manager: IConfigManager)
+}
+
+class "ValidationService" as ValidationService {
+  -_data_store: IDataStore
+  -_config_manager: IConfigManager
+  +__init__(data_store: IDataStore, config_manager: IConfigManager)
+}
+
+class "CorrectionService" as CorrectionService {
+  -_data_store: IDataStore
+  -_config_manager: IConfigManager
+  +__init__(data_store: IDataStore, config_manager: IConfigManager)
+}
+
+class "ConfigManager" as ConfigManager {
+  -_config_path: Path
+  +__init__(config_path: Optional[Path] = None)
+}
+
+class "EventManager" as EventManager {
+  -_event_handlers: Dict[EventType, List[Callable]]
+  +__init__()
+}
+
+' Relationships
+IServiceFactory <|.. ServiceFactory
+
+AppBootstrapper --> ServiceFactory : creates >
+AppBootstrapper --> MainWindow : creates >
+
+ServiceFactory --> DataStore : creates >
+ServiceFactory --> FileService : creates >
+ServiceFactory --> ValidationService : creates >
+ServiceFactory --> CorrectionService : creates >
+ServiceFactory --> ConfigManager : creates >
+ServiceFactory --> EventManager : creates >
+
+MainWindow --> Dashboard : creates >
+MainWindow --> ValidationPanel : creates >
+MainWindow --> CorrectionManager : creates >
+
+Dashboard ..> IServiceFactory : injects >
+ValidationPanel ..> IServiceFactory : injects >
+CorrectionManager ..> IServiceFactory : injects >
+MainWindow ..> IServiceFactory : injects >
+
+DataStore ..> IConfigManager : injects >
+DataStore ..> EventManager : injects >
+FileService ..> IConfigManager : injects >
+ValidationService ..> IDataStore : injects >
+ValidationService ..> IConfigManager : injects >
+CorrectionService ..> IDataStore : injects >
+CorrectionService ..> IConfigManager : injects >
+
+note right of ServiceFactory
+  The ServiceFactory manages all service 
+  instantiation, resolving dependencies
+  automatically through injection.
+  
+  Services are registered by their interface
+  types, allowing components to request
+  services by interface rather than
+  concrete implementation.
+end note
+
+note right of AppBootstrapper
+  The AppBootstrapper initializes the
+  application by registering services
+  and creating the main UI components.
+end note
+
+' DI Process steps
+note bottom of Dashboard
+  Components request services through the
+  factory rather than creating instances directly:
+  
+  self._data_store = service_factory.get_service(IDataStore)
+  self._file_service = service_factory.get_service(IFileService)
+end note
+
+@enduml

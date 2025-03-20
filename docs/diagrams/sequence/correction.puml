@@ -1,0 +1,141 @@
+@startuml Correction Sequence
+
+' Theme and styling
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam sequenceMessageAlign center
+skinparam sequenceGroupBorderThickness 1
+
+' Title
+title Chest Tracker Correction Tool - Correction Sequence
+
+' Participants
+actor "User" as user
+participant "CorrectionManagerInterface" as correctionUI
+participant "CorrectionService" as correctionService
+participant "DataStore" as dataStore
+participant "TableAdapter" as tableAdapter
+participant "StatusAdapter" as statusAdapter
+
+' Sequence
+== Loading Correction Rules ==
+user -> correctionUI: Click "Load Rules" button
+activate correctionUI
+
+correctionUI -> correctionService: load_correction_rules(file_path)
+activate correctionService
+
+correctionService -> dataStore: set_correction_rules(rules_df)
+activate dataStore
+dataStore -> dataStore: Store correction rules
+dataStore -> dataStore: Trigger DATA_CHANGED event
+dataStore --> correctionService: Success
+deactivate dataStore
+
+correctionService --> correctionUI: Success
+deactivate correctionService
+
+correctionUI -> tableAdapter: refresh()
+activate tableAdapter
+tableAdapter -> correctionService: get_correction_rules()
+activate correctionService
+correctionService -> dataStore: get_correction_rules()
+activate dataStore
+dataStore --> correctionService: rules_df
+deactivate dataStore
+correctionService --> tableAdapter: rules_df
+deactivate correctionService
+tableAdapter -> tableAdapter: Update table display
+tableAdapter --> correctionUI: Success
+deactivate tableAdapter
+
+correctionUI -> statusAdapter: show_info("Loaded X correction rules")
+activate statusAdapter
+statusAdapter -> statusAdapter: Display message
+statusAdapter --> correctionUI: Success
+deactivate statusAdapter
+
+correctionUI --> user: Display loaded rules
+deactivate correctionUI
+
+== Adding New Correction Rule ==
+user -> correctionUI: Enter "From" and "To" values
+activate correctionUI
+user -> correctionUI: Click "Add Rule" button
+
+correctionUI -> correctionService: add_correction_rule({"from": from_value, "to": to_value})
+activate correctionService
+correctionService -> dataStore: get_correction_rules()
+activate dataStore
+dataStore --> correctionService: rules_df
+deactivate dataStore
+correctionService -> correctionService: Add new rule
+correctionService -> dataStore: set_correction_rules(updated_rules_df)
+activate dataStore
+dataStore -> dataStore: Store updated rules
+dataStore -> dataStore: Trigger DATA_CHANGED event
+dataStore --> correctionService: Success
+deactivate dataStore
+correctionService --> correctionUI: Success
+deactivate correctionService
+
+correctionUI -> tableAdapter: refresh()
+activate tableAdapter
+tableAdapter -> correctionService: get_correction_rules()
+activate correctionService
+correctionService -> dataStore: get_correction_rules()
+activate dataStore
+dataStore --> correctionService: updated_rules_df
+deactivate dataStore
+correctionService --> tableAdapter: updated_rules_df
+deactivate correctionService
+tableAdapter -> tableAdapter: Update table display
+tableAdapter --> correctionUI: Success
+deactivate tableAdapter
+
+correctionUI -> statusAdapter: show_info("Rule added successfully")
+activate statusAdapter
+statusAdapter -> statusAdapter: Display message
+statusAdapter --> correctionUI: Success
+deactivate statusAdapter
+
+correctionUI --> user: Display updated rules
+deactivate correctionUI
+
+== Applying Corrections ==
+user -> correctionUI: Click "Apply All Corrections" button
+activate correctionUI
+
+correctionUI -> correctionService: apply_corrections()
+activate correctionService
+
+correctionService -> dataStore: get_entries()
+activate dataStore
+dataStore --> correctionService: entries_df
+deactivate dataStore
+
+correctionService -> correctionService: begin_transaction()
+correctionService -> correctionService: Apply correction rules
+correctionService -> dataStore: set_entries(corrected_entries_df)
+activate dataStore
+dataStore -> dataStore: Store corrected entries
+dataStore -> dataStore: Trigger CORRECTION_APPLIED event
+dataStore --> correctionService: Success
+deactivate dataStore
+
+correctionService -> correctionService: commit_transaction()
+correctionService --> correctionUI: correction_result
+deactivate correctionService
+
+correctionUI -> statusAdapter: show_info("Applied X corrections")
+activate statusAdapter
+statusAdapter -> statusAdapter: Display message
+statusAdapter --> correctionUI: Success
+deactivate statusAdapter
+
+correctionUI --> user: Display correction summary
+deactivate correctionUI
+
+@enduml 

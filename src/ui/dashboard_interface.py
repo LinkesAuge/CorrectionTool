@@ -14,9 +14,10 @@ from typing import Dict, List, Optional, Tuple, Any, cast
 import os
 import csv
 import pandas as pd
+from datetime import datetime
 
-from PySide6.QtCore import Qt, Signal, Slot, QTimer
-from PySide6.QtGui import QColor, QIcon, QAction
+from PySide6.QtCore import Qt, Signal, Slot, QTimer, QEvent
+from PySide6.QtGui import QColor, QIcon, QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -32,8 +33,16 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QStatusBar,
-    QShowEvent,
-    QCloseEvent,
+    QDialog,
+    QFormLayout,
+    QLineEdit,
+    QDialogButtonBox,
+    QTableView,
+    QToolBar,
+    QTabWidget,
+    QToolButton,
+    QSizePolicy,
+    QProgressDialog,
 )
 
 from src.models.chest_entry import ChestEntry
@@ -59,6 +68,9 @@ from src.ui.statistics_widget import StatisticsWidget
 from src.ui.validation_status_indicator import ValidationStatusIndicator
 from src.ui.adapters.filter_adapter import FilterAdapter
 from src.ui.adapters.entry_table_adapter import EntryTableAdapter
+
+from src.services.dataframe_store import IDataStore
+from src.services.event_manager import EventType, EventManager
 
 
 class DashboardInterface(QWidget):
@@ -122,9 +134,14 @@ class DashboardInterface(QWidget):
         )
 
         # Create filter adapter
-        self._filter_adapter = FilterAdapter(self._filter_manager, self._data_store, self)
-        # Provide the config manager to the filter adapter
+        self._filter_adapter = FilterAdapter(self._data_store)
         self._filter_adapter.set_config_manager(self._config_manager)
+        self._filter_panel = self._filter_adapter.create_filter_panel()
+
+        # Create table view and entry table adapter
+        self._table_adapter = EntryTableAdapter(self._data_store, self._config_manager)
+        self._table_view = self._table_adapter.get_table_view()
+        self._table_adapter.setup_connections()
 
         # Initialize logging
         self._logger = logging.getLogger(__name__)
@@ -181,106 +198,173 @@ class DashboardInterface(QWidget):
         return self._status_bar
 
     def _setup_ui(self) -> None:
-        """Set up the user interface."""
-        # Main layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        """Set up the dashboard user interface components."""
+        self._logger.debug("Setting up dashboard UI components")
 
-        # Create splitter for sidebar and main area
-        self._main_splitter = QSplitter(Qt.Horizontal)
+        # Create main layout
+        layout = QVBoxLayout()
+        self.setLayout(layout)
 
-        # Create sidebar
-        self._sidebar = QWidget()
-        sidebar_layout = QVBoxLayout(self._sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        # Create and add top toolbar
+        toolbar = QToolBar()
+        self._setup_toolbar(toolbar)
+        layout.addWidget(toolbar)
 
-        # Create filter adapter and panel
+        # Create and add main content area
+        content_container = QWidget()
+        content_layout = QVBoxLayout(content_container)
+
+        # Create splitter for resizable panels
+        splitter = QSplitter(Qt.Horizontal)
+        content_layout.addWidget(splitter)
+        self._main_splitter = splitter
+
+        layout.addWidget(content_container)
+
+        # Create filter adapter
         self._filter_adapter = FilterAdapter(self._data_store)
         self._filter_adapter.set_config_manager(self._config_manager)
         self._filter_panel = self._filter_adapter.create_filter_panel()
 
-        # Add filter panel to sidebar
-        sidebar_layout.addWidget(self._filter_panel)
-
-        # Create main content area
-        self._main_content = QWidget()
-        content_layout = QVBoxLayout(self._main_content)
-        content_layout.setContentsMargins(10, 10, 10, 10)
-
-        # Create file import widget
-        self._file_import = FileImportWidget()
-        content_layout.addWidget(self._file_import)
-
-        # Create action buttons
-        action_layout = QHBoxLayout()
-        self._add_entry_button = QPushButton("Add Entry")
-        self._edit_entry_button = QPushButton("Edit Selected")
-        self._delete_entry_button = QPushButton("Delete Selected")
-        self._validate_button = QPushButton("Validate Entries")
-        self._export_button = QPushButton("Export Data")
-
-        action_layout.addWidget(self._add_entry_button)
-        action_layout.addWidget(self._edit_entry_button)
-        action_layout.addWidget(self._delete_entry_button)
-        action_layout.addWidget(self._validate_button)
-        action_layout.addWidget(self._export_button)
-        action_layout.addStretch()
-
-        content_layout.addLayout(action_layout)
-
-        # Create table view
+        # Create table view and entry table adapter
         self._table_adapter = EntryTableAdapter(self._data_store, self._config_manager)
         self._table_view = self._table_adapter.get_table_view()
-        content_layout.addWidget(self._table_view)
+        self._table_adapter.setup_connections()
+
+        # Add filter panel to left side
+        filter_container = QWidget()
+        filter_layout = QVBoxLayout(filter_container)
+        filter_layout.setContentsMargins(0, 0, 0, 0)
+        filter_layout.addWidget(QLabel("Filters"))
+        filter_layout.addWidget(self._filter_panel)
+        splitter.addWidget(filter_container)
+
+        # Add right side container (table and statistics)
+        right_container = QWidget()
+        right_layout = QVBoxLayout(right_container)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        splitter.addWidget(right_container)
+
+        # Set initial sizes for the splitter (30% left, 70% right)
+        splitter.setSizes([300, 700])
+
+        # Add table to right container
+        table_container = QWidget()
+        table_layout = QVBoxLayout(table_container)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Add actions above table
+        actions_container = QWidget()
+        actions_layout = QHBoxLayout(actions_container)
+        actions_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Add search box
+        self._search_box = QLineEdit()
+        self._search_box.setPlaceholderText("Search entries...")
+        actions_layout.addWidget(self._search_box)
+
+        # Add table actions toolbar
+        table_actions = QToolBar()
+        self._setup_table_actions(table_actions)
+        actions_layout.addWidget(table_actions)
+
+        table_layout.addWidget(actions_container)
+        table_layout.addWidget(self._table_view)
 
         # Create statistics widget
-        self._stats_widget = StatisticsWidget(self._data_store)
-        content_layout.addWidget(self._stats_widget)
+        self._stats_widget = StatisticsWidget()
 
-        # Add sidebar and main content to splitter
-        self._main_splitter.addWidget(self._sidebar)
-        self._main_splitter.addWidget(self._main_content)
+        # Add tab widget for table and stats
+        tabs = QTabWidget()
+        tabs.addTab(table_container, "Entries")
+        tabs.addTab(self._stats_widget, "Statistics")
 
-        # Set initial splitter sizes (30% sidebar, 70% content)
-        self._main_splitter.setSizes([300, 700])
+        right_layout.addWidget(tabs)
 
-        # Add splitter to main layout
-        main_layout.addWidget(self._main_splitter)
-
-        # Create status bar
+        # Add status bar
         self._status_bar = QStatusBar()
+        layout.addWidget(self._status_bar)
+
+        # Set initial status
         self._status_bar.showMessage("Ready")
-        main_layout.addWidget(self._status_bar)
 
         # Connect signals
         self._connect_signals()
 
-    def _connect_signals(self) -> None:
-        """Connect signals and slots."""
-        # Connect file import widget
-        self._file_import.file_imported.connect(self._on_file_imported)
+        # Load filter state if available
+        self._filter_adapter.load_filter_state()
 
-        # Connect action buttons
+    def _connect_signals(self) -> None:
+        """Connect signals and slots for application events."""
+        self._logger.debug("Connecting dashboard signals")
+
+        # File import signals
+        self._file_import.entries_loaded.connect(self._on_file_imported)
+        self._file_import.corrections_loaded.connect(self._on_corrections_loaded)
+        self._file_import.corrections_applied.connect(self._on_corrections_applied)
+
+        # Button signals
         self._add_entry_button.clicked.connect(self._on_add_entry)
         self._edit_entry_button.clicked.connect(self._on_edit_entry)
         self._delete_entry_button.clicked.connect(self._on_delete_entry)
         self._validate_button.clicked.connect(self._on_validate_entries)
         self._export_button.clicked.connect(self._on_export_data)
 
-        # Connect table view signals
+        # Table view signals
         self._table_view.doubleClicked.connect(self._on_entry_double_clicked)
         self._table_adapter.selection_changed.connect(self._on_selection_changed)
 
-        # Connect filter adapter signals
+        # Filter adapter signals
         self._filter_adapter.filtered_data.connect(self._on_data_filtered)
 
-        # Connect data store signals
-        self._data_store.data_changed.connect(self._on_data_changed)
-        self._data_store.validation_complete.connect(self._on_validation_complete)
+        # Event manager signals
+        EventManager.subscribe(EventType.ENTRIES_UPDATED, self._on_entries_updated)
+        EventManager.subscribe(EventType.IMPORT_COMPLETED, self._on_entries_updated)
 
-        # Load filter state if available
-        self._filter_adapter.load_filter_state()
+    def _setup_toolbar(self, toolbar: QToolBar) -> None:
+        """Set up the main toolbar with actions.
+
+        Args:
+            toolbar: The toolbar to set up
+        """
+        # Add file import widget
+        self._file_import = FileImportWidget()
+        toolbar.addWidget(self._file_import)
+
+        # Add spacer
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        toolbar.addWidget(spacer)
+
+        # Add main action buttons
+        self._validate_button = QPushButton("Validate Entries")
+        self._export_button = QPushButton("Export Data")
+
+        toolbar.addWidget(self._validate_button)
+        toolbar.addWidget(self._export_button)
+
+    def _setup_table_actions(self, toolbar: QToolBar) -> None:
+        """Set up the table actions toolbar.
+
+        Args:
+            toolbar: The toolbar to set up
+        """
+        # Add entry manipulation buttons
+        self._add_entry_button = QToolButton()
+        self._add_entry_button.setText("Add")
+        self._add_entry_button.setToolTip("Add new entry")
+
+        self._edit_entry_button = QToolButton()
+        self._edit_entry_button.setText("Edit")
+        self._edit_entry_button.setToolTip("Edit selected entry")
+
+        self._delete_entry_button = QToolButton()
+        self._delete_entry_button.setText("Delete")
+        self._delete_entry_button.setToolTip("Delete selected entry")
+
+        toolbar.addWidget(self._add_entry_button)
+        toolbar.addWidget(self._edit_entry_button)
+        toolbar.addWidget(self._delete_entry_button)
 
     def _load_saved_correction_rules(self):
         """Load saved correction rules."""
@@ -373,21 +457,21 @@ class DashboardInterface(QWidget):
             self.statusBar().showMessage("Error loading validation lists")
 
     @Slot(list)
-    def _on_entries_loaded(self, entries):
+    def _on_file_imported(self, entries):
         """
         Handle entries loaded signal from the file import widget.
 
         Args:
             entries: List of ChestEntry objects
         """
-        self._logger.debug(f"Entries loaded event received: {len(entries)} entries")
+        self._logger.debug(f"File imported event received: {len(entries)} entries")
         # Convert entries to DataFrame and update the data store
         if entries:
             entries_df = pd.DataFrame([entry.to_dict() for entry in entries])
             self._data_store.set_entries(entries_df)
 
             # Update the table view with entries
-            self._table_view.set_entries(entries_df.to_dict("records"))
+            self._table_adapter.set_entries(entries_df)
 
             # Update statistics
             self._stats_widget.set_entries(entries)
@@ -395,6 +479,9 @@ class DashboardInterface(QWidget):
             # Update filter panel with new data
             if self._filter_adapter:
                 self._filter_adapter.on_data_changed()
+
+            # Update status bar
+            self.statusBar().showMessage(f"Loaded {len(entries)} entries")
 
     @Slot(list)
     def _on_corrections_loaded(self, rules):
@@ -1083,7 +1170,7 @@ class DashboardInterface(QWidget):
             "Version: 1.0.0",
         )
 
-    def showEvent(self, event: QShowEvent) -> None:
+    def showEvent(self, event: QEvent) -> None:
         """
         Handle show event.
 
@@ -1177,32 +1264,278 @@ class DashboardInterface(QWidget):
         # Update status
         self._status_bar.showMessage(f"Data updated: {self._data_store.get_entry_count()} entries")
 
-    def _on_data_filtered(self, result: dict) -> None:
-        """
-        Handle filtered data from the filter adapter.
+    def _on_data_filtered(self, filtered_data: dict) -> None:
+        """Handle filtered data from the filter adapter.
 
         Args:
-            result: Dictionary containing filtered data and statistics
+            filtered_data: Dictionary of filtered data
         """
-        # Get filtered data
-        filtered_df = result.get("filtered_df")
-        total_rows = result.get("total_rows", 0)
-        filtered_rows = result.get("filtered_rows", 0)
-        active_filters = result.get("active_filters", 0)
+        self._logger.debug(f"Data filtered, {len(filtered_data)} entries remain visible")
 
-        # Update table view with filtered data
-        self._table_adapter.set_filtered_data(filtered_df)
+        # Update visible entries in the table adapter
+        self._table_adapter.set_visible_rows(filtered_data.keys())
 
         # Update statistics with filtered data
-        self._stats_widget.update_statistics(filtered_df)
+        entries_df = self._data_store.get_entries()
+        if entries_df is not None:
+            filtered_df = entries_df.loc[list(filtered_data.keys())]
+            self._stats_widget.update_statistics(filtered_df)
 
-        # Update status bar
-        if active_filters > 0:
-            self._status_bar.showMessage(
-                f"Filtered: {filtered_rows} of {total_rows} entries visible ({active_filters} active filters)"
-            )
-        else:
-            self._status_bar.showMessage(f"All {total_rows} entries visible")
+        # Update status bar with count of visible entries
+        total_count = (
+            len(self._data_store.get_entries()) if self._data_store.get_entries() is not None else 0
+        )
+        visible_count = len(filtered_data)
+
+        if total_count > 0:
+            self._status_bar.showMessage(f"Showing {visible_count} of {total_count} entries")
 
         # Save filter state to configuration
         self._filter_adapter.save_filter_state()
+
+    def _on_add_entry(self):
+        """
+        Handle add entry button click.
+        Creates a new entry and adds it to the data store.
+        """
+        self._logger.info("Add entry requested")
+
+        try:
+            # Create a simple dialog to input basic entry data
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Add New Entry")
+            layout = QFormLayout(dialog)
+
+            # Create input fields
+            player_input = QLineEdit()
+            chest_input = QLineEdit()
+            source_input = QLineEdit()
+            items_input = QLineEdit()
+
+            # Add fields to form
+            layout.addRow("Player:", player_input)
+            layout.addRow("Chest:", chest_input)
+            layout.addRow("Source:", source_input)
+            layout.addRow("Items:", items_input)
+
+            # Add buttons
+            button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            button_box.accepted.connect(dialog.accept)
+            button_box.rejected.connect(dialog.reject)
+            layout.addRow(button_box)
+
+            # Show dialog and process result
+            if dialog.exec_() == QDialog.Accepted:
+                # Create new entry
+                new_entry = {
+                    "player": player_input.text(),
+                    "chest": chest_input.text(),
+                    "source": source_input.text(),
+                    "items": items_input.text(),
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+
+                # Add entry to data store
+                self._data_store.add_entry(new_entry)
+
+                # Update UI
+                self._on_data_changed()
+
+                # Update status
+                self._status_bar.showMessage(f"New entry added")
+                self._logger.info(f"New entry added: {new_entry}")
+
+        except Exception as e:
+            self._logger.error(f"Error adding entry: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Error adding entry: {str(e)}",
+                QMessageBox.Ok,
+            )
+
+    def _on_edit_entry(self):
+        """
+        Handle edit entry button click.
+        Edits the currently selected entry.
+        """
+        self._logger.info("Edit entry requested")
+
+        try:
+            # Get selected entry
+            selected_entry = self._table_adapter.get_selected_entry()
+            if not selected_entry:
+                self._status_bar.showMessage("No entry selected")
+                return
+
+            # Create a dialog to edit entry data
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Edit Entry")
+            layout = QFormLayout(dialog)
+
+            # Create input fields with current values
+            player_input = QLineEdit(selected_entry.get("player", ""))
+            chest_input = QLineEdit(selected_entry.get("chest", ""))
+            source_input = QLineEdit(selected_entry.get("source", ""))
+            items_input = QLineEdit(selected_entry.get("items", ""))
+
+            # Add fields to form
+            layout.addRow("Player:", player_input)
+            layout.addRow("Chest:", chest_input)
+            layout.addRow("Source:", source_input)
+            layout.addRow("Items:", items_input)
+
+            # Add buttons
+            button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            button_box.accepted.connect(dialog.accept)
+            button_box.rejected.connect(dialog.reject)
+            layout.addRow(button_box)
+
+            # Show dialog and process result
+            if dialog.exec_() == QDialog.Accepted:
+                # Update entry values
+                updated_entry = selected_entry.copy()
+                updated_entry["player"] = player_input.text()
+                updated_entry["chest"] = chest_input.text()
+                updated_entry["source"] = source_input.text()
+                updated_entry["items"] = items_input.text()
+
+                # Update entry in data store
+                self._data_store.update_entry(updated_entry)
+
+                # Update UI
+                self._on_data_changed()
+
+                # Update status
+                self._status_bar.showMessage(f"Entry updated")
+                self._logger.info(f"Entry updated: {updated_entry}")
+
+        except Exception as e:
+            self._logger.error(f"Error editing entry: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Error editing entry: {str(e)}",
+                QMessageBox.Ok,
+            )
+
+    def _on_delete_entry(self) -> None:
+        """Handle deleting an entry."""
+        if not self._table_adapter.has_selection():
+            QMessageBox.warning(self, "No Selection", "Please select an entry to delete.")
+            return
+
+        entry = self._table_adapter.get_selected_entry()
+        reply = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"Are you sure you want to delete this entry?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            # Get index of the entry
+            entry_idx = self._table_adapter.get_selected_row_index()
+            if entry_idx is not None:
+                # Remove from data store
+                self._data_store.remove_entry(entry_idx)
+                self._logger.info(f"Deleted entry at index {entry_idx}")
+                self._status_bar.showMessage(f"Entry deleted")
+
+    def _on_validate_entries(self) -> None:
+        """Handle validating entries."""
+        # Get the validation service
+        validation_service = self._service_factory.get_service("IValidationService")
+        if validation_service is None:
+            self._logger.error("ValidationService not found")
+            QMessageBox.critical(self, "Error", "Validation service not available")
+            return
+
+        # Get entries from data store
+        entries_df = self._data_store.get_entries()
+        if entries_df is None or len(entries_df) == 0:
+            QMessageBox.information(self, "No Data", "No entries to validate.")
+            return
+
+        # Show progress dialog
+        progress = QProgressDialog("Validating entries...", "Cancel", 0, 100, self)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(500)  # Don't show for operations < 500ms
+
+        try:
+            # Validate entries
+            self._logger.info(f"Starting validation of {len(entries_df)} entries")
+            validation_service.validate_entries(entries_df, progress_callback=progress.setValue)
+
+            # Validation results are saved to the data store automatically
+            progress.setValue(100)
+
+            # Refresh the table view
+            self._table_adapter.refresh_data()
+
+            # Show validation summary
+            error_count = (
+                entries_df["validation_errors"]
+                .apply(lambda x: len(x) if isinstance(x, list) else 0)
+                .sum()
+            )
+            self._logger.info(f"Validation complete: {error_count} errors found")
+
+            if error_count > 0:
+                self._status_bar.showMessage(f"Validation complete: {error_count} errors found")
+                QMessageBox.information(
+                    self, "Validation Complete", f"Validation complete: {error_count} errors found."
+                )
+            else:
+                self._status_bar.showMessage("Validation complete: No errors found")
+                QMessageBox.information(self, "Validation Complete", "No errors found in the data.")
+
+        except Exception as e:
+            self._logger.error(f"Error during validation: {str(e)}")
+            progress.cancel()
+            QMessageBox.critical(self, "Validation Error", f"Error during validation: {str(e)}")
+
+    def _on_entry_double_clicked(self, model_index):
+        """
+        Handle double-click on an entry in the table view.
+        Opens the selected entry for editing.
+
+        Args:
+            model_index: The model index of the clicked item
+        """
+        self._logger.debug(f"Entry double-clicked at row {model_index.row()}")
+        self._on_edit_entry()
+
+    def _on_selection_changed(self) -> None:
+        """Handle selection changes in the table view."""
+        has_selection = self._table_adapter.has_selection()
+        self._edit_entry_button.setEnabled(has_selection)
+        self._delete_entry_button.setEnabled(has_selection)
+
+    def _on_export_data(self) -> None:
+        """Handle exporting data when the export button is clicked."""
+        # Get current entries from data store
+        entries = self._data_store.get_all_entries()
+
+        if not entries:
+            QMessageBox.warning(self, "Export Warning", "No data to export.")
+            return
+
+        # Ask user for save location
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Export Data", "", "CSV Files (*.csv);;All Files (*)"
+        )
+
+        if not file_path:
+            return  # User cancelled
+
+        try:
+            # Use file service to export data
+            self._file_service.export_entries_to_csv(file_path, entries)
+            QMessageBox.information(
+                self, "Export Successful", f"Data successfully exported to {file_path}"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "Export Error", f"Error exporting data: {str(e)}")
+            logging.error(f"Export error: {str(e)}")

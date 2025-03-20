@@ -71,7 +71,7 @@ class FilterAdapter(QObject):
             return self._filter_panel
 
         # Create the filter panel
-        self._filter_panel = FilterPanel(self._filter_manager)
+        self._filter_panel = FilterPanel(self._filter_manager, self._data_store)
 
         # Create text search filter
         self._create_search_filter()

@@ -1,0 +1,226 @@
+@startuml UI Interfaces
+
+' Theme and styling
+skinparam monochrome true
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam padding 5
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+' Title
+title Chest Tracker Correction Tool - UI Interfaces
+
+' Base UI Adapter Interface
+interface "IUiAdapter" as IUiAdapter {
+  +get_widget(): QWidget
+  +refresh(): None
+  +connect(): None
+  +disconnect(): None
+  +connect_signals(): None
+  +disconnect_signals(): None
+}
+
+' Table Adapter Interface
+interface "ITableAdapter" as ITableAdapter {
+  +get_model(): QAbstractTableModel
+  +get_data(): pd.DataFrame
+  +set_data(data: pd.DataFrame): None
+  +get_selected_rows(): List[int]
+  +get_selected_data(): pd.DataFrame
+  +get_row_data(row: int): Dict
+  +select_row(row: int): None
+  +set_filter(filter_func: Callable): None
+  +clear_selection(): None
+  +refresh(): None
+  +connect(): None
+  +disconnect(): None
+}
+
+' ComboBox Adapter Interface
+interface "IComboBoxAdapter" as IComboBoxAdapter {
+  +get_combo_box(): QComboBox
+  +get_selected_item(): str
+  +set_selected_item(item: str): None
+  +get_items(): List[str]
+  +set_items(items: List[str]): None
+  +add_item(item: str): None
+  +remove_item(item: str): None
+  +clear(): None
+  +refresh(): None
+  +connect(): None
+  +disconnect(): None
+}
+
+' Status Adapter Interface
+interface "IStatusAdapter" as IStatusAdapter {
+  +set_status(message: str, timeout: int): None
+  +clear_status(): None
+  +show_error(message: str): None
+  +show_warning(message: str): None
+  +show_info(message: str): None
+  +show_progress(value: int, maximum: int): None
+  +get_status_bar(): QStatusBar
+  +connect(): None
+  +disconnect(): None
+}
+
+' UI Interface Implementations
+class "MainWindowInterface" as MainWindowInterface {
+  -_service_factory: IServiceFactory
+  -_data_store: IDataStore
+  -_file_service: IFileService
+  -_correction_service: ICorrectionService
+  -_validation_service: IValidationService
+  -_config_manager: IConfigManager
+  +show(): None
+  +closeEvent(event: QCloseEvent): None
+  -_setup_ui(): None
+  -_setup_menu(): None
+  -_setup_toolbar(): None
+  -_setup_status_bar(): None
+  -_setup_central_widget(): None
+  -_setup_event_connections(): None
+}
+
+class "DashboardInterface" as DashboardInterface {
+  -_service_factory: IServiceFactory
+  -_data_store: IDataStore
+  -_file_service: IFileService
+  -_validation_service: IValidationService
+  -_config_manager: IConfigManager
+  -_entry_table_adapter: ITableAdapter
+  -_filter_adapter: IFilterAdapter
+  +get_widget(): QWidget
+  -_setup_ui(): None
+  -_setup_toolbar(): None
+  -_setup_table(): None
+  -_setup_filter_section(): None
+  -_setup_event_connections(): None
+}
+
+class "CorrectionManagerInterface" as CorrectionManagerInterface {
+  -_service_factory: IServiceFactory
+  -_correction_service: ICorrectionService
+  -_data_store: IDataStore
+  -_config_manager: IConfigManager
+  -_rules_table_adapter: ITableAdapter
+  +get_widget(): QWidget
+  -_setup_ui(): None
+  -_setup_toolbar(): None
+  -_setup_rules_table(): None
+  -_setup_edit_panel(): None
+  -_setup_event_connections(): None
+}
+
+class "ValidationPanelInterface" as ValidationPanelInterface {
+  -_service_factory: IServiceFactory
+  -_validation_service: IValidationService
+  -_data_store: IDataStore
+  -_config_manager: IConfigManager
+  -_validation_list_adapters: Dict[str, ITableAdapter]
+  +get_widget(): QWidget
+  -_setup_ui(): None
+  -_setup_toolbar(): None
+  -_setup_validation_lists(): None
+  -_setup_event_connections(): None
+}
+
+class "ReportPanelInterface" as ReportPanelInterface {
+  -_service_factory: IServiceFactory
+  -_data_store: IDataStore
+  -_validation_service: IValidationService
+  -_correction_service: ICorrectionService
+  +get_widget(): QWidget
+  -_setup_ui(): None
+  -_setup_report_section(): None
+  -_setup_export_options(): None
+  -_setup_event_connections(): None
+}
+
+class "SettingsPanelInterface" as SettingsPanelInterface {
+  -_service_factory: IServiceFactory
+  -_config_manager: IConfigManager
+  +get_widget(): QWidget
+  -_setup_ui(): None
+  -_setup_settings_tabs(): None
+  -_setup_event_connections(): None
+}
+
+' Concrete Adapter Implementations
+class "EntryTableAdapter" as EntryTableAdapter {
+  -_data_store: IDataStore
+  -_table_view: QTableView
+  -_model: EntryTableModel
+  +get_widget(): QWidget
+  +get_model(): QAbstractTableModel
+  +get_data(): pd.DataFrame
+  +set_data(data: pd.DataFrame): None
+  +get_selected_rows(): List[int]
+  +get_selected_data(): pd.DataFrame
+  +select_row(row: int): None
+  +set_filter(filter_func: Callable): None
+  +clear_selection(): None
+  +refresh(): None
+  +connect_signals(): None
+  +disconnect_signals(): None
+}
+
+class "CorrectionRuleTableAdapter" as CorrectionRuleTableAdapter {
+  -_correction_service: ICorrectionService
+  -_table_view: QTableView
+  -_model: CorrectionRuleTableModel
+  +get_widget(): QWidget
+  +get_model(): QAbstractTableModel
+  +get_data(): pd.DataFrame
+  +set_data(data: pd.DataFrame): None
+  +get_selected_rows(): List[int]
+  +get_selected_data(): pd.DataFrame
+  +select_row(row: int): None
+  +set_filter(filter_func: Callable): None
+  +clear_selection(): None
+  +refresh(): None
+  +connect_signals(): None
+  +disconnect_signals(): None
+}
+
+class "ValidationListComboAdapter" as ValidationListComboAdapter {
+  -_data_store: IDataStore
+  -_combo_box: QComboBox
+  -_validation_list_name: str
+  +get_widget(): QWidget
+  +get_combo_box(): QComboBox
+  +get_selected_item(): str
+  +set_selected_item(item: str): None
+  +get_items(): List[str]
+  +set_items(items: List[str]): None
+  +add_item(item: str): None
+  +remove_item(item: str): None
+  +clear(): None
+  +refresh(): None
+  +connect_signals(): None
+  +disconnect_signals(): None
+}
+
+' Inheritance relationships
+IUiAdapter <|-- ITableAdapter
+IUiAdapter <|-- IComboBoxAdapter
+IUiAdapter <|-- IStatusAdapter
+
+' Implementation relationships
+ITableAdapter <|.. EntryTableAdapter
+ITableAdapter <|.. CorrectionRuleTableAdapter
+IComboBoxAdapter <|.. ValidationListComboAdapter
+
+' Component relationships
+MainWindowInterface o-- DashboardInterface : contains
+MainWindowInterface o-- CorrectionManagerInterface : contains
+MainWindowInterface o-- ValidationPanelInterface : contains
+MainWindowInterface o-- ReportPanelInterface : contains
+MainWindowInterface o-- SettingsPanelInterface : contains
+
+DashboardInterface o-- EntryTableAdapter : uses
+CorrectionManagerInterface o-- CorrectionRuleTableAdapter : uses
+CorrectionManagerInterface o-- ValidationListComboAdapter : uses
+
+@enduml 
