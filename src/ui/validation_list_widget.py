@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Set
 
-from PySide6.QtCore import Qt, Signal, Slot, QModelIndex, QTimer
+from PySide6.QtCore import Qt, Signal, Slot, QModelIndex, QTimer, QPoint
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtWidgets import (
     QDialog,
@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListView,
+    QMenu,
     QMessageBox,
     QPushButton,
     QTableView,
@@ -73,6 +74,59 @@ class ValidationListItemModel(QStandardItemModel):
 
         for item in self._items:
             self.appendRow(QStandardItem(item))
+
+    def setData(self, index: QModelIndex, value, role=Qt.EditRole):
+        """
+        Set data at the specified index.
+
+        This method is called when the user edits a cell in the view.
+
+        Args:
+            index: Model index of the item
+            value: New value
+            role: Data role
+
+        Returns:
+            bool: True if the data was set successfully, False otherwise
+        """
+        if not index.isValid() or role != Qt.EditRole:
+            return False
+
+        # Get the row and validate the value
+        row = index.row()
+        if row < 0 or row >= len(self._items):
+            return False
+
+        # Get the new value as a string
+        new_value = str(value).strip()
+        if not new_value:
+            return False  # Don't accept empty values
+
+        # Check if the value already exists
+        if new_value in self._items and new_value != self._items[row]:
+            return False  # Don't accept duplicate values
+
+        # Update the item
+        self._items[row] = new_value
+        self.setItem(row, 0, QStandardItem(new_value))
+
+        return True
+
+    def flags(self, index: QModelIndex):
+        """
+        Get the flags for the specified index.
+
+        Args:
+            index: Model index
+
+        Returns:
+            Item flags
+        """
+        if not index.isValid():
+            return Qt.NoItemFlags
+
+        # Make items editable
+        return super().flags(index) | Qt.ItemIsEditable
 
     def set_validation_list(self, validation_list):
         """
@@ -162,8 +216,13 @@ class ValidationListItemModel(QStandardItemModel):
             item: New item value
         """
         if 0 <= index < len(self._items) and item:
-            self._items[index] = item
-            self.setItem(index, 0, QStandardItem(item))
+            old_item = self._items[index]
+            if item != old_item and item not in self._items:  # Check for duplicates
+                self._items[index] = item
+                self.setItem(index, 0, QStandardItem(item))
+                # Emit dataChanged signal
+                model_index = self.index(index, 0)
+                self.dataChanged.emit(model_index, model_index, [Qt.DisplayRole, Qt.EditRole])
 
     def delete_item(self, index: int):
         """
@@ -644,10 +703,69 @@ class ValidationListWidget(QWidget):
 
     @Slot()
     def _on_selection_changed(self):
-        """Handle selection changed."""
-        has_selection = bool(self._table_view.selectionModel().selectedRows())
-        self._edit_button.setEnabled(has_selection)
-        self._delete_button.setEnabled(has_selection)
+        """Handle selection changes in the table view."""
+        selected = self._table_view.selectionModel().selectedRows()
+        self._edit_button.setEnabled(len(selected) > 0)
+        self._delete_button.setEnabled(len(selected) > 0)
+
+    @Slot(QModelIndex, QModelIndex)
+    def _on_data_changed(self, topLeft, bottomRight):
+        """
+        Handle data changes in the model.
+
+        Args:
+            topLeft: Top-left index of changed area
+            bottomRight: Bottom-right index of changed area
+        """
+        # Emit the list_updated signal
+        self._emit_list_updated()
+
+    @Slot(QPoint)
+    def _show_context_menu(self, pos):
+        """
+        Show context menu.
+
+        Args:
+            pos: Position where the context menu was requested
+        """
+        # Get the selected index
+        index = self._table_view.indexAt(pos)
+        if not index.isValid():
+            return
+
+        # Create the menu
+        menu = QMenu(self)
+
+        # Add actions
+        edit_action = menu.addAction("Edit")
+        edit_action.triggered.connect(lambda: self._on_edit_from_menu(index))
+
+        delete_action = menu.addAction("Delete")
+        delete_action.triggered.connect(lambda: self._on_delete_from_menu(index))
+
+        # Show the menu
+        menu.exec_(self._table_view.viewport().mapToGlobal(pos))
+
+    def _on_edit_from_menu(self, index):
+        """
+        Handle edit action from context menu.
+
+        Args:
+            index: Index of the item to edit
+        """
+        # Start editing the item
+        self._table_view.edit(index)
+
+    def _on_delete_from_menu(self, index):
+        """
+        Handle delete action from context menu.
+
+        Args:
+            index: Index of the item to delete
+        """
+        # Delete the item
+        self._model.delete_item(index.row())
+        self._emit_list_updated()
 
     def _emit_list_updated(self):
         """Emit list updated signal."""
@@ -766,6 +884,13 @@ class ValidationListWidget(QWidget):
         self._table_view.setAlternatingRowColors(True)
         self._table_view.setSortingEnabled(True)
 
+        # Enable direct editing
+        self._table_view.setEditTriggers(QTableView.DoubleClicked | QTableView.EditKeyPressed)
+
+        # Set up context menu
+        self._table_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._table_view.customContextMenuRequested.connect(self._show_context_menu)
+
         # Configure header
         header = self._table_view.horizontalHeader()
         header.setStretchLastSection(True)
@@ -805,3 +930,6 @@ class ValidationListWidget(QWidget):
 
         # Connect selection signals
         self._table_view.selectionModel().selectionChanged.connect(self._on_selection_changed)
+
+        # Connect editing signals
+        self._model.dataChanged.connect(self._on_data_changed)
