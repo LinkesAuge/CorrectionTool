@@ -130,9 +130,11 @@ Project is approximately 75% complete
 | EnhancedTableView          | ✅ Complete  | 100%       | In-place editing implemented               |
 | CorrectionManagerPanel     | 🔄 In Progress | 75%      | Missing validation list dropdown selection |
 | CorrectionRulesTable       | ✅ Complete  | 100%       | CRUD operations implemented                |
-| ValidationListsSection     | 🔄 In Progress | 70%      | Missing direct editing                     |
+| ValidationListsSection     | 🔄 In Progress | 85%      | Direct editing implemented, unified controls pending |
 | FuzzyMatchControls         | ✅ Complete  | 100%       | Threshold slider implemented               |
-| FilterControls             | 🔄 In Progress | 40%      | Basic filtering only                       |
+| FilterAdapter              | ✅ Complete  | 100%       | Connect filter UI to data store              |
+| FilterControls             | ✅ Complete  | 100%      | Advanced filtering with multi-select, search, persistence |
+| ValidationManager          | ✅ Complete  | 100%       | Handles multi-level validation               |
 
 ### Services
 | Service                    | Status      | Completion | Notes                                       |
