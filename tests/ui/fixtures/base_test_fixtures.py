@@ -1,28 +1,20 @@
 """
 base_test_fixtures.py
 
-Description: Base test fixtures for UI testing with pytest-qt
+Description: Common pytest fixtures for UI testing
 Usage:
-    from tests.ui.fixtures.base_test_fixtures import qtbot_fixture, default_services
-
-    def test_validation_list_widget(qtbot_fixture, default_services):
-        # Test implementation using fixtures
+    Import these fixtures in UI test files
 """
 
-import os
 import pytest
 import pandas as pd
-from typing import Dict, Any
-
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import Qt
+from typing import Dict, Any, List
+from PyQt5.QtCore import QObject
 
 from tests.ui.helpers.mock_services import (
-    MockDataStore,
-    MockConfigManager,
-    MockFileService,
     MockCorrectionService,
     MockValidationService,
+    MockDataStore,
     MockServiceFactory,
 )
 
@@ -30,175 +22,164 @@ from tests.ui.helpers.mock_services import (
 @pytest.fixture
 def qtbot_fixture(qtbot):
     """
-    A pytest fixture that provides a qtbot instance for testing.
+    Provide a qtbot fixture for UI testing.
 
     Args:
-        qtbot: The built-in qtbot fixture from pytest-qt
+        qtbot: The pytest-qt bot fixture
 
     Returns:
-        The qtbot instance
+        qtbot: The configured qtbot instance
     """
     return qtbot
 
 
 @pytest.fixture
-def default_services():
+def sample_validation_list_data() -> Dict[str, List[str]]:
     """
-    Creates a set of default mock services for testing.
+    Provide sample validation list data for testing.
 
     Returns:
-        Dict[str, Any]: Dictionary of service instances
+        Dict[str, List[str]]: Dictionary containing validation lists
     """
-    # Create mock services
-    mock_data_store = MockDataStore()
-    mock_config_manager = MockConfigManager()
-    mock_file_service = MockFileService()
-    mock_correction_service = MockCorrectionService()
-    mock_validation_service = MockValidationService()
-    mock_service_factory = MockServiceFactory()
-
-    # Set up the service factory
-    mock_service_factory.register_service("data_store", mock_data_store)
-    mock_service_factory.register_service("config_manager", mock_config_manager)
-    mock_service_factory.register_service("file_service", mock_file_service)
-    mock_service_factory.register_service("correction_service", mock_correction_service)
-    mock_service_factory.register_service("validation_service", mock_validation_service)
-
-    # Return the services
     return {
-        "data_store": mock_data_store,
-        "config_manager": mock_config_manager,
-        "file_service": mock_file_service,
-        "correction_service": mock_correction_service,
-        "validation_service": mock_validation_service,
-        "service_factory": mock_service_factory,
+        "players": ["Player 1", "Player 2", "Player 3"],
+        "teams": ["Team A", "Team B", "Team C"],
+        "competitions": ["League 1", "Cup", "International"],
     }
 
 
 @pytest.fixture
-def sample_validation_list_data():
+def sample_correction_rules() -> List[Dict[str, Any]]:
     """
-    Creates sample validation list data for testing.
+    Provide sample correction rules for testing.
 
     Returns:
-        Dict[str, list]: Dictionary of validation list data
-    """
-    return {
-        "players": ["Player 1", "Player 2", "Player 3", "Player 4", "Player 5"],
-        "chest_types": ["Common", "Rare", "Epic", "Legendary"],
-        "sources": ["Arena", "War", "Challenge", "Trophy Road", "Shop"],
-    }
-
-
-@pytest.fixture
-def sample_correction_rules():
-    """
-    Creates sample correction rules for testing.
-
-    Returns:
-        List[dict]: List of correction rule dictionaries
+        List[Dict[str, Any]]: List of correction rule dictionaries
     """
     return [
-        {"from": "plyr1", "to": "Player 1", "type": "player", "enabled": True},
-        {"from": "plyr2", "to": "Player 2", "type": "player", "enabled": True},
-        {"from": "Comn", "to": "Common", "type": "chest_type", "enabled": True},
-        {"from": "Rar", "to": "Rare", "type": "chest_type", "enabled": True},
-        {"from": "Epik", "to": "Epic", "type": "chest_type", "enabled": False},
+        {"from": "Player 1", "to": "Player One", "enabled": True},
+        {"from": "Team A", "to": "Team Alpha", "enabled": True},
+        {"from": "League 1", "to": "Premier League", "enabled": False},
     ]
 
 
 @pytest.fixture
-def sample_data_frame():
+def sample_data_frame() -> pd.DataFrame:
     """
-    Creates a sample DataFrame for testing.
+    Provide a sample DataFrame for testing.
 
     Returns:
-        pd.DataFrame: Sample data
+        pd.DataFrame: Sample data for testing
     """
     data = {
-        "player": ["Player 1", "plyr2", "Player 3", "Unknown Player"],
-        "chest_type": ["Common", "Rar", "Epic", "Unknown Type"],
-        "source": ["Arena", "War", "Unknown Source", "Shop"],
-        "quantity": [1, 2, 3, 4],
-        "date": ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04"],
+        "player": ["Player 1", "Player 2", "Player 3"],
+        "team": ["Team A", "Team B", "Team C"],
+        "competition": ["League 1", "Cup", "International"],
+        "score": [1, 2, 3],
     }
     return pd.DataFrame(data)
 
 
 @pytest.fixture
-def setup_validation_lists(default_services, sample_validation_list_data):
+def default_services() -> Dict[str, Any]:
     """
-    Sets up validation lists in the data store.
+    Provide default mock services for testing.
+
+    Returns:
+        Dict[str, Any]: Dictionary containing mock services
+    """
+    correction_service = MockCorrectionService()
+    validation_service = MockValidationService()
+    data_store = MockDataStore()
+
+    service_factory = MockServiceFactory(
+        correction_service=correction_service,
+        validation_service=validation_service,
+        data_store=data_store,
+    )
+
+    return {
+        "correction_service": correction_service,
+        "validation_service": validation_service,
+        "data_store": data_store,
+        "service_factory": service_factory,
+    }
+
+
+@pytest.fixture
+def setup_validation_lists(default_services, sample_validation_list_data) -> Dict[str, Any]:
+    """
+    Set up mock services with validation lists data.
 
     Args:
-        default_services: Dictionary of mock services
+        default_services: The mock services
         sample_validation_list_data: Sample validation list data
 
     Returns:
-        Dict[str, Any]: Dictionary of services with validation lists set up
+        Dict[str, Any]: Dictionary containing configured mock services
     """
-    data_store = default_services["data_store"]
+    validation_service = default_services["validation_service"]
 
-    # Add validation lists to data store
+    # Set up validation lists
     for list_name, items in sample_validation_list_data.items():
-        data_store.add_validation_list(list_name, items)
+        validation_service.set_validation_list(list_name, items)
 
     return default_services
 
 
 @pytest.fixture
-def setup_correction_rules(default_services, sample_correction_rules):
+def setup_correction_rules(default_services, sample_correction_rules) -> Dict[str, Any]:
     """
-    Sets up correction rules in the correction service.
+    Set up mock services with correction rules.
 
     Args:
-        default_services: Dictionary of mock services
+        default_services: The mock services
         sample_correction_rules: Sample correction rules
 
     Returns:
-        Dict[str, Any]: Dictionary of services with correction rules set up
+        Dict[str, Any]: Dictionary containing configured mock services
     """
     correction_service = default_services["correction_service"]
 
-    # Set correction rules
+    # Set up correction rules
     correction_service.set_correction_rules(sample_correction_rules)
 
     return default_services
 
 
 @pytest.fixture
-def setup_data(default_services, sample_data_frame):
+def setup_data(default_services, sample_data_frame) -> Dict[str, Any]:
     """
-    Sets up data in the data store.
+    Set up mock services with sample data.
 
     Args:
-        default_services: Dictionary of mock services
+        default_services: The mock services
         sample_data_frame: Sample DataFrame
 
     Returns:
-        Dict[str, Any]: Dictionary of services with data set up
+        Dict[str, Any]: Dictionary containing configured mock services
     """
     data_store = default_services["data_store"]
 
-    # Set data in data store
+    # Set up data
     data_store.set_data(sample_data_frame)
 
     return default_services
 
 
 @pytest.fixture
-def setup_all(setup_validation_lists, setup_correction_rules, setup_data):
+def setup_all(setup_validation_lists, setup_correction_rules, setup_data) -> Dict[str, Any]:
     """
-    Sets up all test data in the mock services.
+    Set up mock services with all sample data.
 
     Args:
-        setup_validation_lists: Fixture that sets up validation lists
-        setup_correction_rules: Fixture that sets up correction rules
-        setup_data: Fixture that sets up data
+        setup_validation_lists: Services with validation lists
+        setup_correction_rules: Services with correction rules
+        setup_data: Services with data
 
     Returns:
-        Dict[str, Any]: Dictionary of services with all test data set up
+        Dict[str, Any]: Dictionary containing fully configured mock services
     """
-    # The setup_validation_lists fixture already contains the services dictionary
-    # and has been modified by all other setup fixtures
-    return setup_validation_lists
+    # Since all these fixtures use the same default_services instance,
+    # we can just return any of them - they all have the fully configured services
+    return setup_data

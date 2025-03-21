@@ -736,10 +736,38 @@ class MockServiceFactory(IServiceFactory):
         - Used to inject mock services into components under test
     """
 
-    def __init__(self):
-        """Initialize the MockServiceFactory with empty services."""
+    def __init__(
+        self,
+        correction_service=None,
+        validation_service=None,
+        data_store=None,
+        config_manager=None,
+        file_service=None,
+    ):
+        """
+        Initialize the MockServiceFactory with provided services or empty services.
+
+        Args:
+            correction_service: Optional MockCorrectionService instance
+            validation_service: Optional MockValidationService instance
+            data_store: Optional MockDataStore instance
+            config_manager: Optional MockConfigManager instance
+            file_service: Optional MockFileService instance
+        """
         self.services = {}
         self.service_creation_history = []
+
+        # Register provided services or create defaults
+        if correction_service:
+            self.services["correction_service"] = correction_service
+        if validation_service:
+            self.services["validation_service"] = validation_service
+        if data_store:
+            self.services["data_store"] = data_store
+        if config_manager:
+            self.services["config_manager"] = config_manager
+        if file_service:
+            self.services["file_service"] = file_service
 
     def get_service(self, service_type: str) -> Any:
         """

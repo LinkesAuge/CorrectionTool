@@ -2,89 +2,103 @@
 """
 run_ui_tests.py
 
-Description: Script to run UI tests with proper configuration
+Description: Script to run UI tests with proper environment setup
 Usage:
-    python scripts/run_ui_tests.py [options]
-
-Options:
-    --verbose, -v: Show detailed test output
-    --component: Run only component tests
-    --integration: Run only integration tests
-    --all: Run all tests (default)
-    --file=PATH: Run tests from a specific file
-    --help, -h: Show this help message
+    python scripts/run_ui_tests.py
 """
 
+import os
 import sys
-import subprocess
 import argparse
+import subprocess
 from pathlib import Path
+
+
+def setup_environment():
+    """Set up the environment for Qt-based UI testing."""
+    # Set Qt environment variables to ensure proper testing environment
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    os.environ["QT_QPA_FONTDIR"] = str(Path(os.getcwd()) / "resources" / "fonts")
+    os.environ["PYTHONPATH"] = str(Path(os.getcwd()))
+
+    # Make sure we're using python from the same environment
+    python = sys.executable
+
+    # Return the configured python path
+    return python
 
 
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Run UI tests for Correction Tool")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Show detailed test output")
+    parser = argparse.ArgumentParser(description="Run UI tests for the Correction Tool")
+    parser.add_argument(
+        "-k", "--keyword", help="Only run tests which match the given substring expression"
+    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Increase verbosity")
+    parser.add_argument("-m", "--markers", help="Only run tests matching given marker expression")
     parser.add_argument("--component", action="store_true", help="Run only component tests")
     parser.add_argument("--integration", action="store_true", help="Run only integration tests")
-    parser.add_argument("--all", action="store_true", help="Run all tests (default)")
-    parser.add_argument("--file", type=str, help="Run tests from a specific file")
+    parser.add_argument(
+        "--collect-only", action="store_true", help="Only collect tests, don't execute them"
+    )
 
     return parser.parse_args()
 
 
-def build_pytest_command(args):
-    """Build the pytest command based on arguments."""
-    cmd = ["pytest"]
+def run_ui_tests(args):
+    """
+    Run the UI tests with the given arguments.
+
+    Args:
+        args: Command line arguments
+    """
+    python = setup_environment()
+
+    # Build pytest command
+    cmd = [python, "-m", "pytest"]
 
     # Add verbosity
     if args.verbose:
         cmd.append("-v")
 
-    # Add test selection
-    if args.file:
-        cmd.append(args.file)
+    # Add test collection only
+    if args.collect_only:
+        cmd.append("--collect-only")
+
+    # Add keyword filtering
+    if args.keyword:
+        cmd.extend(["-k", args.keyword])
+
+    # Add marker filtering
+    if args.markers:
+        cmd.extend(["-m", args.markers])
     elif args.component:
-        cmd.append("tests/ui/components/")
+        cmd.extend(["-m", "component"])
     elif args.integration:
-        cmd.append("tests/ui/integration/")
-    else:
-        cmd.append("tests/ui/")
+        cmd.extend(["-m", "integration"])
 
-    # Add markers if needed
-    if args.component:
-        cmd.append("-m")
-        cmd.append("component")
-    elif args.integration:
-        cmd.append("-m")
-        cmd.append("integration")
-
-    # Always show summary
+    # Always provide some basic test information
     cmd.append("-v")
 
-    return cmd
+    # Target UI tests directory
+    cmd.append("tests/ui/")
+
+    # Add colored output for better readability
+    cmd.append("--color=yes")
+
+    # Print the command for debugging
+    print(f"Running: {' '.join(cmd)}")
+
+    # Run the tests
+    process = subprocess.run(cmd)
+
+    return process.returncode
 
 
 def main():
     """Run the UI tests."""
     args = parse_args()
-
-    print("Starting UI tests...")
-    print("==========================================")
-
-    cmd = build_pytest_command(args)
-    print(f"Running command: {' '.join(cmd)}")
-    print("==========================================")
-
-    result = subprocess.run(cmd)
-
-    print("==========================================")
-    if result.returncode == 0:
-        print("✅ All tests passed!")
-    else:
-        print(f"❌ Tests failed with return code {result.returncode}")
-
-    return result.returncode
+    return run_ui_tests(args)
 
 
 if __name__ == "__main__":
