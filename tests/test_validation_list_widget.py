@@ -84,11 +84,20 @@ def test_validation_list_widget_set_list(validation_list_widget):
     assert hasattr(validation_list_widget, "set_list")
 
     # Use the method
-    validation_list_widget.set_list(test_list)
+    result = validation_list_widget.set_list(test_list)
+
+    # Verify method returns True
+    assert result is True
 
     # Verify the list was set
-    model = validation_list_widget.model()
+    model = validation_list_widget._filtered_model
     assert model.rowCount() == 3
+    assert model.data(model.index(0, 0)) == "Player1"
+    assert model.data(model.index(1, 0)) == "Player2"
+    assert model.data(model.index(2, 0)) == "Player3"
+
+    # Verify the actual list object was stored
+    assert validation_list_widget._list is test_list
 
 
 def test_validation_list_widget_get_items(validation_list_widget):

@@ -575,19 +575,19 @@ class CorrectionManagerInterface(QWidget):
                 # Try to update all validation lists
                 try:
                     player_list = self._data_store.get_validation_list("player")
-                    self._player_list_widget.set_validation_list(player_list)
+                    self._player_list_widget.set_list(player_list)
                 except Exception as e:
                     self._logger.warning(f"Could not update player list: {e}")
 
                 try:
                     chest_type_list = self._data_store.get_validation_list("chest_type")
-                    self._chest_type_list_widget.set_validation_list(chest_type_list)
+                    self._chest_type_list_widget.set_list(chest_type_list)
                 except Exception as e:
                     self._logger.warning(f"Could not update chest type list: {e}")
 
                 try:
                     source_list = self._data_store.get_validation_list("source")
-                    self._source_list_widget.set_validation_list(source_list)
+                    self._source_list_widget.set_list(source_list)
                 except Exception as e:
                     self._logger.warning(f"Could not update source list: {e}")
 
@@ -597,21 +597,21 @@ class CorrectionManagerInterface(QWidget):
             if list_type == "player":
                 player_list = self._data_store.get_validation_list("player")
                 if player_list is not None:
-                    self._player_list_widget.set_validation_list(player_list)
+                    self._player_list_widget.set_list(player_list)
                     count = len(player_list) if hasattr(player_list, "__len__") else 0
                     self._logger.info(f"Updated player validation list with {count} entries")
 
             elif list_type == "chest_type":
                 chest_type_list = self._data_store.get_validation_list("chest_type")
                 if chest_type_list is not None:
-                    self._chest_type_list_widget.set_validation_list(chest_type_list)
+                    self._chest_type_list_widget.set_list(chest_type_list)
                     count = len(chest_type_list) if hasattr(chest_type_list, "__len__") else 0
                     self._logger.info(f"Updated chest_type validation list with {count} entries")
 
             elif list_type == "source":
                 source_list = self._data_store.get_validation_list("source")
                 if source_list is not None:
-                    self._source_list_widget.set_validation_list(source_list)
+                    self._source_list_widget.set_list(source_list)
                     count = len(source_list) if hasattr(source_list, "__len__") else 0
                     self._logger.info(f"Updated source validation list with {count} entries")
 
@@ -1036,21 +1036,21 @@ class CorrectionManagerInterface(QWidget):
             # Update widgets
             if isinstance(player_list, pd.DataFrame):
                 if not player_list.empty:
-                    self._player_list_widget.set_validation_list(player_list)
+                    self._player_list_widget.set_list(player_list)
             elif player_list:  # Handle if it's a list or ValidationList object
-                self._player_list_widget.set_validation_list(player_list)
+                self._player_list_widget.set_list(player_list)
 
             if isinstance(chest_type_list, pd.DataFrame):
                 if not chest_type_list.empty:
-                    self._chest_type_list_widget.set_validation_list(chest_type_list)
+                    self._chest_type_list_widget.set_list(chest_type_list)
             elif chest_type_list:  # Handle if it's a list or ValidationList object
-                self._chest_type_list_widget.set_validation_list(chest_type_list)
+                self._chest_type_list_widget.set_list(chest_type_list)
 
             if isinstance(source_list, pd.DataFrame):
                 if not source_list.empty:
-                    self._source_list_widget.set_validation_list(source_list)
+                    self._source_list_widget.set_list(source_list)
             elif source_list:  # Handle if it's a list or ValidationList object
-                self._source_list_widget.set_validation_list(source_list)
+                self._source_list_widget.set_list(source_list)
 
         except Exception as e:
             self._logger.error(f"Error refreshing validation lists: {e}")

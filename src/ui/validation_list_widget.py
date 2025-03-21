@@ -716,3 +716,15 @@ class ValidationListWidget(QWidget):
         self._list = validation_list
         self.populate()
         return True
+
+    def set_list(self, validation_list):
+        """
+        Alias for set_validation_list.
+
+        Args:
+            validation_list: The validation list data to use
+
+        Returns:
+            bool: True if successful
+        """
+        return self.set_validation_list(validation_list)
