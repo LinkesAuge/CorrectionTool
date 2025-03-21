@@ -705,3 +705,14 @@ class ValidationListWidget(QWidget):
             List of all items
         """
         return self._list.get_all_items()
+
+    def set_validation_list(self, validation_list):
+        """
+        Set or update the validation list and refresh the display.
+
+        Args:
+            validation_list: The validation list data to use
+        """
+        self._list = validation_list
+        self.populate()
+        return True

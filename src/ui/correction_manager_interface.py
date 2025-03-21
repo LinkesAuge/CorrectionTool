@@ -112,6 +112,9 @@ class CorrectionManagerInterface(QWidget):
         # Initialize drag-drop manager
         self._drag_drop_manager = None
 
+        # Initialize validation lists dictionary
+        self._validation_lists = {}
+
         # Initialize UI
         self._correction_rules_table = None
         self._player_list_widget = None
@@ -173,9 +176,9 @@ class CorrectionManagerInterface(QWidget):
         # Create tabs
         self._tabs = QTabWidget()
 
-        # Create tab content
-        self._setup_correction_rules_tab()
+        # Create tab content - setup validation lists first
         self._setup_validation_lists_tab()
+        self._setup_correction_rules_tab()
 
         # Add tabs to panel
         panel_layout.addWidget(self._tabs)
@@ -206,7 +209,7 @@ class CorrectionManagerInterface(QWidget):
         tab_layout.addLayout(controls_layout)
 
         # Create correction rules table
-        self._correction_rules_table = CorrectionRulesTable()
+        self._correction_rules_table = CorrectionRulesTable(validation_lists=self._validation_lists)
         tab_layout.addWidget(self._correction_rules_table, 1)  # 1 = stretch factor
 
         # Add buttons
@@ -235,6 +238,11 @@ class CorrectionManagerInterface(QWidget):
         validation_tab = QWidget()
         tab_layout = QVBoxLayout(validation_tab)
 
+        # Get validation lists from the data store
+        player_list = self._data_store.get_validation_list("player")
+        chest_type_list = self._data_store.get_validation_list("chest_type")
+        source_list = self._data_store.get_validation_list("source")
+
         # Add unified controls panel at the top
         validation_lists_dict = {}
 
@@ -245,21 +253,23 @@ class CorrectionManagerInterface(QWidget):
         # Player list
         player_group = QGroupBox("Players")
         player_layout = QVBoxLayout(player_group)
-        self._player_list_widget = ValidationListWidget("player")
+        self._player_list_widget = ValidationListWidget("player", player_list, self._config_manager)
         player_layout.addWidget(self._player_list_widget)
         validation_lists_dict["player"] = self._player_list_widget
 
         # Chest type list
         chest_group = QGroupBox("Chest Types")
         chest_layout = QVBoxLayout(chest_group)
-        self._chest_type_list_widget = ValidationListWidget("chest_type")
+        self._chest_type_list_widget = ValidationListWidget(
+            "chest_type", chest_type_list, self._config_manager
+        )
         chest_layout.addWidget(self._chest_type_list_widget)
         validation_lists_dict["chest_type"] = self._chest_type_list_widget
 
         # Source list
         source_group = QGroupBox("Sources")
         source_layout = QVBoxLayout(source_group)
-        self._source_list_widget = ValidationListWidget("source")
+        self._source_list_widget = ValidationListWidget("source", source_list, self._config_manager)
         source_layout.addWidget(self._source_list_widget)
         validation_lists_dict["source"] = self._source_list_widget
 
@@ -270,6 +280,9 @@ class CorrectionManagerInterface(QWidget):
             data_store=self._data_store,
         )
         tab_layout.addWidget(self._validation_lists_control_panel)
+
+        # Store validation lists dict for use in correction rules table
+        self._validation_lists = validation_lists_dict
 
         # Add a separator line
         separator = QFrame()
