@@ -184,7 +184,23 @@ class ValidationListsControlPanel(QWidget):
         # Player count
         player_count = 0
         if "player" in self._validation_lists:
-            player_count = len(self._validation_lists["player"].get_list().entries)
+            validation_list = self._validation_lists["player"].get_list()
+            if hasattr(validation_list, "entries"):
+                # It's a ValidationList object
+                player_count = len(validation_list.entries)
+            elif hasattr(validation_list, "shape"):
+                # It's a DataFrame
+                player_count = validation_list.shape[0]
+            else:
+                # Try basic length calculation
+                try:
+                    player_count = len(validation_list)
+                except (TypeError, ValueError):
+                    logging.getLogger(__name__).error(
+                        f"Couldn't get count of validation list of type {type(validation_list)}"
+                    )
+                    player_count = 0
+
             self._player_count_label.setText(f"Players: {player_count}")
             if self._player_checkbox.isChecked():
                 total_count += player_count
@@ -192,7 +208,23 @@ class ValidationListsControlPanel(QWidget):
         # Chest type count
         chest_type_count = 0
         if "chest_type" in self._validation_lists:
-            chest_type_count = len(self._validation_lists["chest_type"].get_list().entries)
+            validation_list = self._validation_lists["chest_type"].get_list()
+            if hasattr(validation_list, "entries"):
+                # It's a ValidationList object
+                chest_type_count = len(validation_list.entries)
+            elif hasattr(validation_list, "shape"):
+                # It's a DataFrame
+                chest_type_count = validation_list.shape[0]
+            else:
+                # Try basic length calculation
+                try:
+                    chest_type_count = len(validation_list)
+                except (TypeError, ValueError):
+                    logging.getLogger(__name__).error(
+                        f"Couldn't get count of validation list of type {type(validation_list)}"
+                    )
+                    chest_type_count = 0
+
             self._chest_type_count_label.setText(f"Chest Types: {chest_type_count}")
             if self._chest_type_checkbox.isChecked():
                 total_count += chest_type_count
@@ -200,7 +232,23 @@ class ValidationListsControlPanel(QWidget):
         # Source count
         source_count = 0
         if "source" in self._validation_lists:
-            source_count = len(self._validation_lists["source"].get_list().entries)
+            validation_list = self._validation_lists["source"].get_list()
+            if hasattr(validation_list, "entries"):
+                # It's a ValidationList object
+                source_count = len(validation_list.entries)
+            elif hasattr(validation_list, "shape"):
+                # It's a DataFrame
+                source_count = validation_list.shape[0]
+            else:
+                # Try basic length calculation
+                try:
+                    source_count = len(validation_list)
+                except (TypeError, ValueError):
+                    logging.getLogger(__name__).error(
+                        f"Couldn't get count of validation list of type {type(validation_list)}"
+                    )
+                    source_count = 0
+
             self._source_count_label.setText(f"Sources: {source_count}")
             if self._source_checkbox.isChecked():
                 total_count += source_count

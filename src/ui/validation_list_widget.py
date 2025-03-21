@@ -8,6 +8,7 @@ Usage:
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import List, Optional, Set
 
@@ -21,6 +22,7 @@ from PySide6.QtCore import (
     QAbstractTableModel,
     QItemSelectionModel,
     QObject,
+    QStringListModel,
 )
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtWidgets import (
@@ -39,6 +41,10 @@ from PySide6.QtWidgets import (
     QTableView,
     QVBoxLayout,
     QWidget,
+    QListWidget,
+    QInputDialog,
+    QGroupBox,
+    QAbstractItemView,
 )
 
 from src.models.validation_list import ValidationList
@@ -343,623 +349,359 @@ class ValidationListItemDialog(QDialog):
 
 class ValidationListWidget(QWidget):
     """
-    Widget for managing validation lists.
+    Widget for displaying and interacting with validation lists.
 
-    This widget provides a UI for managing validation lists.
+    This widget provides a searchable list view with buttons for adding,
+    editing, deleting, importing and exporting validation list entries.
 
     Signals:
-        list_updated: Signal emitted when the validation list is updated
+        list_updated: Emitted when the list is updated
 
     Attributes:
-        _model: Model for validation list items
-        _list_name: Name of the validation list
-        _validation_list: ValidationList instance
-        _search_field: QLineEdit for searching the list
+        _list: The validation list
+        _model: The model for the list view
+        _config: Configuration manager for saving/loading paths
     """
 
-    # Signals
-    list_updated = Signal(ValidationList)
+    list_updated = Signal(object)  # ValidationList
 
-    def __init__(self, list_name: str, parent=None):
+    def __init__(
+        self,
+        list_type: str,
+        validation_list,
+        config_manager,
+        parent=None,
+        with_actions=True,
+        search_placeholder="Search...",
+        list_tooltip="Double-click to edit",
+    ):
         """
-        Initialize the widget.
+        Initialize the ValidationListWidget.
 
         Args:
-            list_name: Name of the validation list
-            parent: Parent widget
+            list_type: The type of validation list (player, chest_type, source)
+            validation_list: The validation list data
+            config_manager: Configuration manager for saving/loading settings
+            parent: The parent widget
+            with_actions: Whether to show the action buttons
+            search_placeholder: The placeholder text for the search field
+            list_tooltip: The tooltip for the list view
         """
         super().__init__(parent)
+        self._list_type = list_type
+        self._list = validation_list
+        self._config_manager = config_manager
+        self._with_actions = with_actions
+        self._search_placeholder = search_placeholder
+        self._list_tooltip = list_tooltip
+        self._model = QStringListModel()
+        self._filtered_model = QStringListModel()
+        self._search_term = ""  # Initialize the search term
 
-        self._list_name = list_name
-        self._validation_list = ValidationList(name=list_name)
-        self._model = ValidationListItemModel(self)
-        self._search_field = QLineEdit(self)
-
-        # Setup UI
+        # Create UI
         self._setup_ui()
 
-        # Connect signals
-        self._connect_signals()
+        # Populate the widget
+        self.populate()
 
-        # Set the validation list
-        self.set_list(self._validation_list)
+    def _setup_ui(self):
+        """Set up the user interface."""
+        layout = QVBoxLayout(self)
 
-    def set_validation_list(self, validation_list):
-        """
-        Set the validation list.
-
-        Args:
-            validation_list: ValidationList instance or DataFrame
-        """
-        self._validation_list = validation_list
-        self._model.populate(validation_list)
-        self._delayed_refresh()
-
-    def set_list(self, validation_list):
-        """
-        Legacy method for setting the validation list.
-
-        This method is kept for compatibility with existing code.
-
-        Args:
-            validation_list: ValidationList instance or DataFrame
-        """
-        import pandas as pd
-
-        logger = logging.getLogger(__name__)
-
-        # Check the type to count the number of items
-        if isinstance(validation_list, pd.DataFrame):
-            if validation_list.empty:
-                item_count = 0
-            else:
-                item_count = len(validation_list)
-        elif hasattr(validation_list, "items") and callable(validation_list.items):
-            try:
-                item_count = len(validation_list.items())
-            except:
-                item_count = "unknown"
-        elif hasattr(validation_list, "items") and not callable(validation_list.items):
-            item_count = len(validation_list.items)
-        elif hasattr(validation_list, "entries") and not callable(validation_list.entries):
-            item_count = len(validation_list.entries)
+        # Search input
+        search_layout = QHBoxLayout()
+        search_label = QLabel("Search:")
+        self._search_input = QLineEdit()
+        if self._search_placeholder:
+            self._search_input.setPlaceholderText(self._search_placeholder)
         else:
-            item_count = "unknown"
+            self._search_input.setPlaceholderText("Filter items...")
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(self._search_input)
 
-        logger.info(
-            f"ValidationListWidget.set_list called for {self._list_name} with approximately {item_count} items"
+        # List view
+        self._list_view = QListView()
+        self._list_view.setModel(self._filtered_model)
+        self._list_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._list_view.setSelectionMode(QListView.SingleSelection)
+
+        # Create group boxes for organizing controls
+        edit_group = QGroupBox("Edit")
+        edit_layout = QHBoxLayout(edit_group)
+
+        # Edit buttons
+        self._add_button = QPushButton("Add")
+        self._edit_button = QPushButton("Edit")
+        self._delete_button = QPushButton("Delete")
+
+        # Add buttons to edit layout
+        edit_layout.addWidget(self._add_button)
+        edit_layout.addWidget(self._edit_button)
+        edit_layout.addWidget(self._delete_button)
+
+        # Import/Export group
+        import_export_group = QGroupBox("Import/Export")
+        import_export_layout = QHBoxLayout(import_export_group)
+
+        # Import/Export buttons
+        self._import_button = QPushButton("Import...")
+        self._export_button = QPushButton("Export...")
+
+        # Add buttons to import/export layout
+        import_export_layout.addWidget(self._import_button)
+        import_export_layout.addWidget(self._export_button)
+
+        # Add all elements to main layout
+        layout.addLayout(search_layout)
+        layout.addWidget(self._list_view)
+        layout.addWidget(edit_group)
+        layout.addWidget(import_export_group)
+
+        # Connect signals
+        self._search_input.textChanged.connect(self._filter_items)
+        self._list_view.clicked.connect(self._on_item_clicked)
+        self._add_button.clicked.connect(self.add_item)
+        self._edit_button.clicked.connect(self.edit_item)
+        self._delete_button.clicked.connect(self.delete_item)
+        self._import_button.clicked.connect(self._import_list)
+        self._export_button.clicked.connect(self._export_list)
+
+        # Initially disable edit and delete buttons until an item is selected
+        self._edit_button.setEnabled(False)
+        self._delete_button.setEnabled(False)
+
+    def populate(self):
+        """Populate the list view with items from the validation list."""
+        # Handle different types of validation_list objects
+        if hasattr(self._list, "get_all_items"):
+            # It's a ValidationListItemModel
+            items = self._list.get_all_items()
+        elif hasattr(self._list, "items"):
+            # It's a ValidationList object
+            if callable(self._list.items):
+                # It's a method
+                items = self._list.items()
+            else:
+                # It's a property/attribute
+                items = self._list.items
+        elif hasattr(self._list, "to_list"):
+            # It's a DataFrame
+            if len(self._list.columns) > 0:
+                # Take the first column if multiple columns exist
+                items = self._list.iloc[:, 0].to_list()
+            else:
+                items = []
+        else:
+            # Try a basic list conversion
+            try:
+                items = list(self._list)
+            except (TypeError, ValueError):
+                logging.getLogger(__name__).error(
+                    f"Couldn't convert validation list of type {type(self._list)} to a list"
+                )
+                items = []
+
+        self._model.setStringList(items)
+        self._filtered_model.setStringList(items)
+        self._list_view.setModel(self._filtered_model)
+
+    def _filter_items(self, text: str = None):
+        """Filter the list based on the search text."""
+        # Use saved search term if no text is provided
+        if text is not None:
+            self._search_term = text
+
+        # Get the items using the same approach as populate()
+        if hasattr(self._list, "get_all_items"):
+            # It's a ValidationListItemModel
+            items = self._list.get_all_items()
+        elif hasattr(self._list, "items"):
+            # It's a ValidationList object
+            if callable(self._list.items):
+                # It's a method
+                items = self._list.items()
+            else:
+                # It's a property/attribute
+                items = self._list.items
+        elif hasattr(self._list, "to_list"):
+            # It's a DataFrame
+            if len(self._list.columns) > 0:
+                # Take the first column if multiple columns exist
+                items = self._list.iloc[:, 0].to_list()
+            else:
+                items = []
+        else:
+            # Try a basic list conversion
+            try:
+                items = list(self._list)
+            except (TypeError, ValueError):
+                logging.getLogger(__name__).error(
+                    f"Couldn't convert validation list of type {type(self._list)} to a list"
+                )
+                items = []
+
+        # Filter items based on search term
+        filtered_items = [
+            item
+            for item in items
+            if not self._search_term or self._search_term.lower() in str(item).lower()
+        ]
+
+        self._filtered_model.setStringList(filtered_items)
+        self._list_view.setModel(self._filtered_model)
+
+    def _on_item_clicked(self, index):
+        """Handle item selection."""
+        self._selected_item = self._filtered_model.data(index, Qt.DisplayRole)
+        self._edit_button.setEnabled(True)
+        self._delete_button.setEnabled(True)
+
+    def add_item(self):
+        """Add a new item to the validation list."""
+        # Show input dialog to get new item
+        text, ok = QInputDialog.getText(self, "Add Item", "Enter new item:")
+        if ok and text.strip():
+            self._list.add_item(text)
+            self.populate()
+            self.list_updated.emit(self._list)
+
+    def edit_item(self):
+        """Edit the selected item."""
+        if self._selected_item:
+            dialog = ValidationListItemDialog(self._selected_item, self)
+            if dialog.exec() == QDialog.Accepted:
+                self._list.update_item(self._selected_item, dialog.item)
+                self.populate()
+                self.list_updated.emit(self._list)
+
+    def delete_item(self):
+        """Delete the selected item."""
+        if self._selected_item:
+            self._list.remove_item(self._selected_item)
+            self.populate()
+            self.list_updated.emit(self._list)
+
+    def _import_list(self):
+        """Import validation list from a file."""
+        # Get the directory path to use as initial dir
+        initial_dir = str(Path.home())
+        if self._config_manager:
+            config_dir = self._config_manager.get_path("validation_dir")
+            if config_dir:
+                initial_dir = config_dir
+
+        # Get the file to import from
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            f"Import {self._list_type} List",
+            initial_dir,
+            "Text Files (*.txt *.csv);;All Files (*.*)",
         )
 
-        self.set_validation_list(validation_list)
+        if not file_path:
+            return
 
-    def _delayed_refresh(self):
-        """Refresh the widget after a short delay to avoid UI freezes."""
-        # Use a timer to ensure the UI doesn't freeze
-        refresh_timer = QTimer(self)
-        refresh_timer.setSingleShot(True)
-        refresh_timer.timeout.connect(self._refresh_ui)
-        refresh_timer.start(50)  # 50ms delay
+        try:
+            # Load the validation list from file
+            imported_list = ValidationList.load_from_file(
+                file_path, list_type=self._list_type, config_manager=self._config_manager
+            )
 
-    def _refresh_ui(self):
-        """Refresh the UI to reflect the current model."""
-        # Ensure the model is up to date
-        self._table_view.resizeColumnsToContents()
-        self._table_view.resizeRowsToContents()
+            if not imported_list.entries:
+                QMessageBox.warning(
+                    self, "Import Error", f"No valid entries found in the selected file."
+                )
+                return
 
-        # Update button states
-        self._on_selection_changed()
+            # Update our list with the imported one
+            self._list = imported_list
+            self.populate()
 
-        # Emit list updated signal
-        self._emit_list_updated()
+            # Save the directory path for future use
+            if self._config_manager:
+                dir_path = os.path.dirname(file_path)
+                self._config_manager.set_path("validation_dir", dir_path)
+
+            # Show success message
+            QMessageBox.information(
+                self,
+                "Import Successful",
+                f"Successfully imported {len(self._list.entries)} {self._list_type} entries.",
+            )
+
+            # Emit the list_updated signal
+            self.list_updated.emit(self._list)
+
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error importing {self._list_type} list: {str(e)}", exc_info=True)
+            QMessageBox.critical(self, "Import Error", f"Failed to import list: {str(e)}")
+
+    def _export_list(self):
+        """Export validation list to a file."""
+        # Check if list is empty
+        if not self._list.entries:
+            QMessageBox.warning(
+                self,
+                "Empty List",
+                f"The {self._list_type} list is empty. There's nothing to export.",
+            )
+            return
+
+        # Get the directory path to use as initial dir
+        initial_dir = str(Path.home())
+        if self._config_manager:
+            config_dir = self._config_manager.get_path("validation_dir")
+            if config_dir:
+                initial_dir = config_dir
+
+        # Default filename
+        default_filename = f"{self._list_type}_list.txt"
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            f"Export {self._list_type} List",
+            os.path.join(initial_dir, default_filename),
+            "Text Files (*.txt *.csv);;All Files (*.*)",
+        )
+
+        if not file_path:
+            return
+
+        try:
+            # Save the validation list to file
+            self._list.save_to_file(file_path)
+
+            # Save the directory path for future use
+            if self._config_manager:
+                dir_path = os.path.dirname(file_path)
+                self._config_manager.set_path("validation_dir", dir_path)
+
+            # Show success message
+            QMessageBox.information(
+                self,
+                "Export Successful",
+                f"Successfully exported {len(self._list.entries)} {self._list_type} entries to {file_path}.",
+            )
+
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error exporting {self._list_type} list: {str(e)}", exc_info=True)
+            QMessageBox.critical(self, "Export Error", f"Failed to export list: {str(e)}")
 
     def get_list(self) -> ValidationList:
         """
         Get the validation list.
 
         Returns:
-            ValidationList instance
+            The validation list
         """
-        # Update the validation list with current items
-        self._validation_list.items = self._model.get_all_items()
-        return self._validation_list
+        return self._list
 
-    @Slot()
-    def _on_add(self):
-        """Handle the add button click."""
-        # Create and show the dialog
-        dialog = ValidationListItemDialog(parent=self)
-        if dialog.exec():
-            # Get the value
-            value = dialog.item.strip()
-            if value:
-                # Add the value to the model
-                self._model.add_item(value)
-                # Emit list updated signal
-                self._emit_list_updated()
-
-    @Slot()
-    def _on_edit(self):
-        """Handle the edit button click."""
-        # Get the selected index
-        index = self._table_view.selectionModel().currentIndex()
-        if index.isValid():
-            # Get the value
-            value = self._model.data(index, Qt.DisplayRole)
-            # Create and show the dialog
-            dialog = ValidationListItemDialog(value, parent=self)
-            if dialog.exec():
-                # Get the new value
-                new_value = dialog.item.strip()
-                if new_value and new_value != value:
-                    # Update the value in the model
-                    self._model.update_item(index, new_value)
-                    # Emit list updated signal
-                    self._emit_list_updated()
-
-    @Slot()
-    def _on_delete(self):
-        """Handle delete button click."""
-        # Get selected indexes
-        selection_model = self._table_view.selectionModel()
-        if not selection_model.hasSelection():
-            return
-
-        index = selection_model.selectedIndexes()[0]
-        item = self._model.data(index)
-
-        # Confirm deletion
-        result = QMessageBox.question(
-            self,
-            "Confirm Deletion",
-            f"Are you sure you want to delete '{item}'?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-
-        if result == QMessageBox.Yes:
-            # Delete the value from the model
-            self._model.delete_item(index)
-            # Emit list updated signal
-            self._emit_list_updated()
-
-    @Slot()
-    def _on_import(self):
-        """Handle the import button click."""
-        # Get the file paths using the helper method
-        import_path, file_paths = self._get_file_paths(self._list_name)
-        if not import_path:
-            return
-
-        # Open the file dialog
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            f"Import {self._list_name} Validation List",
-            str(import_path),
-            "CSV Files (*.csv);;Text Files (*.txt);;All Files (*.*)",
-        )
-
-        if not file_path:
-            return
-
-        # Create a ConfigManager to save the path
-        config = ConfigManager.get_instance()
-        if config and hasattr(config, "set_path"):
-            # Use the new path API if available
-            config.set_path(f"validation_list_{self._list_name.lower()}", file_path)
-        elif config:
-            # Fall back to the old API
-            config.set_value("Paths", f"validation_list_{self._list_name.lower()}", file_path)
-
-        # Load the validation list
-        try:
-            import pandas as pd
-
-            if file_path.lower().endswith(".csv"):
-                # CSV file
-                df = pd.read_csv(file_path)
-
-                # Try to find the column with the validation entries
-                if "entry" in df.columns:
-                    # Use the 'entry' column
-                    validation_list = ValidationList(
-                        list_type=self._list_name.lower(),
-                        entries=df["entry"].tolist(),
-                        name=self._list_name,
-                    )
-                elif df.shape[1] == 1:
-                    # Single column, use it
-                    validation_list = ValidationList(
-                        list_type=self._list_name.lower(),
-                        entries=df.iloc[:, 0].tolist(),
-                        name=self._list_name,
-                    )
-                else:
-                    # Multiple columns, use the first one
-                    validation_list = ValidationList(
-                        list_type=self._list_name.lower(),
-                        entries=df.iloc[:, 0].tolist(),
-                        name=self._list_name,
-                    )
-            else:
-                # Text file, assume one entry per line
-                with open(file_path, "r") as f:
-                    entries = [line.strip() for line in f if line.strip()]
-
-                validation_list = ValidationList(
-                    list_type=self._list_name.lower(),
-                    entries=entries,
-                    name=self._list_name,
-                )
-
-            # Set the validation list
-            self.set_validation_list(validation_list)
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Import Error",
-                f"Error importing validation list: {str(e)}",
-            )
-
-    @Slot()
-    def _on_export(self):
-        """Handle the export button click."""
-        # Get the file paths using the helper method
-        export_path, _ = self._get_file_paths(self._list_name)
-        if not export_path:
-            return
-
-        # Open the file dialog
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            f"Export {self._list_name} Validation List",
-            str(export_path),
-            "CSV Files (*.csv);;Text Files (*.txt);;All Files (*.*)",
-        )
-
-        if not file_path:
-            return
-
-        # Save the validation list
-        try:
-            self._save_validation_list(self._list_name.lower(), file_path)
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Export Error",
-                f"Error exporting validation list: {str(e)}",
-            )
-
-    @Slot()
-    def _on_selection_changed(self):
-        """Handle selection changes in the table view."""
-        # Update button states based on selection
-        has_selection = self._table_view.selectionModel().hasSelection()
-        self._edit_button.setEnabled(has_selection)
-        self._delete_button.setEnabled(has_selection)
-
-    @Slot(QModelIndex, QModelIndex)
-    def _on_data_changed(self, topLeft, bottomRight):
-        """Handle data changes in the model."""
-        # Emit list updated signal
-        self._emit_list_updated()
-
-    @Slot(QPoint)
-    def _show_context_menu(self, pos):
+    def get_items(self) -> List[str]:
         """
-        Show a context menu at the specified position.
-
-        Args:
-            pos: Position to show the menu
-        """
-        # Get the model index at the position
-        index = self._table_view.indexAt(pos)
-        if not index.isValid():
-            return
-
-        # Create the menu
-        menu = QMenu(self)
-
-        # Add actions
-        edit_action = menu.addAction("Edit")
-        delete_action = menu.addAction("Delete")
-
-        # Show the menu and handle the selected action
-        action = menu.exec(self._table_view.viewport().mapToGlobal(pos))
-        if action == edit_action:
-            self._on_edit_from_menu(index)
-        elif action == delete_action:
-            self._on_delete_from_menu(index)
-
-    def _on_edit_from_menu(self, index):
-        """
-        Handle edit action from context menu.
-
-        Args:
-            index: Model index of the item to edit
-        """
-        # Start editing the cell
-        self._table_view.edit(index)
-
-    def _on_delete_from_menu(self, index):
-        """
-        Handle delete action from context menu.
-
-        Args:
-            index: Model index of the item to delete
-        """
-        # Get the value
-        value = self._model.data(index, Qt.DisplayRole)
-        # Confirm deletion
-        result = QMessageBox.question(
-            self,
-            "Confirm Deletion",
-            f"Are you sure you want to delete '{value}'?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if result == QMessageBox.Yes:
-            # Delete the value from the model
-            self._model.delete_item(index)
-            # Emit list updated signal
-            self._emit_list_updated()
-
-    def _emit_list_updated(self):
-        """Emit the list_updated signal."""
-        # Get the validation list from the model
-        validation_list = self.get_list()
-
-        # Set the name if it's not already set
-        if not validation_list.name or validation_list.name == "unnamed":
-            validation_list.name = self._list_name
-
-        # Set the list type if it's not already set
-        if not validation_list.list_type:
-            validation_list.list_type = self._list_name.lower()
-
-        # Emit the signal
-        self.list_updated.emit(validation_list)
-
-    def _get_file_paths(self, list_type):
-        """
-        Get the file paths for import/export.
-
-        Args:
-            list_type: Type of validation list
+        Get all items in the list.
 
         Returns:
-            tuple: (path, list of paths)
+            List of all items
         """
-        config = ConfigManager.get_instance()
-        if not config:
-            return Path.home(), []
-
-        # Use the new path API if available
-        if hasattr(config, "get_path"):
-            # Get the last used path
-            last_path = config.get_path(f"validation_list_{list_type.lower()}")
-
-            # Get the default paths
-            data_dir = config.get_path("data_dir")
-            validation_dir = config.get_path("validation_dir")
-
-            # Use the most specific path available
-            if last_path and Path(last_path).parent.exists():
-                return Path(last_path).parent, [last_path, validation_dir, data_dir, Path.home()]
-            elif validation_dir and Path(validation_dir).exists():
-                return Path(validation_dir), [validation_dir, data_dir, Path.home()]
-            elif data_dir and Path(data_dir).exists():
-                return Path(data_dir), [data_dir, Path.home()]
-            else:
-                return Path.home(), [Path.home()]
-        else:
-            # Fall back to the old API
-            last_path = config.get_value("Paths", f"validation_list_{list_type.lower()}", "")
-
-            if last_path and Path(last_path).parent.exists():
-                return Path(last_path).parent, [last_path]
-            else:
-                return Path.home(), [Path.home()]
-
-    def _save_validation_list(self, list_type, file_path):
-        """
-        Save the validation list to a file.
-
-        Args:
-            list_type: Type of validation list
-            file_path: Path to save the file
-        """
-        import pandas as pd
-
-        # Get the validation list
-        validation_list = self.get_list()
-
-        # Create a DataFrame from the validation list
-        df = pd.DataFrame({"entry": validation_list.items})
-
-        # Save the DataFrame to a file
-        if file_path.lower().endswith(".csv"):
-            # CSV file
-            df.to_csv(file_path, index=False)
-        else:
-            # Text file, one entry per line
-            with open(file_path, "w") as f:
-                for entry in validation_list.items:
-                    f.write(f"{entry}\n")
-
-        # Create a ConfigManager to save the path
-        config = ConfigManager.get_instance()
-        if config and hasattr(config, "set_path"):
-            # Use the new path API if available
-            config.set_path(f"validation_list_{list_type}", file_path)
-        elif config:
-            # Fall back to the old API
-            config.set_value("Paths", f"validation_list_{list_type}", file_path)
-
-    def _setup_ui(self):
-        """Set up the UI."""
-        # Main layout
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        # Search layout
-        search_layout = QHBoxLayout()
-        search_label = QLabel("Search:")
-        self._search_field.setPlaceholderText("Enter search term...")
-        self._search_field.setClearButtonEnabled(True)
-        self._search_field.textChanged.connect(self._on_search_changed)
-
-        self._clear_button = QPushButton("Clear")
-        self._clear_button.clicked.connect(self._on_clear_search)
-
-        search_layout.addWidget(search_label)
-        search_layout.addWidget(self._search_field, 1)
-        search_layout.addWidget(self._clear_button)
-
-        layout.addLayout(search_layout)
-
-        # Create table view
-        self._table_view = QTableView(self)
-        self._table_view.setModel(self._model)
-        self._table_view.setSelectionBehavior(QTableView.SelectRows)
-        self._table_view.setSelectionMode(QTableView.SingleSelection)
-        self._table_view.setEditTriggers(QTableView.DoubleClicked | QTableView.EditKeyPressed)
-        self._table_view.setContextMenuPolicy(Qt.CustomContextMenu)
-        self._table_view.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-
-        # Add table view to layout
-        layout.addWidget(self._table_view)
-
-        # Create button layout
-        button_layout = QHBoxLayout()
-
-        # Create buttons
-        self._add_button = QPushButton("Add", self)
-        self._edit_button = QPushButton("Edit", self)
-        self._delete_button = QPushButton("Delete", self)
-        self._import_button = QPushButton("Import", self)
-        self._export_button = QPushButton("Export", self)
-
-        # Add buttons to layout
-        button_layout.addWidget(self._add_button)
-        button_layout.addWidget(self._edit_button)
-        button_layout.addWidget(self._delete_button)
-        button_layout.addWidget(self._import_button)
-        button_layout.addWidget(self._export_button)
-
-        # Add button layout to main layout
-        layout.addLayout(button_layout)
-
-        # Set button states
-        self._edit_button.setEnabled(False)
-        self._delete_button.setEnabled(False)
-
-        # Enable direct editing
-        self._table_view.setContextMenuPolicy(Qt.CustomContextMenu)
-
-        # Connect signals
-        self._connect_signals()
-
-    def _connect_signals(self):
-        """Connect signals."""
-        # Button signals
-        self._add_button.clicked.connect(self._on_add)
-        self._edit_button.clicked.connect(self._on_edit)
-        self._delete_button.clicked.connect(self._on_delete)
-        self._import_button.clicked.connect(self._on_import)
-        self._export_button.clicked.connect(self._on_export)
-
-        # Table view signals
-        selection_model = self._table_view.selectionModel()
-        if selection_model:
-            selection_model.selectionChanged.connect(self._on_selection_changed)
-
-        # Model signals
-        self._model.dataChanged.connect(self._on_data_changed)
-
-        # Context menu signal
-        self._table_view.customContextMenuRequested.connect(self._show_context_menu)
-
-        # Search signals - search_field.textChanged is already connected in _setup_ui
-        # No need to connect _clear_search_button as it's handled in _setup_ui
-        pass
-
-    @Slot(str)
-    def _on_search_changed(self, text):
-        """
-        Handle changes in the search field.
-
-        Args:
-            text (str): Current text in the search field
-        """
-        # Get current selection
-        table_view = self._table_view
-        selection_model = table_view.selectionModel()
-        selected_items = []
-
-        if selection_model and selection_model.hasSelection():
-            # Store the selected items before filtering
-            for index in selection_model.selectedIndexes():
-                item = self._model.data(index)
-                selected_items.append(item)
-
-        # Set the search term and filter the items
-        self._model.set_search_term(text)
-
-        # Restore selection if possible
-        if selected_items:
-            selection_model.clearSelection()
-            # Try to select the previously selected items if they're still visible
-            for i in range(self._model.rowCount()):
-                item = self._model.data(self._model.index(i, 0))
-                if item in selected_items:
-                    # Select this item
-                    index = self._model.index(i, 0)
-                    selection_model.select(index, QItemSelectionModel.Select)
-
-    @Slot()
-    def _on_clear_search(self):
-        """Clear the search field."""
-        self._search_field.clear()
-        self._on_search_changed("")
-
-    def model(self):
-        """
-        Get the model used by this widget.
-
-        Returns:
-            ValidationListItemModel: The model
-        """
-        return self._model
-
-    def get_items(self):
-        """
-        Get the items in the list.
-
-        Returns:
-            list: List of items
-        """
-        return self.get_list().items
-
-    def add_item(self, item):
-        """
-        Add an item to the list.
-
-        Args:
-            item (str): Item to add
-        """
-        self._model.add_item(item)
-        self._emit_list_updated()
-
-    def delete_item(self, item):
-        """
-        Delete an item from the list.
-
-        Args:
-            item (str): Item to delete
-        """
-        # Find the item in the model
-        for i in range(self._model.rowCount()):
-            if self._model.data(self._model.index(i, 0)) == item:
-                self._model.delete_item(self._model.index(i, 0))
-                self._emit_list_updated()
-                break
+        return self._list.get_all_items()
