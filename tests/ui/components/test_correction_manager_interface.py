@@ -8,8 +8,8 @@ Usage:
 
 import pytest
 import pandas as pd
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
-from PyQt5.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QMainWindow, QTabWidget
+from PySide6.QtCore import Qt
 from typing import List, Dict, Any
 
 from src.ui.correction_manager_interface import CorrectionManagerInterface

@@ -2,401 +2,663 @@
 
 ## Introduction
 
-This guide provides comprehensive information about testing the UI components of the Correction Tool application. It covers test setup, common testing patterns, and best practices for ensuring UI component quality and reliability.
+This guide provides comprehensive information about testing UI components in the Correction Tool application. It explains the organization of UI tests, the testing framework used, and provides examples of how to test various UI components.
 
 ## Test Organization
 
-### Directory Structure
+UI tests are organized into the following directory structure:
 
 ```
 tests/
-├── ui/                       # UI-specific tests
-│   ├── components/           # Tests for individual UI components
-│   ├── integration/          # Tests for component integration
-│   ├── helpers/              # Helper classes and utilities for UI testing
-│   └── fixtures/             # pytest fixtures for UI tests
-├── conftest.py               # Global test fixtures
-└── ...                       # Other test directories
+├── ui/
+│   ├── components/         # Tests for individual UI components
+│   ├── integration/        # Tests for component interactions and workflows
+│   ├── helpers/            # Helper classes for UI testing
+│   └── fixtures/           # Test fixtures for UI testing
 ```
 
-### Naming Conventions
+### UI Components Directory
 
-- Test files should be named with the prefix `test_` followed by the name of the module/component being tested (e.g., `test_validation_list_widget.py`)
-- Test classes should be named with the prefix `Test` followed by the component name (e.g., `TestValidationListWidget`)
-- Test methods should start with `test_` followed by a descriptive name of what's being tested (e.g., `test_populate_with_dataframe`)
+The `components` directory contains tests for individual UI components, such as:
+
+- `test_validation_list_widget.py` - Tests for the ValidationListWidget
+- `test_correction_manager_interface.py` - Tests for the CorrectionManagerInterface
+- `test_correction_rules_table.py` - Tests for the CorrectionRulesTable
+- `test_validation_lists_control_panel.py` - Tests for the ValidationListsControlPanel
+
+### Integration Directory
+
+The `integration` directory contains tests for interactions between components and complete workflows:
+
+- `test_correction_manager_workflow.py` - Tests for the complete correction workflow
+- `test_validation_list_management.py` - Tests for validation list management workflows
+
+### Helpers Directory
+
+The `helpers` directory contains utility classes for UI testing:
+
+- `ui_test_helper.py` - Helper methods for testing UI components
+- `mock_services.py` - Mock implementations of application services
+
+### Fixtures Directory
+
+The `fixtures` directory contains pytest fixtures for UI testing:
+
+- `base_test_fixtures.py` - Common fixtures for UI tests, including sample data and service setup
+
+## Naming Conventions
+
+- Test files should be named `test_<component_name>.py`
+- Test classes should be named `Test<ComponentName>`
+- Test methods should be named `test_<functionality_being_tested>`
+
+For example:
+
+```python
+# test_validation_list_widget.py
+class TestValidationListWidget:
+    def test_initialization(self):
+        # Test initialization of ValidationListWidget
+        pass
+    
+    def test_add_item(self):
+        # Test adding items to ValidationListWidget
+        pass
+```
 
 ## Testing Framework
 
-### pytest-qt
+The Correction Tool UI tests use pytest with the pytest-qt plugin. This allows for testing Qt widgets and signals in a Pythonic way.
 
-The UI testing framework uses pytest-qt, which provides Qt-specific fixtures for testing Qt applications:
+### Installing pytest-qt
+
+```bash
+uv add pytest-qt
+```
+
+### Basic pytest-qt Example
 
 ```python
 def test_button_click(qtbot):
-    widget = ValidationListWidget()
-    
-    # Add widget to qtbot for automatic cleanup
+    widget = MyWidget()
     qtbot.addWidget(widget)
     
-    # Test interaction
-    qtbot.mouseClick(widget.add_button, Qt.LeftButton)
+    # Click a button
+    with qtbot.waitSignal(widget.clicked, timeout=1000):
+        qtbot.mouseClick(widget.button, Qt.LeftButton)
     
-    # Assert expected result
-    assert widget.count() == 1
-```
-
-### UITestHelper Class
-
-The `UITestHelper` class provides utility methods for common UI testing tasks:
-
-```python
-from tests.ui.helpers.ui_test_helper import UITestHelper
-
-def test_validation_list_display(qtbot):
-    helper = UITestHelper(qtbot)
-    widget = helper.create_validation_list_widget()
-    
-    # Test with different data sources
-    helper.populate_widget_with_list(widget, ["Item1", "Item2"])
-    assert widget.count() == 2
-    
-    # Test signals
-    with helper.wait_signal(widget.item_added):
-        helper.click_add_button(widget)
+    # Check that the widget has been updated
+    assert widget.label.text() == "Button clicked"
 ```
 
 ## Mock Services
 
-### Creating Mock Services
+For testing UI components in isolation, we use mock implementations of the application services. These are defined in `tests/ui/helpers/mock_services.py`.
 
-Create mock implementations of required interfaces for isolated testing:
+### Example: MockDataStore
 
 ```python
-from src.interfaces.data_store import IDataStore
-
 class MockDataStore(IDataStore):
-    def __init__(self):
-        self.data = {}
-        self.validation_lists = {}
+    def __init__(self, test_data=None):
+        self._data = test_data or pd.DataFrame({
+            "column1": ["value1", "value2", "value3"],
+            "column2": ["value4", "value5", "value6"]
+        })
+        self._subscribers = {}
         
-    def get_validation_list(self, list_name):
-        return self.validation_lists.get(list_name, [])
+    def get_data(self):
+        return self._data
         
-    def update_validation_list(self, list_name, items):
-        self.validation_lists[list_name] = items
-        return True
+    def set_data(self, data):
+        self._data = data
+        self._notify_subscribers(EventType.DATA_UPDATED)
 ```
 
-### Using Mock Services
-
-Inject mock services into UI components for testing:
+### Using Mock Services in Tests
 
 ```python
-def test_component_with_mocks(qtbot):
+def test_validation_list_widget_with_mock_services(qtbot):
     # Create mock services
     mock_data_store = MockDataStore()
-    mock_config = MockConfigManager()
+    mock_validation_service = MockValidationService()
     
-    # Configure the mocks
-    mock_data_store.validation_lists["players"] = ["Player1", "Player2"]
-    
-    # Create widget with mocks
-    widget = ValidationListWidget()
-    widget.set_services(mock_data_store, mock_config)
+    # Create the widget with mock services
+    widget = ValidationListWidget(mock_data_store, mock_validation_service)
     qtbot.addWidget(widget)
     
-    # Test
-    widget.populate()
-    assert widget.count() == 2
+    # Test widget functionality
+    widget.add_item("test_item")
+    assert "test_item" in widget.get_items()
 ```
 
-## Testing Different Data Types
+## UITestHelper
 
-ValidationListWidget needs special handling for different data types:
-
-### Testing with List Data
+The `UITestHelper` class in `tests/ui/helpers/ui_test_helper.py` provides methods for common UI testing operations:
 
 ```python
-def test_with_list_data(qtbot):
+class UITestHelper:
+    def __init__(self, qtbot):
+        self.qtbot = qtbot
+        
+    def click_button(self, button):
+        self.qtbot.mouseClick(button, Qt.LeftButton)
+        
+    def enter_text(self, widget, text):
+        self.qtbot.keyClicks(widget, text)
+        
+    def select_item(self, list_widget, index):
+        list_widget.setCurrentRow(index)
+        
+    def get_selected_rows(self, table_view):
+        return [index.row() for index in table_view.selectedIndexes() 
+                if index.column() == 0]
+                
+    def find_widget_by_name(self, parent, name):
+        """Find a child widget by its object name"""
+        return parent.findChild(QWidget, name)
+        
+    def find_widget_by_class(self, parent, widget_class, name=None):
+        """Find a child widget by its class and optional name"""
+        widgets = parent.findChildren(widget_class)
+        if name:
+            return next((w for w in widgets if name in w.objectName()), None)
+        return widgets[0] if widgets else None
+        
+    def get_list_item_text(self, list_widget, index):
+        """Get the text of an item in a QListWidget"""
+        item = list_widget.item(index)
+        return item.text() if item else None
+        
+    def verify_widget_visibility(self, widget, should_be_visible):
+        """Assert whether a widget is visible or hidden"""
+        assert widget.isVisible() == should_be_visible
+        
+    def verify_widget_enabled(self, widget, should_be_enabled):
+        """Assert whether a widget is enabled or disabled"""
+        assert widget.isEnabled() == should_be_enabled
+        
+    def verify_button_text(self, button, expected_text):
+        """Assert that a button has the expected text"""
+        assert button.text() == expected_text
+        
+    def capture_signals(self, signal, timeout=1000):
+        """Capture emissions of a signal within a timeout"""
+        signal_catcher = SignalCatcher(signal)
+        return signal_catcher
+        
+    def verify_widget_property(self, widget, property_name, expected_value):
+        """Assert that a widget has the expected property value"""
+        assert widget.property(property_name) == expected_value
+```
+
+### Using UITestHelper in Tests
+
+```python
+def test_correction_manager_interface(qtbot):
+    # Create the helper
+    helper = UITestHelper(qtbot)
+    
+    # Set up services
+    mock_service_factory = MockServiceFactory()
+    
+    # Create the widget
+    interface = CorrectionManagerInterface(mock_service_factory)
+    qtbot.addWidget(interface)
+    
+    # Find a specific button by name
+    add_button = helper.find_widget_by_name(interface, "addButton")
+    assert add_button is not None
+    
+    # Verify button is enabled
+    helper.verify_widget_enabled(add_button, True)
+    
+    # Click the button
+    helper.click_button(add_button)
+    
+    # Verify result
+    # ... additional assertions
+```
+
+## Testing Different Data Types with ValidationListWidget
+
+The ValidationListWidget can accept different data types, and tests should verify correct handling:
+
+```python
+def test_validation_list_widget_with_list(qtbot):
     widget = ValidationListWidget()
     qtbot.addWidget(widget)
     
     # Test with a simple list
-    data = ["Item1", "Item2", "Item3"]
-    widget.set_validation_list(data)
+    test_list = ["item1", "item2", "item3"]
+    widget.set_list(test_list)
     
-    assert widget.count() == 3
-    assert widget.item(0).text() == "Item1"
-```
+    assert widget.count() == len(test_list)
+    for i, item in enumerate(test_list):
+        assert widget.item(i).text() == item
 
-### Testing with DataFrame Data
-
-```python
-def test_with_dataframe(qtbot):
-    import pandas as pd
-    
+def test_validation_list_widget_with_dataframe(qtbot):
     widget = ValidationListWidget()
     qtbot.addWidget(widget)
     
     # Test with a DataFrame
-    df = pd.DataFrame({"col1": ["Item1", "Item2", "Item3"]})
-    widget.set_validation_list(df)
+    import pandas as pd
+    test_df = pd.DataFrame({"column": ["item1", "item2", "item3"]})
+    widget.set_list(test_df)
     
-    assert widget.count() == 3
-    assert widget.item(0).text() == "Item1"
+    assert widget.count() == len(test_df)
+    for i, item in enumerate(test_df["column"]):
+        assert widget.item(i).text() == item
 ```
 
-### Testing with Method or Attribute
+## Headless Testing Compatibility
+
+When testing UI components in a headless environment (like CI/CD pipelines or servers without a display), there are specific challenges and best practices to follow.
+
+### Challenges with Headless UI Testing
+
+1. **Widget Visibility**: In headless environments, widgets may report different visibility states compared to desktop environments.
+2. **Signal Handling**: Signal propagation may behave differently in headless environments.
+3. **Rendering Issues**: Components that depend on rendering or painting may not work as expected.
+4. **Window Activation**: Tests that require window activation or focus may fail.
+
+### Best Practices for Headless Testing
+
+1. **Avoid Visibility Checks**: Instead of checking `isVisible()`, check for widget existence and enabled state:
+
+   ```python
+   # Not recommended for headless environments
+   assert widget._button.isVisible() is True
+   
+   # Recommended approach
+   assert hasattr(widget, "_button")
+   assert widget._button is not None
+   assert widget._button.isEnabled() is True
+   ```
+
+2. **Use Enabled State Over Visibility**: UI components should use `setEnabled()` instead of `setVisible()` when possible:
+
+   ```python
+   # Not recommended for headless tests
+   self._clear_button.setVisible(bool(text))
+   
+   # Recommended approach
+   self._clear_button.setEnabled(bool(text))
+   ```
+
+3. **Verify Underlying Data State**: Always check both the UI state and the underlying data/model state:
+
+   ```python
+   # Check both UI and model state
+   assert widget.get_search_text() == search_text
+   assert text_filter.search_text == search_text  # Verify model state too
+   ```
+
+4. **Avoid Unnecessary show() Calls**: Don't rely on widget.show() in tests unless absolutely necessary:
+
+   ```python
+   # Not needed for most tests
+   widget = FilterSearchBar(text_filter)
+   widget.show()  # This can cause issues in headless environments
+   
+   # Usually sufficient
+   widget = FilterSearchBar(text_filter)
+   ```
+
+5. **Use Simplified Test Cases**: Create basic test cases to validate test infrastructure:
+
+   ```python
+   def test_simple_widget(self, qtbot):
+       """Test a simple widget to verify test environment."""
+       widget = QLabel("Test Label")
+       qtbot.addWidget(widget)
+       
+       assert widget.text() == "Test Label"
+       assert widget is not None
+       assert widget.isEnabled() is True
+   ```
+
+### Examples of Headless-Compatible Tests
 
 ```python
-def test_with_callable_items(qtbot):
-    widget = ValidationListWidget()
-    qtbot.addWidget(widget)
+# Test for FilterSearchBar compatible with headless environments
+def test_search_text(self, app, text_filter):
+    """Test setting and getting search text."""
+    widget = FilterSearchBar(text_filter)
+
+    # Test setting text
+    search_text = "test search"
+    widget.set_search_text(search_text)
+
+    # Check text was set (both UI and model)
+    assert widget.get_search_text() == search_text
+    assert text_filter.search_text == search_text
     
-    # Test with a class that has items as a method
-    class TestList:
-        def items(self):
-            return ["Item1", "Item2"]
-    
-    test_list = TestList()
-    widget.set_validation_list(test_list)
-    
-    assert widget.count() == 2
-    assert widget.item(0).text() == "Item1"
+    # Check button state (enabled instead of visible)
+    assert widget._clear_button.isEnabled() is True
+```
+
+### Adapting Existing Tests for Headless Compatibility
+
+When updating existing tests for headless compatibility:
+
+1. Replace `isVisible()` checks with `isEnabled()` or existence checks
+2. Add verification of the underlying data model state
+3. Remove unnecessary `show()` calls
+4. Use `addWidget(widget)` with qtbot to properly register widgets
+5. Add timeout parameters to signal waiting operations
+
+By following these guidelines, UI tests will be more reliable in both headed and headless environments, making them suitable for continuous integration pipelines.
+
+## Test Fixtures
+
+The `base_test_fixtures.py` file contains fixtures that can be used across multiple tests:
+
+```python
+@pytest.fixture
+def mock_service_factory():
+    factory = MockServiceFactory()
+    return factory
+
+@pytest.fixture
+def sample_validation_list():
+    return ["item1", "item2", "item3", "item4", "item5"]
+
+@pytest.fixture
+def sample_correction_rules():
+    return [
+        {"from": "item1", "to": "corrected1", "enabled": True},
+        {"from": "item2", "to": "corrected2", "enabled": True},
+        {"from": "item3", "to": "corrected3", "enabled": False},
+    ]
+
+@pytest.fixture
+def ui_helper(qtbot):
+    return UITestHelper(qtbot)
 ```
 
 ## Testing Button Functionality
 
-Test button clicks and other interactions:
+Example test for button functionality in ValidationListWidget:
 
 ```python
-def test_add_button(qtbot):
+def test_button_functionality(qtbot, ui_helper):
+    # Create widget
     widget = ValidationListWidget()
     qtbot.addWidget(widget)
     
-    # Prepare for the dialog
-    qtbot.keyClicks(widget.input_dialog, "New Item")
-    qtbot.mouseClick(widget.input_dialog.buttons()[0], Qt.LeftButton)
+    # Find buttons
+    add_button = ui_helper.find_widget_by_name(widget, "addButton")
+    delete_button = ui_helper.find_widget_by_name(widget, "deleteButton")
     
-    # Click the add button
-    qtbot.mouseClick(widget.add_button, Qt.LeftButton)
+    # Test add button
+    # First, set up with initial data
+    widget.set_list(["initial_item"])
     
-    assert widget.count() == 1
-    assert widget.item(0).text() == "New Item"
+    # Spy on the item_added signal
+    with qtbot.waitSignal(widget.item_added, timeout=1000) as blocker:
+        # Set text in the line edit and click add
+        line_edit = ui_helper.find_widget_by_class(widget, QLineEdit)
+        ui_helper.enter_text(line_edit, "new_item")
+        ui_helper.click_button(add_button)
+    
+    # Verify signal emission and widget update
+    assert blocker.args == ["new_item"]  # Check signal argument
+    assert widget.count() == 2  # Check item count
+    assert ui_helper.get_list_item_text(widget, 1) == "new_item"  # Check item added
+    
+    # Test delete button
+    # Select the item to delete
+    ui_helper.select_item(widget, 1)
+    
+    # Spy on the item_deleted signal
+    with qtbot.waitSignal(widget.item_deleted, timeout=1000) as blocker:
+        ui_helper.click_button(delete_button)
+    
+    # Verify signal emission and widget update
+    assert blocker.args == ["new_item"]  # Check signal argument
+    assert widget.count() == 1  # Check item count
 ```
 
-## Testing Signal Emissions
+## Integration Testing Example
 
-Verify signals are emitted correctly:
-
-```python
-def test_signal_emission(qtbot):
-    widget = ValidationListWidget()
-    qtbot.addWidget(widget)
-    
-    # Set up signal tracking
-    signals_caught = []
-    widget.item_added.connect(lambda item: signals_caught.append(item))
-    
-    # Trigger the signal
-    with qtbot.waitSignal(widget.item_added, timeout=1000):
-        widget._add_item("New Item")
-    
-    assert len(signals_caught) == 1
-    assert signals_caught[0] == "New Item"
-```
-
-## Integration Testing
-
-Test the interaction between components:
+Example test for integration between ValidationListWidget and CorrectionManagerInterface:
 
 ```python
-def test_correction_manager_with_validation_lists(qtbot):
-    # Set up mock services
-    mock_services = create_mock_services()
+def test_validation_list_widget_integration(qtbot, mock_service_factory, ui_helper):
+    # Create correction manager interface
+    interface = CorrectionManagerInterface(mock_service_factory)
+    qtbot.addWidget(interface)
     
-    # Create both components
-    validation_widget = ValidationListWidget()
-    correction_manager = CorrectionManagerInterface(mock_services)
+    # Find the validation list widget in the interface
+    validation_list_widget = ui_helper.find_widget_by_class(
+        interface, ValidationListWidget, "validationListWidget"
+    )
+    assert validation_list_widget is not None
     
-    qtbot.addWidget(validation_widget)
-    qtbot.addWidget(correction_manager)
+    # Find the add button in the validation list widget
+    add_button = ui_helper.find_widget_by_name(validation_list_widget, "addButton")
+    assert add_button is not None
     
-    # Test interaction
-    correction_manager.add_validation_list("players", validation_widget)
+    # Test adding an item through the interface
+    line_edit = ui_helper.find_widget_by_class(validation_list_widget, QLineEdit)
+    ui_helper.enter_text(line_edit, "test_integration_item")
+    ui_helper.click_button(add_button)
     
-    # Trigger an update
-    validation_widget._add_item("New Player")
-    
-    # Verify correction manager updated
-    assert "New Player" in correction_manager.get_validation_list("players")
+    # Verify that the item was added to the validation list
+    assert "test_integration_item" in mock_service_factory.validation_service.validation_lists[0]
 ```
 
 ## Test Data Generation
 
-Use consistent test data generators:
+For tests that require sample data, it's important to have consistent test data. The `test_data.py` module provides functions for generating test data:
 
 ```python
-from tests.ui.helpers.test_data_generator import TestDataGenerator
+def create_sample_correction_rules(count=10):
+    """Create a list of sample correction rules for testing."""
+    return [
+        {
+            "from": f"from_value_{i}",
+            "to": f"to_value_{i}",
+            "enabled": i % 2 == 0
+        }
+        for i in range(count)
+    ]
 
-def test_with_generated_data(qtbot):
-    generator = TestDataGenerator()
+def create_sample_validation_list(count=10, prefix="item"):
+    """Create a sample validation list for testing."""
+    return [f"{prefix}_{i}" for i in range(count)]
+
+def create_sample_dataframe(rows=10, cols=3):
+    """Create a sample DataFrame for testing."""
+    import pandas as pd
+    import numpy as np
     
-    # Generate test data
-    players = generator.create_player_list(10)
-    chest_types = generator.create_chest_types()
+    data = {}
+    for col in range(cols):
+        col_name = f"column_{col}"
+        data[col_name] = [f"value_{col}_{row}" for row in range(rows)]
     
-    # Test with generated data
-    widget = ValidationListWidget()
-    qtbot.addWidget(widget)
-    widget.set_validation_list(players)
-    
-    assert widget.count() == 10
+    return pd.DataFrame(data)
 ```
 
-## Test Synchronization
+## Test Runner Script
 
-Handle asynchronous UI updates:
+A dedicated script for running UI tests is available in `scripts/run_ui_tests.py`:
 
 ```python
-def test_async_operations(qtbot):
-    widget = ValidationListWidget()
-    qtbot.addWidget(widget)
+#!/usr/bin/env python
+"""
+UI test runner script for the Correction Tool application.
+
+This script sets up the proper environment for running UI tests and
+executes pytest with the correct parameters.
+"""
+
+import os
+import sys
+import argparse
+import pytest
+from pathlib import Path
+
+def main():
+    # Set up command line arguments
+    parser = argparse.ArgumentParser(description='Run UI tests for Correction Tool')
+    parser.add_argument('--test', '-t', help='Pattern to match for test files')
+    parser.add_argument('--verbose', '-v', action='count', default=0, 
+                        help='Verbosity level (use multiple -v for more detail)')
+    args = parser.parse_args()
     
-    # Start async operation and wait for it to complete
-    with qtbot.waitSignal(widget.operation_completed, timeout=5000):
-        widget.start_async_operation()
+    # Set environment variables for Qt
+    os.environ['QT_QPA_PLATFORM'] = 'offscreen'  # Use offscreen rendering for headless testing
     
-    # Now check the results
-    assert widget.count() > 0
+    # Determine the project root directory
+    project_root = Path(__file__).parent.parent
+    
+    # Build the pytest arguments
+    pytest_args = [str(project_root / 'tests' / 'ui')]
+    
+    # Add verbosity flag
+    if args.verbose > 0:
+        pytest_args.extend(['-' + 'v' * args.verbose])
+    
+    # Add test filter if specified
+    if args.test:
+        pytest_args.extend(['-k', args.test])
+    
+    # Run pytest with the constructed arguments
+    return pytest.main(pytest_args)
+
+if __name__ == '__main__':
+    sys.exit(main())
 ```
 
-## Debugging Strategies
+## Testing Components with File Dialogs
 
-### Visual Debugging
+Testing UI components that use `QFileDialog` presents unique challenges in headless environments where file dialogs cannot be displayed or interacted with. This section outlines two recommended approaches for testing such components.
 
-Enable visual inspection during tests:
+### Challenges:
+
+1. `QFileDialog` methods like `getOpenFileName()` and `getSaveFileName()` require user interaction
+2. In headless or automated testing environments, these dialogs cannot be displayed or interacted with
+3. Components that rely on these dialogs become difficult to test without special handling
+
+### Recommended Approaches:
+
+#### 1. Test Mode Pattern
+
+This approach involves modifying the component to include a "test mode" that bypasses the file dialog and uses pre-specified file paths instead.
+
+**Implementation example:**
 
 ```python
-def test_with_visual_inspection(qtbot, monkeypatch):
-    # Only enable in development
-    monkeypatch.setenv("VISUAL_DEBUG", "1")
-    
-    widget = ValidationListWidget()
-    qtbot.addWidget(widget)
-    widget.show()
-    
-    # Add visual delay for inspection
-    qtbot.wait(1000)
-    
-    # Continue with test...
+class MyFileImportComponent(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Initialize test mode attributes
+        self._test_mode = False
+        self._test_file_path = None
+        
+    def set_test_mode(self, enabled=True):
+        """Enable test mode for headless testing."""
+        self._test_mode = enabled
+        
+    def set_test_file_path(self, file_path):
+        """Set a test file path to use in test mode."""
+        self._test_file_path = file_path
+        
+    def import_file(self):
+        """Import a file, using test file path if in test mode."""
+        file_path = None
+        
+        if self._test_mode and self._test_file_path:
+            file_path = self._test_file_path
+        else:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Open File", "", "All Files (*)"
+            )
+            
+        if file_path:
+            # Process the selected file
+            self._process_file(file_path)
 ```
 
-### Enhanced Logging
-
-Add detailed logging for test runs:
+**Test case example:**
 
 ```python
-def test_with_enhanced_logging(qtbot, caplog):
-    import logging
-    caplog.set_level(logging.DEBUG)
+def test_import_file_in_test_mode(self, file_component, qtbot, tmp_path):
+    # Create a test file
+    test_file = tmp_path / "test_file.txt"
+    test_file.write_text("Test content")
     
-    widget = ValidationListWidget()
-    qtbot.addWidget(widget)
+    # Set up test mode
+    file_component.set_test_mode(True)
+    file_component.set_test_file_path(str(test_file))
     
-    # Perform test actions
-    widget._add_item("Test Item")
-    
-    # Check logs
-    assert "Adding item: Test Item" in caplog.text
+    # Set up signal capture
+    with qtbot.waitSignal(file_component.file_imported, timeout=1000):
+        # Trigger import
+        file_component.import_file()
+        
+    # Verify file was processed
+    assert file_component.has_imported_file()
+    assert file_component.get_file_content() == "Test content"
 ```
 
-## Best Practices
+#### 2. Monkeypatching QFileDialog
 
-1. **Test in Isolation**: Test widgets in isolation before testing integrations
-2. **Mock External Dependencies**: Use mock services to isolate UI testing
-3. **Check Signal Connections**: Verify signals are connected and emit correctly
-4. **Test Edge Cases**: Test empty lists, large datasets, and error conditions
-5. **Verify Visual State**: Check that UI elements are visible, enabled, and correctly styled
-6. **Test User Interactions**: Simulate actual user actions rather than directly calling methods
-7. **Clean Up Resources**: Ensure all resources are cleaned up after tests
-8. **Use Consistent Test Data**: Reuse test data generators for consistent test cases
-9. **Add Detailed Assertions**: Include meaningful assertion messages
-10. **Maintain Test Independence**: Each test should run independently of others
+This approach uses pytest's monkeypatch fixture to replace `QFileDialog` methods with mock implementations, without changing the component.
 
-## Troubleshooting Common Test Issues
-
-1. **QApplication Already Created**: Ensure only one QApplication instance exists
-2. **Widget Not Showing**: Remember to call widget.show() for visual tests
-3. **Signal Timeout**: Increase timeout duration for slow operations
-4. **Mock Services Not Used**: Verify your component is using the mock services
-5. **Inconsistent State**: Reset state between tests
-6. **Event Loop Issues**: Use qWait() to allow the event loop to process
-7. **Widget Clean-up**: Use qtbot.addWidget() to ensure proper cleanup
-
-## Example Test Cases
-
-### ValidationListWidget Tests
+**Test case example:**
 
 ```python
-class TestValidationListWidget:
-    def test_initialization(self, qtbot):
-        widget = ValidationListWidget()
-        qtbot.addWidget(widget)
-        assert widget is not None
+def test_import_file_with_monkeypatch(self, file_component, qtbot, monkeypatch, tmp_path):
+    # Create a test file
+    test_file = tmp_path / "test_file.txt"
+    test_file.write_text("Test content")
+    
+    # Mock QFileDialog.getOpenFileName
+    def mock_get_open_filename(*args, **kwargs):
+        return str(test_file), "All Files (*)"
         
-    def test_populate_with_list(self, qtbot):
-        widget = ValidationListWidget()
-        qtbot.addWidget(widget)
-        widget.set_validation_list(["Item1", "Item2"])
-        assert widget.count() == 2
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", mock_get_open_filename)
+    
+    # Set up signal capture
+    with qtbot.waitSignal(file_component.file_imported, timeout=1000):
+        # Trigger import
+        file_component.import_file()
         
-    def test_add_item(self, qtbot):
-        widget = ValidationListWidget()
-        qtbot.addWidget(widget)
-        widget._add_item("New Item")
-        assert widget.count() == 1
-        
-    def test_filter_functionality(self, qtbot):
-        widget = ValidationListWidget()
-        qtbot.addWidget(widget)
-        widget.set_validation_list(["Apple", "Banana", "Cherry"])
-        
-        # Test filtering
-        widget.filter_edit.setText("an")
-        qtbot.keyClick(widget.filter_edit, Qt.Key_Enter)
-        
-        # Only "Banana" should be visible
-        visible_count = 0
-        for i in range(widget.count()):
-            if not widget.item(i).isHidden():
-                visible_count += 1
-                assert "an" in widget.item(i).text().lower()
-        
-        assert visible_count == 1
+    # Verify file was processed
+    assert file_component.has_imported_file()
+    assert file_component.get_file_content() == "Test content"
 ```
 
-### CorrectionManagerInterface Tests
+### Best Practices for File Dialog Testing
 
-```python
-class TestCorrectionManagerInterface:
-    def test_initialization(self, qtbot, mock_services):
-        manager = CorrectionManagerInterface(mock_services)
-        qtbot.addWidget(manager)
-        assert manager is not None
-        
-    def test_validation_list_integration(self, qtbot, mock_services):
-        manager = CorrectionManagerInterface(mock_services)
-        qtbot.addWidget(manager)
-        
-        # Check if validation lists are loaded
-        assert manager.player_list is not None
-        assert manager.chest_type_list is not None
-        assert manager.source_list is not None
-```
+1. **Implement both approaches**: The test mode pattern is more flexible and explicit, but monkeypatching is useful for testing existing components without modification.
+
+2. **Use temporary files**: Create test files in a temporary directory using `pytest`'s `tmp_path` fixture for clean test isolation.
+
+3. **Mock file services**: If your component uses a service to process files, consider mocking that service instead of testing with real files.
+
+4. **Test both file selection and cancellation**: Test what happens when a file is selected and when the dialog is cancelled (returning an empty string).
+
+5. **Isolate file processing logic**: Keep the file dialog interaction separate from file processing logic to make testing easier.
+
+### Example Implementation
+
+The `FileImportWidget` class implements the test mode pattern and has comprehensive tests in `tests/ui/widgets/test_file_import_widget.py` demonstrating both approaches.
 
 ## Conclusion
 
-Effective UI testing is crucial for maintaining the stability and usability of the Correction Tool application. By following the guidelines in this document, you can create robust tests that verify the functionality, performance, and visual appearance of UI components.
+This UI testing guide provides a comprehensive framework for testing UI components in the Correction Tool application. By following these guidelines and using the provided utilities, you can create robust tests that verify the functionality of UI components and their interactions.
 
-For additional assistance, consult the UI testing reference implementations in the `tests/ui/` directory. 
+Remember these key points:
+- Use the pytest-qt plugin for testing Qt widgets
+- Use mock services for isolating UI components during testing
+- Use the UITestHelper for common UI testing operations
+- Test each component with different data types
+- Create integration tests to verify component interactions
+- Use the provided test fixtures for common setup scenarios
+- Run UI tests using the dedicated runner script
+
+For more details on specific components, refer to the test examples in the `tests/ui/components` directory. 

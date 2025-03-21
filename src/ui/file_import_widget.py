@@ -29,6 +29,8 @@ from src.models.chest_entry import ChestEntry
 from src.models.correction_rule import CorrectionRule
 from src.services.config_manager import ConfigManager
 from src.services.file_parser import FileParser
+from src.services.service_factory import ServiceFactory
+from src.services.i_config_manager import IConfigManager
 
 
 class FileImportWidget(QWidget):
@@ -77,13 +79,19 @@ class FileImportWidget(QWidget):
         self.logger = logging.getLogger(__name__)
 
         # Initialize properties
-        self._config = ConfigManager()
+        self._service_factory = ServiceFactory.get_instance()
+        self._config = self._service_factory.get_service(IConfigManager)
         self._file_parser = FileParser()
         self._entries: List[ChestEntry] = []
         self._correction_rules: List[CorrectionRule] = []
         self._corrections_enabled = self._config.get_boolean(
             "Correction", "auto_apply_corrections", fallback=True
         )
+
+        # Test mode attributes for headless testing
+        self._test_mode = False
+        self._test_entries_file = None
+        self._test_corrections_file = None
 
         # Get paths using the new path methods
         self._default_correction_path = self._config.get_path("correction_rules_file")
@@ -447,12 +455,13 @@ class FileImportWidget(QWidget):
         else:  # info
             self._status_message_label.setStyleSheet("color: #000077; padding: 5px;")
 
-        # Show the message
+        # Show the message - ensure this works in headless testing
         self._status_message_label.setVisible(True)
 
-        # Auto-hide the message after a delay
-        # In a real implementation, we would use QTimer.singleShot()
-        # But for now, we'll just show the message
+        # For headless testing environments where visibility might not work as expected
+        # ensure the text is still accessible
+        self._last_status_message = message
+        self._last_status_level = level
 
     def _get_entry_file_filter(self) -> str:
         """
@@ -478,28 +487,76 @@ class FileImportWidget(QWidget):
             return "CSV Files (*.csv);;All Files (*)"
         return "All Files (*)"
 
+    def set_test_mode(self, enabled=True):
+        """
+        Enable test mode for headless testing.
+        
+        In test mode, the widget bypasses file dialogs and uses the paths set with 
+        set_test_entries_file() and set_test_corrections_file() instead. This allows
+        for automated testing in environments where user interaction is not possible.
+        
+        Args:
+            enabled (bool): Whether to enable test mode
+        """
+        self._test_mode = enabled
+
+    def set_test_entries_file(self, file_path):
+        """
+        Set a test file path for entries import.
+        
+        When in test mode, this file path will be used instead of showing a file dialog
+        when import_entries() is called. This allows for automated testing of the import
+        functionality without requiring user interaction.
+        
+        Args:
+            file_path (str): Path to the test entries file
+        """
+        self._test_entries_file = file_path
+
+    def set_test_corrections_file(self, file_path):
+        """
+        Set a test file path for corrections import.
+        
+        When in test mode, this file path will be used instead of showing a file dialog
+        when import_corrections() is called. This allows for automated testing of the import
+        functionality without requiring user interaction.
+        
+        Args:
+            file_path (str): Path to the test corrections file
+        """
+        self._test_corrections_file = file_path
+
     @Slot()
     def import_entries(self):
         """Import entries from a file."""
         try:
-            # Get the last directory from config
-            last_dir = self._config.get_last_used_path("last_entry_directory", fallback=Path.home())
+            # Get file path (from test mode or dialog)
+            file_path = None
+            if self._test_mode and self._test_entries_file:
+                file_path = self._test_entries_file
+            else:
+                # Get the last directory from config
+                last_dir = self._config.get_last_used_path(
+                    "last_entries_directory", fallback=Path.home()
+                )
 
-            # Get file filters based on selected format
-            file_filter = self._get_entry_file_filter()
+                # Get file filters based on selected format
+                file_filter = self._get_entry_file_filter()
 
-            # Open file dialog
-            file_path, _ = QFileDialog.getOpenFileName(
-                self, "Open File", str(last_dir), file_filter
-            )
+                # Open file dialog
+                file_path, _ = QFileDialog.getOpenFileName(
+                    self, "Open Entries File", str(last_dir), file_filter
+                )
 
             if file_path:
                 # Save the last directory
-                self._config.set_last_used_path("last_entry_directory", str(Path(file_path).parent))
-                self._config.set_last_used_path("last_input_file", file_path)
+                self._config.set_last_used_path(
+                    "last_entries_directory", str(Path(file_path).parent)
+                )
+                self._config.set_last_used_path("last_entries_file", file_path)
 
                 # Load entries using the correct FileParser method
-                entries = self._file_parser.parse_entry_file(file_path)
+                entries = self._file_parser.parse_file(file_path)
 
                 if entries:
                     self.set_entries(entries)
@@ -510,6 +567,9 @@ class FileImportWidget(QWidget):
                     # Apply corrections if enabled
                     if self._corrections_enabled and self._correction_rules:
                         self._apply_corrections()
+
+                    # Emit signal with file path and count
+                    self.file_loaded.emit(file_path, len(entries))
                 else:
                     self._show_status_message("No entries found in the file", "warning")
         except Exception as e:
@@ -519,18 +579,23 @@ class FileImportWidget(QWidget):
     def import_corrections(self):
         """Import correction rules from a file."""
         try:
-            # Get the last directory from config
-            last_dir = self._config.get_last_used_path(
-                "last_correction_directory", fallback=Path.home()
-            )
+            # Get file path (from test mode or dialog)
+            file_path = None
+            if self._test_mode and self._test_corrections_file:
+                file_path = self._test_corrections_file
+            else:
+                # Get the last directory from config
+                last_dir = self._config.get_last_used_path(
+                    "last_correction_directory", fallback=Path.home()
+                )
 
-            # Get file filters based on selected format
-            file_filter = self._get_correction_file_filter()
+                # Get file filters based on selected format
+                file_filter = self._get_correction_file_filter()
 
-            # Open file dialog
-            file_path, _ = QFileDialog.getOpenFileName(
-                self, "Open Correction File", str(last_dir), file_filter
-            )
+                # Open file dialog
+                file_path, _ = QFileDialog.getOpenFileName(
+                    self, "Open Correction File", str(last_dir), file_filter
+                )
 
             if file_path:
                 # Save the last directory
@@ -609,3 +674,21 @@ class FileImportWidget(QWidget):
         else:
             self._import_corrections_button.setText("Import Corrections")
             self._import_corrections_button.setToolTip("Import correction rules from a file")
+
+    def get_last_status_message(self) -> str:
+        """
+        Get the last status message shown.
+
+        Returns:
+            str: The last status message
+        """
+        return getattr(self, "_last_status_message", "")
+
+    def get_last_status_level(self) -> str:
+        """
+        Get the level of the last status message.
+
+        Returns:
+            str: The level of the last status message ('info', 'success', 'warning', or 'error')
+        """
+        return getattr(self, "_last_status_level", "info")

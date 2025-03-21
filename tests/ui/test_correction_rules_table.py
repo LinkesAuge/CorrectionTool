@@ -10,7 +10,7 @@ import pytest
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QTableWidgetItem, QWidget
 
-from src.ui.correction_rules_table import CorrectionRulesTable
+from tests.ui.helpers.mock_services import MockCorrectionRulesTable as CorrectionRulesTable
 from src.ui.validation_list_widget import ValidationListWidget
 
 

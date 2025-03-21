@@ -565,18 +565,20 @@ class EnhancedTableView(QTableView):
         - Enables in-place editing
         - Provides filtering and sorting
         - Shows visual indicators for corrected entries
+        - Supports test mode for headless testing environments
     """
 
     # Signals
     entry_selected = Signal(object)  # ChestEntry
     entry_edited = Signal(object)  # ChestEntry
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, test_mode=False):
         """
         Initialize the enhanced table view.
 
         Args:
             parent: Parent widget
+            test_mode: Whether to enable test mode for headless testing
         """
         super().__init__(parent)
 
@@ -584,9 +586,96 @@ class EnhancedTableView(QTableView):
         self._entries: List[ChestEntry] = []
         self._proxy_model = None
         self._current_index = None
+        self._test_mode = test_mode
+        self._signal_history = {"entry_selected": [], "entry_edited": []}
 
         # Set up the view
         self._setup_view()
+
+        # Connect signals for tracking in test mode
+        if self._test_mode:
+            self.entry_selected.connect(self._track_selected_entry)
+            self.entry_edited.connect(self._track_edited_entry)
+
+    def set_test_mode(self, enabled: bool) -> None:
+        """
+        Set the test mode status.
+
+        Args:
+            enabled: Whether test mode should be enabled
+        """
+        if self._test_mode != enabled:
+            self._test_mode = enabled
+
+            # Connect or disconnect signal tracking based on test mode
+            if self._test_mode:
+                self.entry_selected.connect(self._track_selected_entry)
+                self.entry_edited.connect(self._track_edited_entry)
+            else:
+                try:
+                    self.entry_selected.disconnect(self._track_selected_entry)
+                    self.entry_edited.disconnect(self._track_edited_entry)
+                except Exception:
+                    # Signal might not be connected
+                    pass
+
+            # Clear signal history when changing modes
+            self.clear_signal_history()
+
+    def is_test_mode(self) -> bool:
+        """
+        Check if test mode is enabled.
+
+        Returns:
+            bool: True if test mode is enabled, False otherwise
+        """
+        return self._test_mode
+
+    def _track_selected_entry(self, entry) -> None:
+        """
+        Track selected entries for test verification.
+
+        Args:
+            entry: The selected entry
+        """
+        if self._test_mode:
+            self._signal_history["entry_selected"].append(entry)
+
+    def _track_edited_entry(self, entry) -> None:
+        """
+        Track edited entries for test verification.
+
+        Args:
+            entry: The edited entry
+        """
+        if self._test_mode:
+            self._signal_history["entry_edited"].append(entry)
+
+    def get_last_selected_entry(self) -> Optional[Any]:
+        """
+        Get the last selected entry from the signal history.
+
+        Returns:
+            The last selected entry or None if none exists
+        """
+        if not self._test_mode or not self._signal_history["entry_selected"]:
+            return None
+        return self._signal_history["entry_selected"][-1]
+
+    def get_last_edited_entry(self) -> Optional[Any]:
+        """
+        Get the last edited entry from the signal history.
+
+        Returns:
+            The last edited entry or None if none exists
+        """
+        if not self._test_mode or not self._signal_history["entry_edited"]:
+            return None
+        return self._signal_history["entry_edited"][-1]
+
+    def clear_signal_history(self) -> None:
+        """Clear the signal history for test reset."""
+        self._signal_history = {"entry_selected": [], "entry_edited": []}
 
     def _setup_view(self):
         """Set up the view configuration."""
@@ -638,12 +727,81 @@ class EnhancedTableView(QTableView):
         if entry:
             self.entry_selected.emit(entry)
 
-    def _show_context_menu(self, position):
+    def select_row(self, row_index: int) -> bool:
         """
-        Show context menu at position.
+        Programmatically select a row by index.
 
         Args:
-            position: Position to show menu
+            row_index: The row index to select
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        logger = logging.getLogger(__name__)
+        try:
+            if row_index < 0 or not self._proxy_model or row_index >= self._proxy_model.rowCount():
+                logger.warning(f"Invalid row index for selection: {row_index}")
+                return False
+
+            # Create model index for the row
+            index = self._proxy_model.index(row_index, 0)
+
+            # Select the row
+            self.selectionModel().select(
+                index, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows
+            )
+
+            # Set current index
+            self.selectionModel().setCurrentIndex(
+                index, QItemSelectionModel.ClearAndSelect | QItemSelectionModel.Rows
+            )
+
+            # Get the selected entry
+            entry = self.get_entry_at_index(index)
+            if entry:
+                self.entry_selected.emit(entry)
+
+            return True
+        except Exception as e:
+            logger.error(f"Error in select_row: {e}")
+            return False
+
+    def select_entry_by_id(self, entry_id) -> bool:
+        """
+        Programmatically select an entry by its ID.
+
+        Args:
+            entry_id: The ID of the entry to select
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        logger = logging.getLogger(__name__)
+        try:
+            # Convert entry_id to string for comparison
+            entry_id_str = str(entry_id)
+
+            # Search for the entry in the model
+            for row in range(self._proxy_model.rowCount()):
+                index = self._proxy_model.index(row, 0)  # ID is typically in the first column
+                current_id = str(self._proxy_model.data(index, Qt.DisplayRole))
+
+                if current_id == entry_id_str:
+                    # Found matching ID, select this row
+                    return self.select_row(row)
+
+            logger.warning(f"Entry with ID {entry_id} not found")
+            return False
+        except Exception as e:
+            logger.error(f"Error in select_entry_by_id: {e}")
+            return False
+
+    def _show_context_menu(self, position):
+        """
+        Show context menu for the table view.
+
+        Args:
+            position: Position where context menu was requested
         """
         logger = logging.getLogger(__name__)
 
@@ -690,7 +848,7 @@ class EnhancedTableView(QTableView):
 
     def _edit_entry(self, entry):
         """
-        Edit the entry.
+        Edit the selected entry.
 
         Args:
             entry: Entry to edit
@@ -1119,12 +1277,14 @@ class EnhancedTableView(QTableView):
         # Reset sorting
         self.sortByColumn(0, Qt.AscendingOrder)
 
-        # Resize columns and rows to content
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
+        # In non-test mode, resize columns and rows
+        if not self._test_mode:
+            # Resize columns and rows to content
+            self.resizeColumnsToContents()
+            self.resizeRowsToContents()
 
-        # Force a visual update
-        self.viewport().update()
+            # Force a visual update
+            self.viewport().update()
 
     def highlight_validation_errors(self):
         """
@@ -1139,21 +1299,148 @@ class EnhancedTableView(QTableView):
             if hasattr(self, "_proxy_model") and self._proxy_model:
                 self._proxy_model.invalidate()
 
-            # Ensure custom delegates are applied
-            if not self.itemDelegate() or not isinstance(
-                self.itemDelegate(), ValidationHighlightDelegate
+            # Ensure custom delegates are applied - only in non-test mode
+            if not self._test_mode and (
+                not self.itemDelegate()
+                or not isinstance(self.itemDelegate(), ValidationHighlightDelegate)
             ):
                 # Create a validation highlight delegate if not already set
                 self.setItemDelegate(ValidationHighlightDelegate(self))
 
-            # Update the view
-            self.viewport().update()
+            # Update the view - only in non-test mode
+            if not self._test_mode:
+                self.viewport().update()
+
             logger.debug("Applied validation error highlighting")
         except Exception as e:
             logger.error(f"Error highlighting validation errors: {e}")
             import traceback
 
             logger.error(traceback.format_exc())
+
+    def test_edit_entry_at_row(self, row_index: int) -> bool:
+        """
+        Programmatically edit an entry at the specified row for testing.
+
+        Args:
+            row_index: The row index to edit
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        logger = logging.getLogger(__name__)
+        try:
+            # First select the row
+            if not self.select_row(row_index):
+                return False
+
+            # Get the entry
+            entry = self.get_selected_entry()
+            if not entry:
+                return False
+
+            # Call the edit method
+            self._edit_entry(entry)
+            return True
+        except Exception as e:
+            logger.error(f"Error in test_edit_entry_at_row: {e}")
+            return False
+
+    def test_create_rule_from_row(self, row_index: int) -> bool:
+        """
+        Programmatically create a rule from an entry at the specified row for testing.
+
+        Args:
+            row_index: The row index to use
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        logger = logging.getLogger(__name__)
+        try:
+            # First select the row
+            if not self.select_row(row_index):
+                return False
+
+            # Get the entry
+            entry = self.get_selected_entry()
+            if not entry:
+                return False
+
+            # Call the create rule method
+            self._create_rule_from_entry(entry)
+            return True
+        except Exception as e:
+            logger.error(f"Error in test_create_rule_from_row: {e}")
+            return False
+
+    def test_reset_entry_at_row(self, row_index: int) -> bool:
+        """
+        Programmatically reset an entry at the specified row for testing.
+
+        Args:
+            row_index: The row index to reset
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        logger = logging.getLogger(__name__)
+        try:
+            # First select the row
+            if not self.select_row(row_index):
+                return False
+
+            # Get the entry
+            entry = self.get_selected_entry()
+            if not entry:
+                return False
+
+            # Call the reset method
+            self._reset_entry(entry)
+            return True
+        except Exception as e:
+            logger.error(f"Error in test_reset_entry_at_row: {e}")
+            return False
+
+    def get_model_data(self) -> List[Dict[str, Any]]:
+        """
+        Get all data from the model as a list of dictionaries for test verification.
+
+        Returns:
+            List[Dict[str, Any]]: Model data as a list of dictionaries
+        """
+        logger = logging.getLogger(__name__)
+        try:
+            result = []
+            if not self._proxy_model:
+                return result
+
+            source_model = self._proxy_model.sourceModel()
+            if not source_model:
+                return result
+
+            for row in range(len(self._entries)):
+                entry_dict = {}
+                for col, column_def in enumerate(source_model._columns):
+                    key = column_def["key"]
+                    index = source_model.index(row, col)
+                    entry_dict[key] = source_model.data(index, Qt.DisplayRole)
+                result.append(entry_dict)
+            return result
+        except Exception as e:
+            logger.error(f"Error in get_model_data: {e}")
+            return []
+
+    def get_visible_rows_count(self) -> int:
+        """
+        Get the number of visible rows (after filtering).
+
+        Returns:
+            int: Number of visible rows
+        """
+        if not self._proxy_model:
+            return 0
+        return self._proxy_model.rowCount()
 
 
 class ValidationHighlightDelegate(QStyledItemDelegate):

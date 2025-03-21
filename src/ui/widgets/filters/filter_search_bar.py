@@ -73,7 +73,7 @@ class FilterSearchBar(QWidget):
         # Clear button
         self._clear_button = QPushButton("✕")
         self._clear_button.setFixedSize(24, 24)
-        self._clear_button.setVisible(False)
+        self._clear_button.setEnabled(False)
 
         search_layout.addWidget(self._search_edit, 1)
         search_layout.addWidget(self._clear_button, 0)
@@ -141,7 +141,7 @@ class FilterSearchBar(QWidget):
         Args:
             text: The new search text
         """
-        self._clear_button.setVisible(bool(text))
+        self._clear_button.setEnabled(bool(text))
         self._filter.set_search_text(text)
         self.search_changed.emit()
 

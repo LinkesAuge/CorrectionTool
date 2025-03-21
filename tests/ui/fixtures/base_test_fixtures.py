@@ -9,13 +9,21 @@ Usage:
 import pytest
 import pandas as pd
 from typing import Dict, Any, List
-from PyQt5.QtCore import QObject
+from PySide6.QtCore import QObject
+
+from src.interfaces.i_data_store import IDataStore
+from src.interfaces.i_config_manager import IConfigManager
+from src.interfaces.i_file_service import IFileService
+from src.interfaces.i_correction_service import ICorrectionService
+from src.interfaces.i_validation_service import IValidationService
 
 from tests.ui.helpers.mock_services import (
     MockCorrectionService,
     MockValidationService,
     MockDataStore,
     MockServiceFactory,
+    MockConfigManager,
+    MockFileService,
 )
 
 
@@ -91,17 +99,22 @@ def default_services() -> Dict[str, Any]:
     correction_service = MockCorrectionService()
     validation_service = MockValidationService()
     data_store = MockDataStore()
+    config_manager = MockConfigManager()
+    file_service = MockFileService()
 
-    service_factory = MockServiceFactory(
-        correction_service=correction_service,
-        validation_service=validation_service,
-        data_store=data_store,
-    )
+    service_factory = MockServiceFactory()
+    service_factory.register_service(ICorrectionService, correction_service)
+    service_factory.register_service(IValidationService, validation_service)
+    service_factory.register_service(IDataStore, data_store)
+    service_factory.register_service(IConfigManager, config_manager)
+    service_factory.register_service(IFileService, file_service)
 
     return {
         "correction_service": correction_service,
         "validation_service": validation_service,
         "data_store": data_store,
+        "config_manager": config_manager,
+        "file_service": file_service,
         "service_factory": service_factory,
     }
 

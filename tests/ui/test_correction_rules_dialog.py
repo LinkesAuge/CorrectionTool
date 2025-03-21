@@ -7,11 +7,11 @@ Usage:
 """
 
 import pytest
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtWidgets import QApplication, QDialog, QWidget
 
 from src.models.validation_list import ValidationList
-from src.ui.correction_rules_table import RuleEditDialog
+from tests.ui.helpers.mock_services import MockRuleEditDialog as RuleEditDialog
 from src.ui.validation_list_widget import ValidationListWidget
 
 

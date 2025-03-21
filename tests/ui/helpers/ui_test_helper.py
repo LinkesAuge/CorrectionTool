@@ -17,18 +17,18 @@ import logging
 from contextlib import contextmanager
 import pandas as pd
 
-from PyQt5.QtCore import Qt, QPoint, QModelIndex
-from PyQt5.QtWidgets import QApplication, QWidget, QListWidget, QTableView, QAbstractItemView
-from PyQt5.QtTest import QTest
+from PySide6.QtCore import Qt, QPoint, QModelIndex
+from PySide6.QtWidgets import QApplication, QWidget, QListWidget, QTableView, QAbstractItemView
+from PySide6.QtTest import QTest
 
 from src.ui.validation_list_widget import ValidationListWidget
 from src.ui.correction_manager_interface import CorrectionManagerInterface
-from src.interfaces.data_store import IDataStore
-from src.interfaces.config_manager import IConfigManager
-from src.interfaces.file_service import IFileService
-from src.interfaces.correction_service import ICorrectionService
-from src.interfaces.validation_service import IValidationService
-from src.interfaces.service_factory import IServiceFactory
+from src.interfaces.i_data_store import IDataStore
+from src.interfaces.i_config_manager import IConfigManager
+from src.interfaces.i_file_service import IFileService
+from src.interfaces.i_correction_service import ICorrectionService
+from src.interfaces.i_validation_service import IValidationService
+from src.interfaces.i_service_factory import IServiceFactory
 
 # Import mock services
 from tests.ui.helpers.mock_services import (
@@ -103,8 +103,14 @@ class UITestHelper:
             MockServiceFactory: Configured mock service factory
         """
         factory = MockServiceFactory()
-        for service_type, service in self.mock_services.items():
-            factory.register_service(service_type, service)
+
+        # Register services with their interface types
+        factory.register_service(IDataStore, self.mock_services["data_store"])
+        factory.register_service(IConfigManager, self.mock_services["config_manager"])
+        factory.register_service(IFileService, self.mock_services["file_service"])
+        factory.register_service(ICorrectionService, self.mock_services["correction_service"])
+        factory.register_service(IValidationService, self.mock_services["validation_service"])
+
         return factory
 
     def create_widget(self, widget_class: Type[T], *args, **kwargs) -> T:
@@ -123,22 +129,46 @@ class UITestHelper:
         self.qtbot.addWidget(widget)
         return widget
 
-    def create_validation_list_widget(self, list_name: str = "test_list") -> ValidationListWidget:
+    def create_validation_list_widget(
+        self, list_name_or_services: Union[str, Dict[str, Any]] = "test_list"
+    ) -> ValidationListWidget:
         """
         Create a ValidationListWidget for testing.
 
         Args:
-            list_name: Name of the validation list
+            list_name_or_services: Either the name of the validation list or a dictionary of services
 
         Returns:
             ValidationListWidget: Configured widget instance
         """
-        widget = ValidationListWidget(list_name)
+        # Get mock services
+        if isinstance(list_name_or_services, dict):
+            # Use services passed in
+            data_store = list_name_or_services["data_store"]
+            config_manager = list_name_or_services.get(
+                "config_manager", self.mock_services["config_manager"]
+            )
+            list_name = "test_list"  # Default list name
+        else:
+            # Use the list name and default services
+            list_name = list_name_or_services
+            data_store = self.mock_services["data_store"]
+            config_manager = self.mock_services["config_manager"]
+
+        # Create empty validation list if not exists
+        if data_store.get_validation_list(list_name) is None:
+            data_store.add_validation_list(list_name, ["Item1", "Item2", "Item3"])
+
+        # Create widget with required parameters
+        widget = ValidationListWidget(
+            list_type=list_name,
+            validation_list=data_store.get_validation_list(list_name),
+            config_manager=config_manager,
+        )
         self.qtbot.addWidget(widget)
 
         # Set services for the widget
-        widget._data_store = self.mock_services["data_store"]
-        widget._config_manager = self.mock_services["config_manager"]
+        widget._data_store = data_store
 
         return widget
 

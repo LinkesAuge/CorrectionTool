@@ -11,8 +11,8 @@ import os
 import tempfile
 from pathlib import Path
 import pandas as pd
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog
-from PyQt5.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox, QInputDialog, QFileDialog
+from PySide6.QtCore import Qt
 from typing import List, Dict, Any, Callable
 
 from src.ui.validation_list_widget import ValidationListWidget

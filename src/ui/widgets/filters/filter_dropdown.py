@@ -119,6 +119,7 @@ class FilterDropdown(QWidget):
         self._search_edit.setPlaceholderText(f"Search {self._title}...")
         self._clear_search_button = QPushButton("×")
         self._clear_search_button.setFixedSize(24, 24)
+        self._clear_search_button.setEnabled(False)
         self._clear_search_button.setVisible(False)
 
         search_layout.addWidget(self._search_edit)
@@ -240,6 +241,7 @@ class FilterDropdown(QWidget):
             text: New search text
         """
         self._search_text = text
+        self._clear_search_button.setEnabled(bool(text))
         self._clear_search_button.setVisible(bool(text))
 
         # Filter list items

@@ -1,0 +1,354 @@
+2025-03-21 02:16:03.992 - INFO - root - Logging to file: D:\Projekte\CorrectionTool\logs\correction_tool_20250321_021603.log
+2025-03-21 02:16:03.992 - INFO - root - Logging initialized with level: DEBUG
+2025-03-21 02:16:03.992 - INFO - root - ================================================================================
+2025-03-21 02:16:03.992 - INFO - root - APPLICATION STARTING
+2025-03-21 02:16:03.992 - INFO - root - Python version: 3.12.9 (main, Feb 12 2025, 14:52:31) [MSC v.1942 64 bit (AMD64)]
+2025-03-21 02:16:03.992 - INFO - root - Working directory: D:\Projekte\CorrectionTool
+2025-03-21 02:16:03.992 - INFO - root - Command line: d:/Projekte/CorrectionTool/main.py
+2025-03-21 02:16:03.993 - INFO - root - ================================================================================
+2025-03-21 02:16:03.993 - INFO - root - Initializing AppBootstrapper...
+2025-03-21 02:16:03.993 - INFO - src.app_bootstrapper - Initializing application...
+2025-03-21 02:16:03.993 - INFO - src.app_bootstrapper - Initializing ConfigManager...
+2025-03-21 02:16:03.993 - INFO - src.services.config_manager - Initializing ConfigManager
+2025-03-21 02:16:03.993 - INFO - src.services.config_manager - Using config path: d:\Projekte\CorrectionTool\config.ini
+2025-03-21 02:16:04.000 - INFO - src.services.config_manager - ConfigManager initialized successfully
+2025-03-21 02:16:04.001 - INFO - src.services.service_factory - ServiceFactory initialized
+2025-03-21 02:16:04.001 - DEBUG - src.services.service_factory - Registered service: IConfigManager
+2025-03-21 02:16:04.001 - INFO - src.app_bootstrapper - Initializing DataFrameStore...
+2025-03-21 02:16:04.001 - INFO - src.services.dataframe_store - Initializing DataFrameStore
+2025-03-21 02:16:04.004 - INFO - src.services.dataframe_store - DataFrameStore initialized
+2025-03-21 02:16:04.005 - DEBUG - src.services.service_factory - Registered service: IDataStore
+2025-03-21 02:16:04.005 - INFO - src.app_bootstrapper - Initializing services...
+2025-03-21 02:16:04.005 - INFO - src.services.file_service - FileService initialized
+2025-03-21 02:16:04.005 - INFO - src.services.validation_service - ValidationService initialized
+2025-03-21 02:16:04.005 - INFO - src.services.correction_service - CorrectionService initialized
+2025-03-21 02:16:04.006 - DEBUG - src.services.service_factory - Registered service: IServiceFactory
+2025-03-21 02:16:04.006 - DEBUG - src.services.service_factory - Registered service: IFileService
+2025-03-21 02:16:04.006 - DEBUG - src.services.service_factory - Registered service: IValidationService
+2025-03-21 02:16:04.006 - DEBUG - src.services.service_factory - Registered service: ICorrectionService
+2025-03-21 02:16:04.006 - INFO - src.app_bootstrapper - Initializing FilterManager...
+2025-03-21 02:16:04.006 - DEBUG - filters.manager - Loaded state for 0 filters, 0 active
+2025-03-21 02:16:04.007 - DEBUG - src.services.service_factory - Registered service: IFilterManager
+2025-03-21 02:16:04.007 - INFO - src.app_bootstrapper - Registering services with ServiceFactory...
+2025-03-21 02:16:04.007 - DEBUG - src.app_bootstrapper - Registering service: IConfigManager
+2025-03-21 02:16:04.007 - DEBUG - src.app_bootstrapper - Registering service: IDataStore
+2025-03-21 02:16:04.007 - DEBUG - src.app_bootstrapper - Registering service: IServiceFactory
+2025-03-21 02:16:04.007 - DEBUG - src.app_bootstrapper - Registering service: IFileService
+2025-03-21 02:16:04.007 - DEBUG - src.app_bootstrapper - Registering service: IValidationService
+2025-03-21 02:16:04.007 - DEBUG - src.app_bootstrapper - Registering service: ICorrectionService
+2025-03-21 02:16:04.007 - DEBUG - src.app_bootstrapper - Registering service: IFilterManager
+2025-03-21 02:16:04.007 - DEBUG - src.app_bootstrapper - Registered 7 services with ServiceFactory.
+2025-03-21 02:16:04.007 - INFO - src.app_bootstrapper - Application initialized successfully.
+2025-03-21 02:16:04.007 - INFO - root - AppBootstrapper initialized successfully
+2025-03-21 02:16:04.009 - INFO - root - Configuration sections: ['General', 'UI', 'Paths', 'LastUsed', 'Validation', 'Correction', 'Files', 'Logging', 'Window', 'Features', 'App', 'ValidationLists', 'ValidationSettings', 'Dashboard', 'CorrectionManager', 'ValidationPanel', 'ReportPanel', 'Filter_global_search']
+2025-03-21 02:16:04.009 - INFO - root - Paths section found in configuration
+2025-03-21 02:16:04.009 - INFO - root - Data directory: data (absolute: d:\Projekte\CorrectionTool\data)
+2025-03-21 02:16:04.009 - INFO - root - Correction rules file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv (absolute: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv)
+2025-03-21 02:16:04.023 - INFO - root - Setting up MainWindowInterface
+2025-03-21 02:16:04.676 - DEBUG - ui.filter_adapter - Configuration manager set
+2025-03-21 02:16:04.677 - DEBUG - filters.manager - Registered filter 'global_search'
+2025-03-21 02:16:04.678 - DEBUG - ui.filter_adapter - Filter panel created
+2025-03-21 02:16:04.678 - DEBUG - filters.manager - Loaded state for 1 filters, 0 active
+2025-03-21 02:16:04.678 - DEBUG - ui.filter_adapter - Filter state loaded from configuration
+2025-03-21 02:16:04.681 - DEBUG - src.ui.adapters.entry_table_adapter - EntryTableAdapter connected to table view
+2025-03-21 02:16:04.682 - INFO - src.ui.dashboard_interface - Initializing DashboardInterface
+2025-03-21 02:16:04.682 - DEBUG - src.ui.dashboard_interface - Setting up dashboard UI components
+2025-03-21 02:16:04.693 - INFO - src.ui.file_import_widget - Auto-loading correction rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.693 - INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.694 - INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.694 - INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+2025-03-21 02:16:04.694 - DEBUG - src.services.file_parser - Delimiter ';' gives 1 columns
+2025-03-21 02:16:04.694 - DEBUG - src.services.file_parser - Delimiter ',' gives 4 columns
+2025-03-21 02:16:04.695 - DEBUG - src.services.file_parser - Delimiter '	' gives 1 columns
+2025-03-21 02:16:04.695 - INFO - src.services.file_parser - Using delimiter: ',' with 4 columns
+2025-03-21 02:16:04.695 - INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category', 'enabled']
+2025-03-21 02:16:04.695 - INFO - src.services.file_parser - Found required headers (case-insensitive)
+2025-03-21 02:16:04.695 - DEBUG - src.services.file_parser - Processing row 2: {'From': 'Маһоп12', 'To': 'D4rkBlizZ4rD', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.695 - DEBUG - src.services.file_parser - Created rule: Маһоп12 -> D4rkBlizZ4rD (category: player)
+2025-03-21 02:16:04.696 - DEBUG - src.services.file_parser - Processing row 3: {'From': 'АЙ', 'To': 'D4rkBlizZ4rD', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.696 - DEBUG - src.services.file_parser - Created rule: АЙ -> D4rkBlizZ4rD (category: player)
+2025-03-21 02:16:04.696 - DEBUG - src.services.file_parser - Processing row 4: {'From': 'Fenrir"s Chest', 'To': "Fenrir's Chest", 'Category': 'chest', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.696 - DEBUG - src.services.file_parser - Created rule: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+2025-03-21 02:16:04.696 - DEBUG - src.services.file_parser - Processing row 5: {'From': 'Hermes" Store', 'To': "Hermes' Store", 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.697 - DEBUG - src.services.file_parser - Created rule: Hermes" Store -> Hermes' Store (category: source)
+2025-03-21 02:16:04.697 - DEBUG - src.services.file_parser - Processing row 6: {'From': 'VVarrior"s Chest"', 'To': "Warrior's Chest", 'Category': 'chest', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.697 - DEBUG - src.services.file_parser - Created rule: VVarrior"s Chest" -> Warrior's Chest (category: chest)
+2025-03-21 02:16:04.697 - DEBUG - src.services.file_parser - Processing row 7: {'From': 'Clan vvealth', 'To': 'Clan wealth', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.697 - DEBUG - src.services.file_parser - Created rule: Clan vvealth -> Clan wealth (category: source)
+2025-03-21 02:16:04.697 - DEBUG - src.services.file_parser - Processing row 8: {'From': 'OsmanliTorunu', 'To': 'OsmanlıTorunu', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.697 - DEBUG - src.services.file_parser - Created rule: OsmanliTorunu -> OsmanlıTorunu (category: player)
+2025-03-21 02:16:04.697 - DEBUG - src.services.file_parser - Processing row 9: {'From': 'Epic Ancient sguad', 'To': 'Epic Ancient squad', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.698 - DEBUG - src.services.file_parser - Created rule: Epic Ancient sguad -> Epic Ancient squad (category: source)
+2025-03-21 02:16:04.698 - DEBUG - src.services.file_parser - Processing row 10: {'From': 'Snovvvveaver', 'To': 'Snowweaver', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.698 - DEBUG - src.services.file_parser - Created rule: Snovvvveaver -> Snowweaver (category: player)
+2025-03-21 02:16:04.698 - DEBUG - src.services.file_parser - Processing row 11: {'From': 'Krimelmonster', 'To': 'Krümelmonster', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.698 - DEBUG - src.services.file_parser - Created rule: Krimelmonster -> Krümelmonster (category: player)
+2025-03-21 02:16:04.698 - DEBUG - src.services.file_parser - Processing row 12: {'From': 'GUARDIENOfTHUNDER', 'To': 'GUARDIENofTHUNDER', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.699 - DEBUG - src.services.file_parser - Created rule: GUARDIENOfTHUNDER -> GUARDIENofTHUNDER (category: player)
+2025-03-21 02:16:04.699 - DEBUG - src.services.file_parser - Processing row 13: {'From': 'Rare Chest of VVealth', 'To': 'Rare Chest of Wealth', 'Category': 'chest', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.699 - DEBUG - src.services.file_parser - Created rule: Rare Chest of VVealth -> Rare Chest of Wealth (category: chest)
+2025-03-21 02:16:04.699 - DEBUG - src.services.file_parser - Processing row 14: {'From': 'Epic Chest of Vvealth', 'To': 'Epic Chest of Wealth', 'Category': 'chest', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.699 - DEBUG - src.services.file_parser - Created rule: Epic Chest of Vvealth -> Epic Chest of Wealth (category: chest)
+2025-03-21 02:16:04.699 - DEBUG - src.services.file_parser - Processing row 15: {'From': 'Sir Nightvvoolf', 'To': 'Sir Nightwoolf', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.699 - DEBUG - src.services.file_parser - Created rule: Sir Nightvvoolf -> Sir Nightwoolf (category: player)
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Processing row 16: {'From': 'Hammerschlagi', 'To': 'Hammerschlag1', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Created rule: Hammerschlagi -> Hammerschlag1 (category: player)
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Processing row 17: {'From': 'Feldjager', 'To': 'Feldjäger', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Created rule: Feldjager -> Feldjäger (category: player)
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Processing row 18: {'From': 'Feldj䧥r', 'To': 'Feldjäger', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Created rule: Feldj䧥r -> Feldjäger (category: player)
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Processing row 19: {'From': 'Lord Ore', 'To': 'Lord Öre', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Created rule: Lord Ore -> Lord Öre (category: player)
+2025-03-21 02:16:04.700 - DEBUG - src.services.file_parser - Processing row 20: {'From': 'Lord ֲe', 'To': 'Lord Öre', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.701 - DEBUG - src.services.file_parser - Created rule: Lord ֲe -> Lord Öre (category: player)
+2025-03-21 02:16:04.701 - DEBUG - src.services.file_parser - Processing row 21: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.701 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-21 02:16:04.701 - DEBUG - src.services.file_parser - Processing row 22: {'From': 'Ouick March Chest', 'To': 'Quick March Chest', 'Category': 'chest_type', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.701 - DEBUG - src.services.file_parser - Created rule: Ouick March Chest -> Quick March Chest (category: general)
+2025-03-21 02:16:04.701 - DEBUG - src.services.file_parser - Processing row 23: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.701 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-21 02:16:04.701 - DEBUG - src.services.file_parser - Processing row 24: {'From': 'Union of Triumph personal revvard', 'To': 'Union of Triumph personal reward', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.702 - DEBUG - src.services.file_parser - Created rule: Union of Triumph personal revvard -> Union of Triumph personal reward (category: source)
+2025-03-21 02:16:04.702 - DEBUG - src.services.file_parser - Processing row 25: {'From': 'revvard', 'To': 'reward', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.702 - DEBUG - src.services.file_parser - Created rule: revvard -> reward (category: general)
+2025-03-21 02:16:04.702 - DEBUG - src.services.file_parser - Processing row 26: {'From': 'sguad', 'To': 'squad', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.702 - DEBUG - src.services.file_parser - Created rule: sguad -> squad (category: general)
+2025-03-21 02:16:04.702 - DEBUG - src.services.file_parser - Processing row 27: {'From': 'Vvealth', 'To': 'Wealth', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.703 - DEBUG - src.services.file_parser - Created rule: Vvealth -> Wealth (category: general)
+2025-03-21 02:16:04.703 - DEBUG - src.services.file_parser - Processing row 28: {'From': 'VVealth', 'To': 'Wealth', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.703 - DEBUG - src.services.file_parser - Created rule: VVealth -> Wealth (category: general)
+2025-03-21 02:16:04.703 - DEBUG - src.services.file_parser - Processing row 29: {'From': 'Juslius C䳡r', 'To': 'Julius Cäsar', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.703 - DEBUG - src.services.file_parser - Created rule: Juslius C䳡r -> Julius Cäsar (category: player)
+2025-03-21 02:16:04.703 - DEBUG - src.services.file_parser - Processing row 30: {'From': 'Juslius Cäsar', 'To': 'Julius Cäsar', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.704 - DEBUG - src.services.file_parser - Created rule: Juslius Cäsar -> Julius Cäsar (category: player)
+2025-03-21 02:16:04.704 - DEBUG - src.services.file_parser - Processing row 31: {'From': 'Julius Casar', 'To': 'Julius Cäsar', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.704 - DEBUG - src.services.file_parser - Created rule: Julius Casar -> Julius Cäsar (category: player)
+2025-03-21 02:16:04.704 - DEBUG - src.services.file_parser - Processing row 32: {'From': 'Ancients"', 'To': "Ancients'", 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.705 - DEBUG - src.services.file_parser - Created rule: Ancients" -> Ancients' (category: general)
+2025-03-21 02:16:04.705 - DEBUG - src.services.file_parser - Processing row 33: {'From': 'Quick March Chest Chest', 'To': 'Quick March Chest', 'Category': 'chest_type', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.705 - DEBUG - src.services.file_parser - Created rule: Quick March Chest Chest -> Quick March Chest (category: general)
+2025-03-21 02:16:04.705 - DEBUG - src.services.file_parser - Processing row 34: {'From': 'Union of Triumf personal reward', 'To': 'Union of Triumph personal reward', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.705 - DEBUG - src.services.file_parser - Created rule: Union of Triumf personal reward -> Union of Triumph personal reward (category: general)
+2025-03-21 02:16:04.705 - DEBUG - src.services.file_parser - Processing row 35: {'From': 'Triumf', 'To': 'Triumph', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.706 - DEBUG - src.services.file_parser - Created rule: Triumf -> Triumph (category: general)
+2025-03-21 02:16:04.706 - DEBUG - src.services.file_parser - Processing row 36: {'From': 'Triumfp', 'To': 'Triumph', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.706 - DEBUG - src.services.file_parser - Created rule: Triumfp -> Triumph (category: general)
+2025-03-21 02:16:04.706 - DEBUG - src.services.file_parser - Processing row 37: {'From': 'JÃªrmungandr', 'To': 'Jormungandr', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.706 - DEBUG - src.services.file_parser - Created rule: JÃªrmungandr -> Jormungandr (category: general)
+2025-03-21 02:16:04.706 - DEBUG - src.services.file_parser - Processing row 38: {'From': 'Jêrmungandr', 'To': 'Jormungandr', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.706 - DEBUG - src.services.file_parser - Created rule: Jêrmungandr -> Jormungandr (category: general)
+2025-03-21 02:16:04.707 - DEBUG - src.services.file_parser - Processing row 39: {'From': 'J㪲mungandr', 'To': 'Jormungandr', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.707 - DEBUG - src.services.file_parser - Created rule: J㪲mungandr -> Jormungandr (category: general)
+2025-03-21 02:16:04.707 - DEBUG - src.services.file_parser - Processing row 40: {'From': 'JÃ²rmungandr', 'To': 'Jormungandr', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.708 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr -> Jormungandr (category: general)
+2025-03-21 02:16:04.708 - DEBUG - src.services.file_parser - Processing row 41: {'From': "Jòrmungandr's", 'To': "Jormungandr's", 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.708 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's -> Jormungandr's (category: general)
+2025-03-21 02:16:04.708 - DEBUG - src.services.file_parser - Processing row 42: {'From': "JÃ²rmungandr's", 'To': "Jormungandr's", 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.708 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr's -> Jormungandr's (category: general)
+2025-03-21 02:16:04.708 - DEBUG - src.services.file_parser - Processing row 43: {'From': 'JÃ²rmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.708 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-21 02:16:04.709 - DEBUG - src.services.file_parser - Processing row 44: {'From': 'Jòrmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.709 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-21 02:16:04.709 - DEBUG - src.services.file_parser - Processing row 45: {'From': "Jòrmungandr's Chest", 'To': "Jormungandr's Chest", 'Category': 'chest_type', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.709 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's Chest -> Jormungandr's Chest (category: general)
+2025-03-21 02:16:04.709 - DEBUG - src.services.file_parser - Processing row 46: {'From': 'Epic Jêrmungandr sguad', 'To': 'Epic Jormungandr squad', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.709 - DEBUG - src.services.file_parser - Created rule: Epic Jêrmungandr sguad -> Epic Jormungandr squad (category: source)
+2025-03-21 02:16:04.709 - DEBUG - src.services.file_parser - Processing row 47: {'From': "Arachne's Svvarm Epic sguad", 'To': "Arachne's Swarm Epic squad", 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.710 - DEBUG - src.services.file_parser - Created rule: Arachne's Svvarm Epic sguad -> Arachne's Swarm Epic squad (category: source)
+2025-03-21 02:16:04.710 - DEBUG - src.services.file_parser - Processing row 48: {'From': "Arachne's Swarm Epic sguad", 'To': "Arachne's Swarm Epic squad", 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.710 - DEBUG - src.services.file_parser - Created rule: Arachne's Swarm Epic sguad -> Arachne's Swarm Epic squad (category: source)
+2025-03-21 02:16:04.710 - INFO - src.services.file_parser - Successfully parsed 47 rules from CSV
+2025-03-21 02:16:04.710 - INFO - src.services.file_parser - Successfully parsed 47 rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.710 - INFO - src.ui.file_import_widget - Loaded 47 rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.711 - INFO - src.services.config_manager - Configuration saved to d:\Projekte\CorrectionTool\config.ini
+2025-03-21 02:16:04.711 - INFO - src.services.config_manager - Configuration saved to d:\Projekte\CorrectionTool\config.ini
+2025-03-21 02:16:04.712 - INFO - src.ui.file_import_widget - Auto-load complete, emitting corrections_loaded with 47 rules
+2025-03-21 02:16:04.714 - DEBUG - ui.filter_adapter - Configuration manager set
+2025-03-21 02:16:04.715 - DEBUG - filters.manager - Registered filter 'global_search'
+2025-03-21 02:16:04.716 - DEBUG - ui.filter_adapter - Filter panel created
+2025-03-21 02:16:04.716 - DEBUG - filters.manager - Loaded state for 1 filters, 0 active
+2025-03-21 02:16:04.716 - DEBUG - ui.filter_adapter - Filter state loaded from configuration
+2025-03-21 02:16:04.718 - DEBUG - src.ui.adapters.entry_table_adapter - EntryTableAdapter connected to table view
+2025-03-21 02:16:04.728 - DEBUG - src.ui.dashboard_interface - Connecting dashboard signals
+2025-03-21 02:16:04.729 - DEBUG - src.services.event_manager - Subscribed handler _on_entries_updated to event ENTRIES_UPDATED
+2025-03-21 02:16:04.729 - DEBUG - src.services.event_manager - Subscribed handler _on_entries_updated to event IMPORT_COMPLETED
+2025-03-21 02:16:04.729 - DEBUG - filters.manager - Loaded state for 1 filters, 0 active
+2025-03-21 02:16:04.730 - DEBUG - ui.filter_adapter - Filter state loaded
+2025-03-21 02:16:04.730 - DEBUG - src.ui.dashboard_interface - Connecting dashboard signals
+2025-03-21 02:16:04.730 - DEBUG - src.services.event_manager - Subscribed handler _on_entries_updated to event ENTRIES_UPDATED
+2025-03-21 02:16:04.730 - DEBUG - src.services.event_manager - Subscribed handler _on_entries_updated to event IMPORT_COMPLETED
+2025-03-21 02:16:04.730 - INFO - src.ui.dashboard_interface - Status bar initialized from parent
+2025-03-21 02:16:04.730 - INFO - src.ui.dashboard_interface - Loading correction rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.732 - INFO - src.services.dataframe_store - Correction rules DataFrame updated with 47 rows
+2025-03-21 02:16:04.732 - INFO - src.services.file_service - Loaded 47 correction rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.732 - INFO - src.ui.dashboard_interface - Loading player validation list from data\validation\players.txt
+2025-03-21 02:16:04.733 - INFO - src.services.dataframe_store - Validation list 'player' updated with 101 entries
+2025-03-21 02:16:04.733 - INFO - src.services.file_service - Loaded 101 entries for 'player' validation list from data\validation\players.txt
+2025-03-21 02:16:04.734 - INFO - src.ui.dashboard_interface - Loading chest_type validation list from data\validation\chest_types.txt
+2025-03-21 02:16:04.735 - INFO - src.services.dataframe_store - Validation list 'chest_type' updated with 72 entries
+2025-03-21 02:16:04.735 - INFO - src.services.file_service - Loaded 72 entries for 'chest_type' validation list from data\validation\chest_types.txt
+2025-03-21 02:16:04.735 - INFO - src.ui.dashboard_interface - Loading source validation list from data\validation\sources.txt
+2025-03-21 02:16:04.736 - INFO - src.services.dataframe_store - Validation list 'source' updated with 82 entries
+2025-03-21 02:16:04.736 - INFO - src.services.file_service - Loaded 82 entries for 'source' validation list from data\validation\sources.txt
+2025-03-21 02:16:04.736 - INFO - src.ui.dashboard_interface - DashboardInterface initialized
+2025-03-21 02:16:04.743 - INFO - src.ui.correction_manager_interface - Initializing CorrectionManagerInterface
+2025-03-21 02:16:04.753 - CRITICAL - root - Error creating or showing MainWindowInterface: CorrectionRulesTable.__init__() got an unexpected keyword argument 'validation_lists'
+Traceback (most recent call last):
+  File "d:\Projekte\CorrectionTool\main.py", line 113, in main
+    main_window = MainWindowInterface(service_factory)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Projekte\CorrectionTool\src\ui\main_window_interface.py", line 128, in __init__
+    self._setup_content()
+  File "d:\Projekte\CorrectionTool\src\ui\main_window_interface.py", line 264, in _setup_content
+    self._setup_correction_manager_page()
+  File "d:\Projekte\CorrectionTool\src\ui\main_window_interface.py", line 289, in _setup_correction_manager_page
+    self._correction_manager = CorrectionManagerInterface(self._service_factory, parent=self)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Projekte\CorrectionTool\src\ui\correction_manager_interface.py", line 129, in __init__
+    self._setup_ui()
+  File "d:\Projekte\CorrectionTool\src\ui\correction_manager_interface.py", line 156, in _setup_ui
+    self._setup_correction_tools_panel()
+  File "d:\Projekte\CorrectionTool\src\ui\correction_manager_interface.py", line 181, in _setup_correction_tools_panel
+    self._setup_correction_rules_tab()
+  File "d:\Projekte\CorrectionTool\src\ui\correction_manager_interface.py", line 212, in _setup_correction_rules_tab
+    self._correction_rules_table = CorrectionRulesTable(validation_lists=self._validation_lists)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: CorrectionRulesTable.__init__() got an unexpected keyword argument 'validation_lists'
+2025-03-21 02:16:04.755 - CRITICAL - root - Fatal error starting application: CorrectionRulesTable.__init__() got an unexpected keyword argument 'validation_lists'
+2025-03-21 02:16:04.756 - CRITICAL - root - Traceback (most recent call last):
+  File "d:\Projekte\CorrectionTool\main.py", line 113, in main
+    main_window = MainWindowInterface(service_factory)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Projekte\CorrectionTool\src\ui\main_window_interface.py", line 128, in __init__
+    self._setup_content()
+  File "d:\Projekte\CorrectionTool\src\ui\main_window_interface.py", line 264, in _setup_content
+    self._setup_correction_manager_page()
+  File "d:\Projekte\CorrectionTool\src\ui\main_window_interface.py", line 289, in _setup_correction_manager_page
+    self._correction_manager = CorrectionManagerInterface(self._service_factory, parent=self)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Projekte\CorrectionTool\src\ui\correction_manager_interface.py", line 129, in __init__
+    self._setup_ui()
+  File "d:\Projekte\CorrectionTool\src\ui\correction_manager_interface.py", line 156, in _setup_ui
+    self._setup_correction_tools_panel()
+  File "d:\Projekte\CorrectionTool\src\ui\correction_manager_interface.py", line 181, in _setup_correction_tools_panel
+    self._setup_correction_rules_tab()
+  File "d:\Projekte\CorrectionTool\src\ui\correction_manager_interface.py", line 212, in _setup_correction_rules_tab
+    self._correction_rules_table = CorrectionRulesTable(validation_lists=self._validation_lists)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: CorrectionRulesTable.__init__() got an unexpected keyword argument 'validation_lists'
+
+2025-03-21 02:16:04.815 - INFO - src.ui.file_import_widget - Auto-loading correction rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.815 - INFO - src.services.file_parser - Parsing correction file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.815 - INFO - src.services.file_parser - Parsing CSV file: D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.815 - INFO - src.services.file_parser - Attempting to parse CSV with encoding: utf-8
+2025-03-21 02:16:04.816 - DEBUG - src.services.file_parser - Delimiter ';' gives 1 columns
+2025-03-21 02:16:04.816 - DEBUG - src.services.file_parser - Delimiter ',' gives 4 columns
+2025-03-21 02:16:04.816 - DEBUG - src.services.file_parser - Delimiter '	' gives 1 columns
+2025-03-21 02:16:04.816 - INFO - src.services.file_parser - Using delimiter: ',' with 4 columns
+2025-03-21 02:16:04.816 - INFO - src.services.file_parser - CSV headers: ['From', 'To', 'Category', 'enabled']
+2025-03-21 02:16:04.816 - INFO - src.services.file_parser - Found required headers (case-insensitive)
+2025-03-21 02:16:04.816 - DEBUG - src.services.file_parser - Processing row 2: {'From': 'Маһоп12', 'To': 'D4rkBlizZ4rD', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.816 - DEBUG - src.services.file_parser - Created rule: Маһоп12 -> D4rkBlizZ4rD (category: player)
+2025-03-21 02:16:04.816 - DEBUG - src.services.file_parser - Processing row 3: {'From': 'АЙ', 'To': 'D4rkBlizZ4rD', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.816 - DEBUG - src.services.file_parser - Created rule: АЙ -> D4rkBlizZ4rD (category: player)
+2025-03-21 02:16:04.817 - DEBUG - src.services.file_parser - Processing row 4: {'From': 'Fenrir"s Chest', 'To': "Fenrir's Chest", 'Category': 'chest', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.817 - DEBUG - src.services.file_parser - Created rule: Fenrir"s Chest -> Fenrir's Chest (category: chest)
+2025-03-21 02:16:04.817 - DEBUG - src.services.file_parser - Processing row 5: {'From': 'Hermes" Store', 'To': "Hermes' Store", 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.817 - DEBUG - src.services.file_parser - Created rule: Hermes" Store -> Hermes' Store (category: source)
+2025-03-21 02:16:04.817 - DEBUG - src.services.file_parser - Processing row 6: {'From': 'VVarrior"s Chest"', 'To': "Warrior's Chest", 'Category': 'chest', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.817 - DEBUG - src.services.file_parser - Created rule: VVarrior"s Chest" -> Warrior's Chest (category: chest)
+2025-03-21 02:16:04.818 - DEBUG - src.services.file_parser - Processing row 7: {'From': 'Clan vvealth', 'To': 'Clan wealth', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.818 - DEBUG - src.services.file_parser - Created rule: Clan vvealth -> Clan wealth (category: source)
+2025-03-21 02:16:04.818 - DEBUG - src.services.file_parser - Processing row 8: {'From': 'OsmanliTorunu', 'To': 'OsmanlıTorunu', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.818 - DEBUG - src.services.file_parser - Created rule: OsmanliTorunu -> OsmanlıTorunu (category: player)
+2025-03-21 02:16:04.818 - DEBUG - src.services.file_parser - Processing row 9: {'From': 'Epic Ancient sguad', 'To': 'Epic Ancient squad', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.818 - DEBUG - src.services.file_parser - Created rule: Epic Ancient sguad -> Epic Ancient squad (category: source)
+2025-03-21 02:16:04.818 - DEBUG - src.services.file_parser - Processing row 10: {'From': 'Snovvvveaver', 'To': 'Snowweaver', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.819 - DEBUG - src.services.file_parser - Created rule: Snovvvveaver -> Snowweaver (category: player)
+2025-03-21 02:16:04.819 - DEBUG - src.services.file_parser - Processing row 11: {'From': 'Krimelmonster', 'To': 'Krümelmonster', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.819 - DEBUG - src.services.file_parser - Created rule: Krimelmonster -> Krümelmonster (category: player)
+2025-03-21 02:16:04.819 - DEBUG - src.services.file_parser - Processing row 12: {'From': 'GUARDIENOfTHUNDER', 'To': 'GUARDIENofTHUNDER', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.819 - DEBUG - src.services.file_parser - Created rule: GUARDIENOfTHUNDER -> GUARDIENofTHUNDER (category: player)
+2025-03-21 02:16:04.819 - DEBUG - src.services.file_parser - Processing row 13: {'From': 'Rare Chest of VVealth', 'To': 'Rare Chest of Wealth', 'Category': 'chest', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.819 - DEBUG - src.services.file_parser - Created rule: Rare Chest of VVealth -> Rare Chest of Wealth (category: chest)
+2025-03-21 02:16:04.820 - DEBUG - src.services.file_parser - Processing row 14: {'From': 'Epic Chest of Vvealth', 'To': 'Epic Chest of Wealth', 'Category': 'chest', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.820 - DEBUG - src.services.file_parser - Created rule: Epic Chest of Vvealth -> Epic Chest of Wealth (category: chest)
+2025-03-21 02:16:04.820 - DEBUG - src.services.file_parser - Processing row 15: {'From': 'Sir Nightvvoolf', 'To': 'Sir Nightwoolf', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.820 - DEBUG - src.services.file_parser - Created rule: Sir Nightvvoolf -> Sir Nightwoolf (category: player)
+2025-03-21 02:16:04.820 - DEBUG - src.services.file_parser - Processing row 16: {'From': 'Hammerschlagi', 'To': 'Hammerschlag1', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.820 - DEBUG - src.services.file_parser - Created rule: Hammerschlagi -> Hammerschlag1 (category: player)
+2025-03-21 02:16:04.821 - DEBUG - src.services.file_parser - Processing row 17: {'From': 'Feldjager', 'To': 'Feldjäger', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.821 - DEBUG - src.services.file_parser - Created rule: Feldjager -> Feldjäger (category: player)
+2025-03-21 02:16:04.821 - DEBUG - src.services.file_parser - Processing row 18: {'From': 'Feldj䧥r', 'To': 'Feldjäger', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.821 - DEBUG - src.services.file_parser - Created rule: Feldj䧥r -> Feldjäger (category: player)
+2025-03-21 02:16:04.821 - DEBUG - src.services.file_parser - Processing row 19: {'From': 'Lord Ore', 'To': 'Lord Öre', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.821 - DEBUG - src.services.file_parser - Created rule: Lord Ore -> Lord Öre (category: player)
+2025-03-21 02:16:04.822 - DEBUG - src.services.file_parser - Processing row 20: {'From': 'Lord ֲe', 'To': 'Lord Öre', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.822 - DEBUG - src.services.file_parser - Created rule: Lord ֲe -> Lord Öre (category: player)
+2025-03-21 02:16:04.822 - DEBUG - src.services.file_parser - Processing row 21: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.822 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-21 02:16:04.822 - DEBUG - src.services.file_parser - Processing row 22: {'From': 'Ouick March Chest', 'To': 'Quick March Chest', 'Category': 'chest_type', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.822 - DEBUG - src.services.file_parser - Created rule: Ouick March Chest -> Quick March Chest (category: general)
+2025-03-21 02:16:04.822 - DEBUG - src.services.file_parser - Processing row 23: {'From': 'Epic Fenrir sguad', 'To': 'Epic Fenrir squad', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.823 - DEBUG - src.services.file_parser - Created rule: Epic Fenrir sguad -> Epic Fenrir squad (category: source)
+2025-03-21 02:16:04.823 - DEBUG - src.services.file_parser - Processing row 24: {'From': 'Union of Triumph personal revvard', 'To': 'Union of Triumph personal reward', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.823 - DEBUG - src.services.file_parser - Created rule: Union of Triumph personal revvard -> Union of Triumph personal reward (category: source)
+2025-03-21 02:16:04.823 - DEBUG - src.services.file_parser - Processing row 25: {'From': 'revvard', 'To': 'reward', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.823 - DEBUG - src.services.file_parser - Created rule: revvard -> reward (category: general)
+2025-03-21 02:16:04.823 - DEBUG - src.services.file_parser - Processing row 26: {'From': 'sguad', 'To': 'squad', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.823 - DEBUG - src.services.file_parser - Created rule: sguad -> squad (category: general)
+2025-03-21 02:16:04.823 - DEBUG - src.services.file_parser - Processing row 27: {'From': 'Vvealth', 'To': 'Wealth', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.824 - DEBUG - src.services.file_parser - Created rule: Vvealth -> Wealth (category: general)
+2025-03-21 02:16:04.824 - DEBUG - src.services.file_parser - Processing row 28: {'From': 'VVealth', 'To': 'Wealth', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.824 - DEBUG - src.services.file_parser - Created rule: VVealth -> Wealth (category: general)
+2025-03-21 02:16:04.824 - DEBUG - src.services.file_parser - Processing row 29: {'From': 'Juslius C䳡r', 'To': 'Julius Cäsar', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.824 - DEBUG - src.services.file_parser - Created rule: Juslius C䳡r -> Julius Cäsar (category: player)
+2025-03-21 02:16:04.824 - DEBUG - src.services.file_parser - Processing row 30: {'From': 'Juslius Cäsar', 'To': 'Julius Cäsar', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.825 - DEBUG - src.services.file_parser - Created rule: Juslius Cäsar -> Julius Cäsar (category: player)
+2025-03-21 02:16:04.825 - DEBUG - src.services.file_parser - Processing row 31: {'From': 'Julius Casar', 'To': 'Julius Cäsar', 'Category': 'player', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.825 - DEBUG - src.services.file_parser - Created rule: Julius Casar -> Julius Cäsar (category: player)
+2025-03-21 02:16:04.825 - DEBUG - src.services.file_parser - Processing row 32: {'From': 'Ancients"', 'To': "Ancients'", 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.825 - DEBUG - src.services.file_parser - Created rule: Ancients" -> Ancients' (category: general)
+2025-03-21 02:16:04.825 - DEBUG - src.services.file_parser - Processing row 33: {'From': 'Quick March Chest Chest', 'To': 'Quick March Chest', 'Category': 'chest_type', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.825 - DEBUG - src.services.file_parser - Created rule: Quick March Chest Chest -> Quick March Chest (category: general)
+2025-03-21 02:16:04.825 - DEBUG - src.services.file_parser - Processing row 34: {'From': 'Union of Triumf personal reward', 'To': 'Union of Triumph personal reward', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.826 - DEBUG - src.services.file_parser - Created rule: Union of Triumf personal reward -> Union of Triumph personal reward (category: general)
+2025-03-21 02:16:04.826 - DEBUG - src.services.file_parser - Processing row 35: {'From': 'Triumf', 'To': 'Triumph', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.826 - DEBUG - src.services.file_parser - Created rule: Triumf -> Triumph (category: general)
+2025-03-21 02:16:04.826 - DEBUG - src.services.file_parser - Processing row 36: {'From': 'Triumfp', 'To': 'Triumph', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.826 - DEBUG - src.services.file_parser - Created rule: Triumfp -> Triumph (category: general)
+2025-03-21 02:16:04.826 - DEBUG - src.services.file_parser - Processing row 37: {'From': 'JÃªrmungandr', 'To': 'Jormungandr', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.826 - DEBUG - src.services.file_parser - Created rule: JÃªrmungandr -> Jormungandr (category: general)
+2025-03-21 02:16:04.826 - DEBUG - src.services.file_parser - Processing row 38: {'From': 'Jêrmungandr', 'To': 'Jormungandr', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.827 - DEBUG - src.services.file_parser - Created rule: Jêrmungandr -> Jormungandr (category: general)
+2025-03-21 02:16:04.827 - DEBUG - src.services.file_parser - Processing row 39: {'From': 'J㪲mungandr', 'To': 'Jormungandr', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.827 - DEBUG - src.services.file_parser - Created rule: J㪲mungandr -> Jormungandr (category: general)
+2025-03-21 02:16:04.827 - DEBUG - src.services.file_parser - Processing row 40: {'From': 'JÃ²rmungandr', 'To': 'Jormungandr', 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.827 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr -> Jormungandr (category: general)
+2025-03-21 02:16:04.827 - DEBUG - src.services.file_parser - Processing row 41: {'From': "Jòrmungandr's", 'To': "Jormungandr's", 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.827 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's -> Jormungandr's (category: general)
+2025-03-21 02:16:04.827 - DEBUG - src.services.file_parser - Processing row 42: {'From': "JÃ²rmungandr's", 'To': "Jormungandr's", 'Category': 'general', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.828 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr's -> Jormungandr's (category: general)
+2025-03-21 02:16:04.828 - DEBUG - src.services.file_parser - Processing row 43: {'From': 'JÃ²rmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.828 - DEBUG - src.services.file_parser - Created rule: JÃ²rmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-21 02:16:04.828 - DEBUG - src.services.file_parser - Processing row 44: {'From': 'Jòrmungandr Shop', 'To': 'Jormungandr Shop', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.828 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr Shop -> Jormungandr Shop (category: source)
+2025-03-21 02:16:04.828 - DEBUG - src.services.file_parser - Processing row 45: {'From': "Jòrmungandr's Chest", 'To': "Jormungandr's Chest", 'Category': 'chest_type', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.829 - DEBUG - src.services.file_parser - Created rule: Jòrmungandr's Chest -> Jormungandr's Chest (category: general)
+2025-03-21 02:16:04.829 - DEBUG - src.services.file_parser - Processing row 46: {'From': 'Epic Jêrmungandr sguad', 'To': 'Epic Jormungandr squad', 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.829 - DEBUG - src.services.file_parser - Created rule: Epic Jêrmungandr sguad -> Epic Jormungandr squad (category: source)
+2025-03-21 02:16:04.829 - DEBUG - src.services.file_parser - Processing row 47: {'From': "Arachne's Svvarm Epic sguad", 'To': "Arachne's Swarm Epic squad", 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.829 - DEBUG - src.services.file_parser - Created rule: Arachne's Svvarm Epic sguad -> Arachne's Swarm Epic squad (category: source)
+2025-03-21 02:16:04.830 - DEBUG - src.services.file_parser - Processing row 48: {'From': "Arachne's Swarm Epic sguad", 'To': "Arachne's Swarm Epic squad", 'Category': 'source', 'Enabled': 'enabled'}
+2025-03-21 02:16:04.830 - DEBUG - src.services.file_parser - Created rule: Arachne's Swarm Epic sguad -> Arachne's Swarm Epic squad (category: source)
+2025-03-21 02:16:04.830 - INFO - src.services.file_parser - Successfully parsed 47 rules from CSV
+2025-03-21 02:16:04.830 - INFO - src.services.file_parser - Successfully parsed 47 rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.830 - DEBUG - src.ui.file_import_widget - Rules are unchanged, skipping update
+2025-03-21 02:16:04.830 - INFO - src.ui.file_import_widget - Loaded 47 rules from D:\Projekte\CorrectionTool\data\corrections\standard_corrections.csv
+2025-03-21 02:16:04.831 - INFO - src.services.config_manager - Configuration saved to d:\Projekte\CorrectionTool\config.ini
+2025-03-21 02:16:04.831 - INFO - src.services.config_manager - Configuration saved to d:\Projekte\CorrectionTool\config.ini
+2025-03-21 02:16:04.831 - INFO - src.ui.file_import_widget - Auto-load complete, emitting corrections_loaded with 47 rules
+2025-03-21 02:16:04.832 - INFO - src.ui.dashboard_interface - Loaded 47 correction rules
+2025-03-21 02:16:04.832 - INFO - src.services.dataframe_store - Correction rules DataFrame updated with 47 rows
+2025-03-21 02:16:04.832 - INFO - src.ui.dashboard_interface - Loaded 47 correction rules
+2025-03-21 02:16:04.833 - INFO - src.services.dataframe_store - Correction rules DataFrame updated with 47 rows

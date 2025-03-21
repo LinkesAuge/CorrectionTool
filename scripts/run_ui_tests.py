@@ -16,10 +16,16 @@ from pathlib import Path
 
 def setup_environment():
     """Set up the environment for Qt-based UI testing."""
+    # Get project root
+    project_root = str(Path(__file__).parent.parent.absolute())
+
     # Set Qt environment variables to ensure proper testing environment
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    os.environ["QT_QPA_FONTDIR"] = str(Path(os.getcwd()) / "resources" / "fonts")
-    os.environ["PYTHONPATH"] = str(Path(os.getcwd()))
+    os.environ["QT_QPA_FONTDIR"] = str(Path(project_root) / "resources" / "fonts")
+
+    # Set PYTHONPATH to include the project root directory
+    os.environ["PYTHONPATH"] = project_root
+    print(f"Setting PYTHONPATH to {project_root}")
 
     # Make sure we're using python from the same environment
     python = sys.executable

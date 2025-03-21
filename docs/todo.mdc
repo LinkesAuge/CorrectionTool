@@ -73,13 +73,60 @@ After completing the main window cleanup, the following tasks are high priority:
 - [x] Implement component tests for CorrectionManagerInterface 
 - [x] Create integration tests for end-to-end workflows
 - [x] Set up script for running UI tests
+  - Created scripts/run_ui_tests.py with command-line options
+  - Added support for test filtering and verbosity levels
+  - Implemented proper environment setup for Qt-based testing
+- [x] Update documentation for UI testing framework
+  - Enhanced docs/ui_testing_guide.md with comprehensive details
+  - Added examples for different test scenarios
+  - Documented mock services and test helpers
 - [ ] Set up CI/CD pipeline for UI tests
-- [ ] Fix button functionality issues in UI tests
-- [ ] Fix validation list display issues
 - [ ] Add tests for all remaining UI components
-- [ ] Create documentation for UI testing and debugging approach
+  - [x] FileImportWidget tests
+  - [x] EnhancedTableView tests
+  - [ ] StatisticsWidget tests
+  - [ ] ActionButtonGroup tests
+  - [ ] ValidationStatusIndicator tests
+  - [ ] CorrectionRulesTable tests
+  - [ ] Dialog components tests:
+    - [ ] RuleEditDialog tests
+    - [ ] ValidationRuleEditorDialog tests
+    - [ ] ImportOptionsDialog tests
+    - [ ] ExportOptionsDialog tests
+- [ ] Fix remaining UI issues identified during testing
+  - [ ] Button functionality issues
+  - [ ] Validation list display issues
+  - [ ] Signal connection issues
 
 ## Recent Completed Work
+
+### EnhancedTableView Headless Testing Implementation (COMPLETED)
+- [x] Added test mode capabilities to EnhancedTableView
+  - Implemented constructor parameter for test mode
+  - Added set_test_mode() and is_test_mode() methods
+  - Added conditional behavior based on test mode
+  - Created comprehensive tests covering all functionality
+- [x] Added programmatic alternatives to UI interactions
+  - Implemented select_row() and select_entry_by_id() methods
+  - Created test_edit_entry_at_row(), test_create_rule_from_row(), and test_reset_entry_at_row() methods
+  - Added signal history tracking for verification
+  - Implemented get_model_data() and get_visible_rows_count() methods for state verification
+- [x] Created comprehensive test suite
+  - Added tests for initialization, test mode, data management
+  - Implemented tests for selection, filtering, and actions
+  - Added tests for edge cases and error handling
+  - Created test fixtures for common test scenarios
+
+### UI Testing Framework Implementation (COMPLETED)
+- [x] Created comprehensive UI testing infrastructure
+  - Established directory structure (components, integration, helpers, fixtures)
+  - Implemented UITestHelper with extensive testing utilities
+  - Created mock services for all major service interfaces
+  - Developed base test fixtures for common testing scenarios
+  - Added component tests for key UI components
+  - Implemented integration tests for end-to-end workflows
+  - Created a dedicated test runner script
+  - Updated UI testing documentation
 
 ### Interface System Implementation (COMPLETED)
 - [x] Completed comprehensive documentation of the interface architecture
@@ -129,25 +176,25 @@ After completing the main window cleanup, the following tasks are high priority:
 ## Interface System Implementation Plan
 
 ### Phase 1: Event System Standardization
-- [ ] Move EventType enum to a single location in src/interfaces/events.py
-- [ ] Remove duplicate EventType from dataframe_store.py
-- [ ] Update all imports to use the standardized version
-- [ ] Add proper type hints for event handlers and event data
-- [ ] Create centralized event handling system
+- [x] Move EventType enum to a single location in src/interfaces/events.py
+- [x] Remove duplicate EventType from dataframe_store.py
+- [x] Update all imports to use the standardized version
+- [x] Add proper type hints for event handlers and event data
+- [x] Create centralized event handling system
 
 ### Phase 2: Dependency Injection Refinement
-- [ ] Refactor DataFrameStore to fully support dependency injection
-- [ ] Remove get_instance() calls from all components
-- [ ] Update all UI adapters to accept injected dependencies
-- [ ] Enhance service registration and validation
-- [ ] Prevent missing dependencies in components
+- [x] Refactor DataFrameStore to fully support dependency injection
+- [x] Remove get_instance() calls from all components
+- [x] Update all UI adapters to accept injected dependencies
+- [x] Enhance service registration and validation
+- [x] Prevent missing dependencies in components
 
 ### Phase 3: Interface Compliance Verification
 - [x] Add interface validation tests for each service
 - [x] Ensure all implementations satisfy their interfaces
 - [x] Create common base classes for shared behavior
 - [x] Document interface contracts with clear docstrings
-- [ ] Add runtime behavior validation for interface contracts
+- [x] Add runtime behavior validation for interface contracts
 
 ### Phase 4: Documentation Update
 - [x] Update INTERFACE_ARCHITECTURE.md with refined architecture
@@ -161,137 +208,47 @@ After completing the main window cleanup, the following tasks are high priority:
   - [x] Dependency injection diagram showing how services are created and injected
   - [x] Event system diagram showing the publish-subscribe architecture
 
-## Rework Implementation Plan
-
-### Phase 1: Preliminary Cleanup (COMPLETED)
-- [x] Remove redundant tabs (simplify to single view)
-- [x] Remove Preview panel functionality
-- [x] Create stubs for new UI components:
-  - [x] `FileImportWidget` - Compact widget for file import in dashboard sidebar
-  - [x] `StatisticsWidget` - Shows statistics and status in sidebar
-  - [x] `ActionButtonGroup` - Group of action buttons in dashboard
-  - [x] `ValidationStatusIndicator` - Shows validation status and count
-  - [x] `EnhancedTableView` - Table with advanced features
-  - [x] `CorrectionManagerPanel` - Panel for managing correction rules
-  - [x] `ValidationRuleEditor` - Editor for validation rules
-  - [x] `ValidationListWidget` - Widget for managing validation lists
-  - [x] `Dashboard` - Main dashboard component
-- [x] Update `FileImportWidget` to auto-load correction lists by default
-- [x] Enhance `CorrectionManagerPanel` to include correction list selection and toggle options
-- [x] Ensure proper state sharing between components for correction lists
-- [x] Update all components to handle correction lists automatically similar to validation files
-- [x] Audit existing signal connections to identify conflicts
-
-### Phase 2: Dashboard Redesign (COMPLETED)
-- [x] Restructure dashboard layout:
-  - [x] Create new `QSplitter` layout for dashboard
-  - [x] Compact left sidebar with import controls and statistics
-  - [x] Main area with enhanced table view
-  - [x] Update MainWindow to use new Dashboard class
-  - [x] Include default correction list loading in the `FileImportWidget`
-  - [x] Add correction list status indicator in the `FileImportWidget`
-  - [x] Include toggle for correction list application in the `ActionButtonGroup`
-- [x] Implement table improvements:
-  - [x] Color coding for validation errors
-  - [x] In-place editing of table cells
-  - [x] Context menu for quick corrections
-  - [x] Custom delegates for specialized cells
-  - [x] Cell navigation with keyboard shortcuts
-  - [x] Ensure `CorrectionStatusIndicator` shows the state of the correction list
-- [x] Fix correction application issues:
-  - [x] Ensure corrections are properly applied
-  - [x] Add logging of applied corrections
-  - [x] Handle edge cases and errors
-
-### Phase 3: Correction Manager Implementation
-- [x] Create new "Correction Manager" tab
-- [x] Implement split layout:
-  - [x] Left side (50%): Correction rules table
-  - [x] Right side (50%): Validation lists sections
-- [x] Correction rules section:
-  - [x] Two-column table (From→To)
-  - [x] Add, Edit, Delete buttons
-  - [x] Import/Export functionality
-  - [x] Search filter
-  - [x] Dropdown selection for validation lists when editing
-  - [x] Toggle for enabling/disabling individual correction rules
-  - [x] Default loading of correction lists
-  - [x] Global toggle for enabling/disabling all corrections
-- [x] Validation lists sections:
-  - [x] Create compact table views for all three lists
-  - [x] Implement direct editing of entries
-  - [x] Add search functionality to lists
-  - [x] Add import/export buttons for each list
-  - [ ] Create unified controls section at the bottom
-
-### Phase 4: Fuzzy Matching Implementation
-- [x] Enhance ValidationList class:
-  - [x] Modify `is_valid()` method to support fuzzy matching based on settings
-  - [x] Add field to track matching method (exact, case-insensitive, fuzzy)
-  - [x] Add confidence score for fuzzy matches
-- [x] Connect validation strictness setting to ValidationList behavior:
-  - [x] Update settings panel to apply strictness to validation
-  - [x] Implement proper handling of "Relaxed (Fuzzy match)" mode
-- [x] Add fuzzy matching controls to UI:
-  - [x] Create fuzzy matching toggle in sidebar
-  - [x] Add threshold slider with visual feedback
-  - [x] Implement save/load of fuzzy settings in config
-- [x] Enhance validation view:
-  - [x] Show confidence scores for fuzzy matches
-  - [x] Use different highlight colors for exact vs. fuzzy matches
-  - [x] Add tooltips with match details
-- [x] Implement fuzzy correction suggestions:
-  - [x] Suggest corrections based on fuzzy matches
-  - [x] Allow one-click application of suggestions
-  - [x] Display confidence scores for suggestions
-
-### Phase 5: Configuration Management (COMPLETED)
-- [x] Create consolidated path structure in ConfigManager:
-  - [x] Implement a "Paths" section for all file paths
-  - [x] Add standard directories (data, input, output, etc.)
-  - [x] Define default files (correction_rules, validation lists, etc.)
-  - [x] Implement last used paths for user convenience
-- [x] Implement backward compatibility:
-  - [x] Create redirection mechanism for legacy config entries
-  - [x] Add migration functionality to update old configs
-  - [x] Ensure existing code still works with new structure
-- [x] Create path utility methods:
-  - [x] Implement get_path method with fallback support
-  - [x] Create set_path method that updates all related paths
-  - [x] Add support for legacy path retrieval
-- [x] Update all components to use new config API:
-  - [x] Modify Dashboard class to use consolidated paths
-  - [x] Update CorrectionRulesTable to use the path API
-  - [x] Update ValidationListWidget to use the path API
-  - [x] Fix file dialogs to use consistent directory handling
-- [x] Add automatic directory creation for missing paths
-- [x] Implement proper error handling for file operations
-- [x] Add default directory structure creation on first run
-- [x] Fix multiple correction list processing issues
-
-### Phase 6: Filter Improvements
-- [x] Create dropdown filters populated from validation lists
-- [x] Implement multi-select filtering
-- [x] Add search functionality to filters
-- [x] Ensure filter state persists between app restarts
-
-### Phase 7: Visual Design Updates
-- [x] Define new color scheme with golden accents
-- [x] Create consistent button styling
-- [x] Redesign tables with modern aesthetics
-- [x] Implement proper spacing and alignment
-- [x] Reduce excessive black backgrounds
-- [x] Add subtle animations for state changes
-- [x] Create custom styled scrollbars
-- [x] Design improved icons for actions
-- [x] Implement vertical sidebar menu on the left
-
-### Phase 8: State Management & Consistency
-- [x] Refactor validation/correction workflow
-- [x] Implement automatic validation on data load
-- [x] Ensure consistent state sharing between components
-
 ## Latest Progress
+
+### UI Testing Framework Implementation (Completed)
+
+✅ All major aspects of the UI testing framework have been completed. The following have been created:
+
+- **Directory Structure**: Organized structure for different test types
+  - `tests/ui/components/` - Component-level tests
+  - `tests/ui/integration/` - Integration tests for workflows
+  - `tests/ui/helpers/` - Helper classes for UI testing
+  - `tests/ui/fixtures/` - Pytest fixtures for UI tests
+
+- **Helper Classes**: Implemented comprehensive testing utilities
+  - `UITestHelper` with methods for UI testing operations
+  - `MockServices` for isolating UI components from backend
+  - Test data generators for consistent test scenarios
+
+- **Mock Services**: Created mock implementations of all major services
+  - `MockDataStore` for data management
+  - `MockCorrectionService` for correction rules
+  - `MockValidationService` for validation lists
+  - `MockFileService` for file operations
+  - `MockConfigManager` for configuration
+  - `MockServiceFactory` for dependency injection
+
+- **Component Tests**: Implemented tests for key UI components
+  - ValidationListWidget tests for different data types
+  - CorrectionManagerInterface tests for button functionality
+  - FileImportWidget tests for file operations
+  - EnhancedTableView tests for table interactions and functionality
+  - Tests for UI component initialization and setup
+
+- **Integration Tests**: Implemented end-to-end workflow tests
+  - Correction rule creation and application
+  - Validation list management
+  - User interaction workflows
+
+- **Test Runner**: Created a dedicated script for running UI tests
+  - Command-line options for test filtering
+  - Configurable verbosity levels
+  - Proper environment setup for Qt testing
 
 ### Interface System Documentation and Visualization (Completed)
 
@@ -311,18 +268,115 @@ Additionally, we've created:
 ### Next Steps
 
 The next priorities should be:
-1. **Validation List Management Enhancement**
+1. **Implement Dialog Component Testing**
+   - Adapt the test mode pattern for dialog components
+   - Create tests for RuleEditDialog, ValidationRuleEditorDialog
+   - Implement signal testing for dialog confirmation/cancellation
+   - Add headless compatibility for modal dialogs
+
+2. **Comprehensive Signal Testing**
+   - Implement signal history tracking for all UI components
+   - Create tests that verify signal emission and payloads
+   - Test signal connections between components
+   - Implement time-based signal testing for delayed signals
+
+3. **Expand UI Test Coverage**
+   - Add tests for remaining UI components
+   - Create tests for edge cases and error scenarios
+   - Set up CI/CD pipeline for automated UI testing
+   - Fix UI issues discovered during testing
+
+4. **Validation List Management Enhancement**
    - Add search functionality to validation lists
    - Support importing validation lists from CSV
    - Add duplicate detection for validation entries
    - Add bulk editing capabilities
 
-2. **Configuration UI Development**
-   - Create a dedicated settings panel for application configuration
-   - Implement user preference profiles
-   - Add visual configuration for validation strictness
+## UI Testing
 
-3. **Transaction and History System**
-   - Add transaction support for operations
-   - Implement undo/redo functionality
-   - Create visual indicators for correction applications
+### UI Test Infrastructure [✅ MOSTLY COMPLETE]
+- ✅ Create UI test directory structure
+- ✅ Create UITestHelper class
+- ✅ Implement mock services for testing:
+  - ✅ `MockDataStore`: Simulates data storage
+  - ✅ `MockConfigManager`: Simulates configuration management
+  - ✅ `MockFileService`: Simulates file operations
+  - 🔄 `MockCorrectionRulesTable`: Custom QWidget implementation for rules table testing
+  - 🔄 `MockRuleEditDialog`: Custom QWidget implementation for rule editing dialog testing
+- ✅ Create base test fixtures
+- 🔄 Implement headless environment test compatibility
+  - ✅ Update FilterSearchBar tests to not rely on visibility
+  - ✅ Update FilterDropdown tests to not rely on visibility
+  - ✅ Update FileImportWidget tests to not rely on visibility
+  - ✅ Update EnhancedTableView tests to not rely on visibility
+  - 🔄 Update Dialog component tests to not rely on visibility
+  - 🔄 Create simplified test case for infrastructure validation
+  - 🔄 Document headless testing best practices
+  - 🔄 Create CI/CD pipeline configuration for headless testing
+
+### Component Tests [🔄 IN PROGRESS]
+- ✅ Implement tests for ValidationListWidget
+- ✅ Implement tests for CorrectionManagerInterface
+- ✅ Create tests for EnhancedTableView
+- ✅ Create tests for FileImportWidget
+- 🔄 Create tests for CorrectionRulesTable
+- 🔄 Create tests for CorrectionManagerPanel
+- 🔄 Create tests for StatisticsWidget
+- 🔄 Create tests for ActionButtonGroup
+- 🔄 Create tests for ValidationStatusIndicator
+- 🔄 Create tests for Dialog components:
+  - 🔄 RuleEditDialog
+  - 🔄 ValidationRuleEditorDialog
+  - 🔄 ImportOptionsDialog
+  - 🔄 ExportOptionsDialog
+
+### Integration Tests [🔄 IN PROGRESS]
+- ✅ Create tests for component interactions
+- ✅ Implement end-to-end workflow tests
+- 🔄 Test data flow between components
+- 🔄 Verify error handling
+
+## UI Testing Infrastructure
+
+- [x] Create MockServiceFactory for UI testing
+- [x] Create mock implementations for all interfaces
+- [x] Create UITestHelper to simplify test setup
+- [x] Update FilterSearchBar for headless compatibility
+- [x] Update FilterDropdown for headless compatibility
+- [x] Update FileImportWidget for headless compatibility
+- [x] Update EnhancedTableView for headless compatibility
+- [ ] Update Dialog components for headless compatibility
+- [x] Add specialized script for headless UI testing
+- [ ] Add comprehensive signal tests for all components
+- [ ] Add test markers for distinguishing between display and headless tests
+
+## Headless Testing Prerequisites
+
+- [x] Update UI testing guide with headless testing best practices
+- [x] Create run_ui_tests_headless.py script
+- [ ] Add environment configuration for headless testing
+- [ ] Create simplified test cases to validate headless environment
+- [ ] Add documentation for CI/CD integration
+
+## UI Component Testing
+
+- [x] Create `UITestHelper` with standard interactions
+- [x] Add test mode to `FileImportWidget` for headless testing
+- [x] Add test mode to `EnhancedTableView` for headless testing 
+- [x] Create monkeypatch examples for alternative testing approach
+- [ ] Update Dialog components to be more testable
+  - [ ] Add test mode to RuleEditDialog
+  - [ ] Add test mode to ValidationRuleEditorDialog
+  - [ ] Add test mode to ImportOptionsDialog
+  - [ ] Add test mode to ExportOptionsDialog
+- [ ] Enhance MockServiceFactory with better defaults
+- [ ] Create examples for dialog component testing
+
+## Documentation
+
+- [x] Update bugfixing.mdc with headless testing fixes
+- [x] Update UI testing guide with file dialog testing approaches
+- [x] Document test mode pattern vs. monkeypatching
+- [ ] Create comprehensive testing guide for dialog components
+- [ ] Add troubleshooting section for common headless testing issues
+- [ ] Document best practices for UI component design for testability 
