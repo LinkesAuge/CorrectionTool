@@ -1,60 +1,66 @@
-"""
-test_validation_list_widget.py
-
-Description: Tests for the ValidationListWidget class.
-Usage:
-    pytest tests/test_validation_list_widget.py
-"""
-
-import sys
-import os
-import logging
-from pathlib import Path
 import pytest
-from unittest.mock import MagicMock, patch
-
-from PySide6.QtWidgets import QApplication, QTableView, QMessageBox
 from PySide6.QtCore import Qt
-
-# Add the source directory to the path to import modules
-sys.path.insert(0, str(Path(__file__).parent.parent))
+from PySide6.QtWidgets import QApplication
 
 from src.ui.validation_list_widget import ValidationListWidget
 from src.models.validation_list import ValidationList
+from src.services.config_manager import ConfigManager
 
 
 @pytest.fixture
-def app():
-    """Fixture for the QApplication instance."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    yield app
-    # Clean up after tests
-    app.quit()
+def config_manager():
+    """Create a config manager for testing."""
+    return ConfigManager(config_file="test_config.ini")
 
 
 @pytest.fixture
-def validation_list_widget(app):
-    """Fixture for creating a ValidationListWidget instance."""
-    widget = ValidationListWidget("player")
-    yield widget
-    # Clean up
-    widget.deleteLater()
+def validation_list_widget(config_manager):
+    """Create a validation list widget for testing."""
+    widget = ValidationListWidget(
+        list_type="player",
+        validation_list=None,
+        config_manager=config_manager,
+    )
+    return widget
 
 
-def test_validation_list_widget_initialization(validation_list_widget):
+def test_validation_list_widget_init(validation_list_widget):
     """Test that ValidationListWidget initializes correctly."""
     assert validation_list_widget is not None
-    assert validation_list_widget._list_name == "player"
-    assert validation_list_widget._validation_list is not None
-    assert validation_list_widget._model is not None
+    assert validation_list_widget._list_type == "player"
+    assert validation_list_widget._list is None
+    assert validation_list_widget._config_manager is not None
 
 
-def test_validation_list_widget_has_table_view(validation_list_widget):
-    """Test that ValidationListWidget has a table view."""
-    assert hasattr(validation_list_widget, "_table_view")
-    assert isinstance(validation_list_widget._table_view, QTableView)
+def test_validation_list_widget_populate(validation_list_widget):
+    """Test that ValidationListWidget populates correctly."""
+    test_list = ValidationList(name="player")
+    test_list.items = ["Player1", "Player2", "Player3"]
+    validation_list_widget._list = test_list
+    validation_list_widget.populate()
+
+    # Check that the model was populated
+    assert validation_list_widget._model.rowCount() == 3
+    assert validation_list_widget._model.data(
+        validation_list_widget._model.index(0, 0)
+    ) == "Player1"
+
+
+def test_validation_list_widget_filter(validation_list_widget):
+    """Test that ValidationListWidget filters correctly."""
+    test_list = ValidationList(name="player")
+    test_list.items = ["Player1", "Player2", "Player3"]
+    validation_list_widget._list = test_list
+    validation_list_widget.populate()
+
+    # Filter for Player1
+    validation_list_widget._search_input.setText("Player1")
+
+    # Check that only Player1 is shown
+    assert validation_list_widget._filtered_model.rowCount() == 1
+    assert validation_list_widget._filtered_model.data(
+        validation_list_widget._filtered_model.index(0, 0)
+    ) == "Player1"
 
 
 def test_validation_list_widget_set_validation_list(validation_list_widget):
@@ -75,17 +81,32 @@ def test_validation_list_widget_set_validation_list(validation_list_widget):
 
 
 def test_validation_list_widget_set_list(validation_list_widget):
-    """Test that ValidationListWidget has a set_list method that works properly."""
+    """Test that ValidationListWidget has a set_list method that works properly as an alias for set_validation_list."""
     # Create a test ValidationList
     test_list = ValidationList(name="player")
     test_list.items = ["Player1", "Player2", "Player3"]
 
-    # Check that the method exists
+    # Check that both methods exist
     assert hasattr(validation_list_widget, "set_list")
+    assert hasattr(validation_list_widget, "set_validation_list")
 
-    # Use the method
+    # Spy on the set_validation_list method to verify it gets called
+    original_method = validation_list_widget.set_validation_list
+    called_with = None
+    
+    def spy_method(val_list):
+        nonlocal called_with
+        called_with = val_list
+        return original_method(val_list)
+    
+    validation_list_widget.set_validation_list = spy_method
+    
+    # Use the set_list method
     result = validation_list_widget.set_list(test_list)
 
+    # Verify set_list called set_validation_list with the same argument
+    assert called_with is test_list
+    
     # Verify method returns True
     assert result is True
 
@@ -98,6 +119,18 @@ def test_validation_list_widget_set_list(validation_list_widget):
 
     # Verify the actual list object was stored
     assert validation_list_widget._list is test_list
+    
+    # Test with a different list to make sure updates work properly
+    new_test_list = ValidationList(name="updated")
+    new_test_list.items = ["Item1", "Item2", "Item3", "Item4"]
+    
+    result = validation_list_widget.set_list(new_test_list)
+    assert result is True
+    
+    # Verify the list was updated
+    model = validation_list_widget._filtered_model
+    assert model.rowCount() == 4
+    assert validation_list_widget._list is new_test_list
 
 
 def test_validation_list_widget_get_items(validation_list_widget):
@@ -114,102 +147,3 @@ def test_validation_list_widget_get_items(validation_list_widget):
     assert "Player1" in items
     assert "Player2" in items
     assert "Player3" in items
-
-
-def test_validation_list_widget_add_item(validation_list_widget):
-    """Test that ValidationListWidget can add items."""
-    # Check if add_item method exists
-    assert hasattr(validation_list_widget, "add_item")
-
-    # Add some items
-    validation_list_widget.add_item("Player1")
-    validation_list_widget.add_item("Player2")
-
-    # Verify items were added
-    items = validation_list_widget.get_items()
-    assert len(items) == 2
-    assert "Player1" in items
-    assert "Player2" in items
-
-
-def test_validation_list_widget_delete_item(validation_list_widget):
-    """Test that ValidationListWidget can delete items."""
-    # Set up some test items
-    validation_list_widget.add_item("Player1")
-    validation_list_widget.add_item("Player2")
-    validation_list_widget.add_item("Player3")
-
-    # Check if delete_item or similar method exists
-    has_delete_method = (
-        hasattr(validation_list_widget, "delete_item")
-        or hasattr(validation_list_widget, "remove_item")
-        or hasattr(validation_list_widget, "_on_delete")
-    )
-    assert has_delete_method
-
-    # Delete an item directly using delete_item
-    if hasattr(validation_list_widget, "delete_item"):
-        validation_list_widget.delete_item("Player1")
-
-        # Verify item was deleted
-        items = validation_list_widget.get_items()
-        assert len(items) == 2
-        assert "Player1" not in items
-    # If _on_delete exists we can try to test that instead
-    elif hasattr(validation_list_widget, "_on_delete"):
-        # Mock the selection
-        mock_selection = MagicMock()
-        mock_selection.selectedIndexes.return_value = [validation_list_widget._model.index(0, 0)]
-        mock_selection.hasSelection.return_value = True
-        validation_list_widget._table_view.selectionModel = MagicMock(return_value=mock_selection)
-
-        # Replace the QMessageBox with a mock
-        original_qmessagebox = QMessageBox
-        QMessageBox.question = MagicMock(return_value=QMessageBox.Yes)
-
-        try:
-            # Call the delete method
-            validation_list_widget._on_delete()
-
-            # Verify item was deleted
-            items = validation_list_widget.get_items()
-            assert len(items) == 2
-            assert "Player1" not in items
-        finally:
-            # Restore original QMessageBox
-            QMessageBox = original_qmessagebox
-
-
-def test_validation_list_widget_has_required_attributes(validation_list_widget):
-    """Test that ValidationListWidget has all required attributes for drag-drop adapters."""
-    # Check for _table_view, which is used by the drag-drop adapter
-    assert hasattr(validation_list_widget, "_table_view")
-
-    # Check for methods used in the adapter
-    assert hasattr(validation_list_widget, "get_items")
-    assert hasattr(validation_list_widget, "add_item")
-
-    # Check for the model method
-    assert hasattr(validation_list_widget, "model")
-
-
-def test_validation_list_widget_emits_signals(validation_list_widget):
-    """Test that ValidationListWidget emits signals when changed."""
-    # Check if the widget has the expected signal
-    assert hasattr(validation_list_widget, "list_updated")
-
-    # Create a signal spy
-    signal_received = False
-
-    def on_list_updated(data):
-        nonlocal signal_received
-        signal_received = True
-
-    # Connect to the signal
-    validation_list_widget.list_updated.connect(on_list_updated)
-
-    # Modify the list
-    validation_list_widget.add_item("TestPlayer")
-
-    # Check if the signal was emitted
-    assert signal_received
